@@ -52,7 +52,7 @@ export class BaseModel extends Model {
     }
     if (consistent) {
       return this.sequelize.transaction(
-        {isolationLevel: Transaction.ISOLATION_LEVELS.REPEATABLE_READ}, // PostgreSQL-specific
+        {isolationLevel: Transaction.ISOLATION_LEVELS.REPEATABLE_READ},
         readPage,
       );
     }
@@ -101,8 +101,8 @@ export class BaseModel extends Model {
       const row = await this.findOne({
         ...findOptions,
         transaction,
-        lock: transaction.LOCK.UPDATE, // PostgreSQL-specific
-        skipLocked: true, // PostgreSQL-specific
+        lock: transaction.LOCK.UPDATE,
+        skipLocked: true,
       });
       if (!row) {
         return null;

@@ -93,4 +93,4 @@ variants, the `@layer base` reset and the reduced-motion block.
 - Breakpoints: Tailwind variants only, never raw px. Default to `md`. A form lays its fields on `FormGrid`, a `FieldGroup`
   container, so a field's columns follow the form's own width through `@…/field-group:` variants, never the viewport.
 - New component: `pnpm dlx shadcn@latest add <name>` from `apps/client`. The CLI installs a registry item's packages
-  itself, so run it with `--dry-run` first and pass every new package through `kit-license-guard` before the real add.
+  itself, so run it with `--dry-run` before the real add.

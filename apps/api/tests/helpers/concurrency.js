@@ -2,7 +2,6 @@ import {QueryTypes} from 'sequelize';
 import {vi} from 'vitest';
 import {sequelize} from '../../src/db/index.js';
 
-// PostgreSQL-specific
 const LOCK_WAITERS_QUERY =
   'SELECT count(*)::int AS waiting FROM pg_stat_activity' +
   ' WHERE datname = current_database()' +

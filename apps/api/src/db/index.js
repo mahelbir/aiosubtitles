@@ -21,17 +21,15 @@ const options = {
   },
   pool,
   dialectOptions: {
-    connectionTimeoutMillis: 10000, // PostgreSQL-specific
-    statement_timeout: 180000, // PostgreSQL-specific
-    idle_in_transaction_session_timeout: 180000, // PostgreSQL-specific
-    application_name: `api${config.port}`, // PostgreSQL-specific
+    connectionTimeoutMillis: 10000,
+    statement_timeout: 180000,
+    idle_in_transaction_session_timeout: 180000,
+    application_name: `api${config.port}`,
   },
   retry: {
     max: 3,
-    // PostgreSQL-specific
     match: [/deadlock/i, /canceling statement due to .*timeout/i],
   },
-  // PostgreSQL-specific
   isolationLevel: Sequelize.Transaction.ISOLATION_LEVELS.READ_COMMITTED,
   timezone: '+00:00',
 };

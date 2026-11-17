@@ -56,7 +56,7 @@ export const dbUtils = {
   },
 
   lockOf(model, transaction) {
-    return {level: transaction.LOCK.UPDATE, of: model}; // PostgreSQL-specific
+    return {level: transaction.LOCK.UPDATE, of: model};
   },
 
   getIds(rows) {
@@ -64,12 +64,10 @@ export const dbUtils = {
   },
 
   iLikePattern(value) {
-    // PostgreSQL-specific
     return `%${value.replace(/[%_\\]/g, '\\$&')}%`;
   },
 
   iLike(value) {
-    // PostgreSQL-specific
     return {[Op.iLike]: dbUtils.iLikePattern(value)};
   },
 
@@ -112,7 +110,6 @@ export const dbUtils = {
   },
 
   relatedCount({target, foreignKey}, model) {
-    // PostgreSQL-specific
     return relatedAggregate(
       {target, foreignKey, select: 'COUNT(*)::int'},
       model,
@@ -120,7 +117,6 @@ export const dbUtils = {
   },
 
   relatedSum({target, foreignKey, attribute}, model) {
-    // PostgreSQL-specific float8
     return relatedAggregate(
       {
         target,
@@ -154,7 +150,6 @@ export const dbUtils = {
     {query, replacements, reason, transaction},
     queryInterface,
   ) {
-    // PostgreSQL-specific
     const [{count}] = await queryInterface.sequelize.query(
       `SELECT COUNT(*)::int AS count FROM (${query}) blocking`,
       {replacements, transaction, type: QueryTypes.SELECT},

@@ -20,7 +20,6 @@ export async function collateColumn(
   queryInterface,
 ) {
   const relation = dbUtils.quoteIdentifier(table);
-  // PostgreSQL-specific
   const [row] = await queryInterface.sequelize.query(
     'SELECT format_type(atttypid, atttypmod) AS type FROM pg_attribute' +
       ' WHERE attrelid = to_regclass(:relation) AND attname = :column AND NOT attisdropped',
@@ -29,7 +28,6 @@ export async function collateColumn(
   if (!row) {
     throw new Error(`No column ${table}.${column} to collate.`);
   }
-  // PostgreSQL-specific
   await queryInterface.sequelize.query(
     `ALTER TABLE ${relation} ALTER COLUMN ${dbUtils.quoteIdentifier(column)}` +
       ` TYPE ${row.type} COLLATE ${dbUtils.quoteIdentifier(collation)}`,

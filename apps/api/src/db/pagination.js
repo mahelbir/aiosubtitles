@@ -34,7 +34,7 @@ function resolveDirection(model, path, isDesc) {
   /* A nullable sort key has no keyset comparison, so orders reaching here rule out cursor
      pagination. An index meant to serve this order must spell the same NULLS position —
      B-tree defaults to the opposite. */
-  return isDesc ? 'DESC NULLS LAST' : 'ASC NULLS FIRST'; // PostgreSQL-specific
+  return isDesc ? 'DESC NULLS LAST' : 'ASC NULLS FIRST';
 }
 
 function buildOrder(model, sort = [], fallback = []) {
