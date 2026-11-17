@@ -366,3 +366,13 @@ $RECYCLE.BIN/
 !*.sample
 /.reference/
 brainstorming.md
+.upstream.local.json
+
+/apps/client/.next-test/
+/apps/client/test-results/
+/apps/client/playwright-report/
+/apps/client/tests/e2e/.auth/
+/apps/api/storage/*/*
+!/apps/api/storage/*/.gitkeep
+/data/
+/apps/eval/.out/
