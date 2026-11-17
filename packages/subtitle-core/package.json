@@ -11,9 +11,15 @@
   },
   "dependencies": {
     "@repo/shared": "workspace:*",
+    "chardet": "^2.2.0",
+    "entities": "^9.0.0",
     "enum-plus": "^3.4.0",
     "es-toolkit": "^1.53.1",
     "fastest-levenshtein": "^1.0.16",
+    "franc-min": "^6.2.0",
     "melperjs": "^17.4.0"
+  },
+  "devDependencies": {
+    "iconv-lite": "^0.7.3"
   }
 }

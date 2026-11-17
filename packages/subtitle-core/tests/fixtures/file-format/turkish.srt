@@ -1,0 +1,48 @@
+1
+00:00:01,000 --> 00:00:03,500
+Günaydın, bugün hava çok güzel.
+
+2
+00:00:04,000 --> 00:00:06,200
+İstanbul'a gitmek için erken çıktık.
+
+3
+00:00:07,000 --> 00:00:09,800
+Şoför yolu bilmiyordu, ağaçların arasında kaybolduk.
+
+4
+00:00:10,500 --> 00:00:13,000
+Çocuklar arka koltukta şarkı söylüyordu.
+Öğretmenleri de onlara eşlik ediyordu.
+
+5
+00:00:14,000 --> 00:00:16,400
+Işıklar yanınca herkes sustu.
+
+6
+00:00:17,000 --> 00:00:19,900
+Ğ harfiyle başlayan bir kelime yoktur, değil mi?
+
+7
+00:00:20,500 --> 00:00:23,000
+Üzgünüm, sana söylemeyi unuttum.
+
+8
+00:00:24,000 --> 00:00:26,600
+Şimdi düşününce her şey çok garip görünüyor.
+
+9
+00:00:27,000 --> 00:00:29,500
+Kapıyı açık bırakma, kedi dışarı kaçar.
+
+10
+00:00:30,000 --> 00:00:32,800
+Yarın sabah erkenden yola çıkacağız.
+
+11
+00:00:33,500 --> 00:00:36,000
+Bu akşam yemeği kim hazırlayacak?
+
+12
+00:00:37,000 --> 00:00:40,000
+Hoşça kal, kendine iyi bak.

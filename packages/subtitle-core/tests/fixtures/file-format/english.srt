@@ -1,0 +1,48 @@
+1
+00:00:01,000 --> 00:00:03,500
+Good morning, the weather is lovely today.
+
+2
+00:00:04,000 --> 00:00:06,200
+We left early to catch the train to the city.
+
+3
+00:00:07,000 --> 00:00:09,800
+The driver did not know the way, so we got lost.
+
+4
+00:00:10,500 --> 00:00:13,000
+The children were singing in the back seat.
+Their teacher was singing along with them.
+
+5
+00:00:14,000 --> 00:00:16,400
+Everyone went quiet when the lights came on.
+
+6
+00:00:17,000 --> 00:00:19,900
+I think we should have taken the other road.
+
+7
+00:00:20,500 --> 00:00:23,000
+I'm sorry, I forgot to tell you about the meeting.
+
+8
+00:00:24,000 --> 00:00:26,600
+Looking back now, everything seems very strange.
+
+9
+00:00:27,000 --> 00:00:29,500
+Don't leave the door open, the cat will run outside.
+
+10
+00:00:30,000 --> 00:00:32,800
+We are going to leave early tomorrow morning.
+
+11
+00:00:33,500 --> 00:00:36,000
+Who is going to cook dinner this evening?
+
+12
+00:00:37,000 --> 00:00:40,000
+Goodbye, and take good care of yourself.

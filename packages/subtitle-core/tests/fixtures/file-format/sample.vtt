@@ -1,0 +1,22 @@
+WEBVTT - Örnek altyazı
+Kind: captions
+Language: tr
+
+NOTE Bu blok bir nottur ve satır değildir.
+
+STYLE
+::cue {
+  color: yellow;
+}
+
+giris-1
+00:01.000 --> 00:03.500 align:start position:10%
+Merhaba, nasılsın?
+
+00:00:04.000 --> 00:00:06.120 line:0
+<v Ayşe>İyiyim, teşekkürler.</v>
+<c.yellow>Sen nasılsın?</c>
+
+3
+01:02:03.004 --> 01:02:05.000
+Görüşürüz.

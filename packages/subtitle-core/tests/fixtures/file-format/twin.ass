@@ -1,0 +1,20 @@
+[Script Info]
+Title: Twin
+ScriptType: v4.00+
+PlayResX: 1920
+PlayResY: 1080
+WrapStyle: 0
+
+[V4+ Styles]
+Format: Name, Fontname, Fontsize, PrimaryColour, SecondaryColour, OutlineColour, BackColour, Bold, Italic, Underline, StrikeOut, ScaleX, ScaleY, Spacing, Angle, BorderStyle, Outline, Shadow, Alignment, MarginL, MarginR, MarginV, Encoding
+Style: Default,Arial,60,&H00FFFFFF,&H000000FF,&H00000000,&H64000000,0,0,0,0,100,100,0,0,1,2,1,2,20,20,40,162
+Style: Sign,Arial,40,&H00FFFFFF,&H000000FF,&H00000000,&H64000000,0,0,0,0,100,100,0,0,1,2,1,8,20,20,40,162
+
+[Events]
+Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
+Dialogue: 0,0:00:01.50,0:00:03.25,Default,,0,0,0,,Merhaba, nasılsın?
+Dialogue: 0,0:00:02.00,0:00:05.00,Sign,,0,0,0,,{\p1}m 0 0 l 100 0 100 100 0 100{\p0}
+Comment: 0,0:00:03.00,0:00:04.00,Default,,0,0,0,,Bu satır yorumdur.
+Dialogue: 0,0:00:04.00,0:00:06.12,Default,,0,0,0,,İyiyim, teşekkürler.\NSen nasılsın?
+Dialogue: 0,0:00:07.35,0:00:09.00,Default,,0,0,0,,{\i1}Bu gece şehirde, yağmur var.{\i0}
+Dialogue: 0,0:01:02.04,0:01:05.99,Default,,0,0,0,,{\an8}Görüşürüz,\hağabey.
