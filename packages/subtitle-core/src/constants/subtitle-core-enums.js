@@ -97,6 +97,25 @@ export const ScoreTableMode = Enum({
   STRICT_PRIORITY: {value: 'strict-priority'},
 });
 
+export const SubtitleNote = Enum({
+  HEARING_IMPAIRED: {
+    value: 'hearing-impaired',
+    label: 'HI',
+    noteFlagName: 'isHearingImpaired',
+  },
+  FORCED: {value: 'forced', label: 'Forced', noteFlagName: 'isForced'},
+  MACHINE_TRANSLATED: {
+    value: 'machine-translated',
+    label: 'MT',
+    noteFlagName: 'isMachineTranslated',
+  },
+  QUOTA_COSTLY: {
+    value: 'quota-costly',
+    label: 'Quota',
+    noteFlagName: 'isQuotaCostly',
+  },
+});
+
 export const SubtitleNotice = Enum({
   OPENSUBTITLES_ACCOUNT: {
     value: 'opensubtitles-account',

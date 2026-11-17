@@ -12,6 +12,7 @@ import {
   SubtitleFileFormat,
   SubtitleFileInvalidReason,
   SubtitleMessage,
+  SubtitleNote,
   SubtitleNotice,
 } from '../src/constants/subtitle-core-enums.js';
 
@@ -101,6 +102,11 @@ const enumMembers = [
   ['ScoreTableMode', ScoreTableMode, ['ADDITIVE', 'STRICT_PRIORITY']],
   ['SubtitleNotice', SubtitleNotice, ['OPENSUBTITLES_ACCOUNT']],
   [
+    'SubtitleNote',
+    SubtitleNote,
+    ['HEARING_IMPAIRED', 'FORCED', 'MACHINE_TRANSLATED', 'QUOTA_COSTLY'],
+  ],
+  [
     'SubtitleMessage',
     SubtitleMessage,
     [
@@ -145,6 +151,21 @@ describe('subtitle-core enums', () => {
       ['alias', 2],
       ['content-key', 3],
       ['near-duplicate', 4],
+    ]);
+  });
+
+  it('labels the subtitle notes in the order HI, Forced, MT, Quota with their row flags', () => {
+    const noteList = SubtitleNote.toList({
+      extra: note => ({noteFlagName: note.raw.noteFlagName}),
+    });
+
+    expect(
+      noteList.map(({label, noteFlagName}) => [label, noteFlagName]),
+    ).toEqual([
+      ['HI', 'isHearingImpaired'],
+      ['Forced', 'isForced'],
+      ['MT', 'isMachineTranslated'],
+      ['Quota', 'isQuotaCostly'],
     ]);
   });
 
