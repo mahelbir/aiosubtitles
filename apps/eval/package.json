@@ -9,6 +9,7 @@
     "@repo/shared": "workspace:*",
     "@repo/subtitle-core": "workspace:*",
     "enum-plus": "^3.4.0",
+    "es-toolkit": "^1.53.1",
     "melperjs": "^17.4.0"
   }
 }
