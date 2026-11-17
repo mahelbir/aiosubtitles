@@ -16,6 +16,13 @@ const restrictedIpAccess = [
     'Read request.clientIp instead — it resolves the header an edge is configured with.',
 }));
 
+const dayjsImportRestriction = {
+  name: 'dayjs',
+  message: 'Import the timezone-aware wrapper from lib/datetime.js instead.',
+};
+
+const SUBTITLE_CORE_IO_MESSAGE = 'subtitle-core stays pure: no I/O.';
+
 export default [
   {
     ignores: [
@@ -49,13 +56,7 @@ export default [
       'no-restricted-imports': [
         'error',
         {
-          paths: [
-            {
-              name: 'dayjs',
-              message:
-                'Import the timezone-aware wrapper from lib/datetime.js instead.',
-            },
-          ],
+          paths: [dayjsImportRestriction],
         },
       ],
       curly: ['error', 'all'],
@@ -132,8 +133,45 @@ export default [
     },
   },
   {
+    files: ['packages/subtitle-core/src/**'],
+    rules: {
+      'no-restricted-imports': [
+        'error',
+        {
+          paths: [
+            dayjsImportRestriction,
+            ...[
+              'node:fs',
+              'node:fs/promises',
+              'node:net',
+              'node:http',
+              'node:https',
+              'node:child_process',
+              'pg',
+              'ioredis',
+              'sequelize',
+              '@repo/tooling',
+            ].map(name => ({name, message: SUBTITLE_CORE_IO_MESSAGE})),
+          ],
+          patterns: [
+            {group: ['@repo/tooling/*'], message: SUBTITLE_CORE_IO_MESSAGE},
+          ],
+        },
+      ],
+      'no-restricted-syntax': [
+        'error',
+        {selector: 'ImportExpression', message: SUBTITLE_CORE_IO_MESSAGE},
+      ],
+      'no-restricted-globals': [
+        'error',
+        {name: 'fetch', message: SUBTITLE_CORE_IO_MESSAGE},
+      ],
+    },
+  },
+  {
     // The wrapper is the one place allowed to import the real dayjs.
     files: ['**/lib/datetime.js'],
+    ignores: ['packages/subtitle-core/src/**'],
     rules: {'no-restricted-imports': 'off'},
   },
   {
