@@ -6,7 +6,7 @@ const SHUFFLE_SEED = 20261117;
 const SHUFFLE_ROUNDS = 20;
 const NO_LIMIT = 30;
 
-const makeSeededRandom = (seed) => {
+const makeSeededRandom = seed => {
   let state = seed >>> 0;
   return () => {
     state = (state + 0x6d2b79f5) >>> 0;
@@ -21,12 +21,15 @@ const shuffleWith = (rows, random) => {
   const shuffled = [...rows];
   for (let index = shuffled.length - 1; index > 0; index -= 1) {
     const swapIndex = Math.floor(random() * (index + 1));
-    [shuffled[index], shuffled[swapIndex]] = [shuffled[swapIndex], shuffled[index]];
+    [shuffled[index], shuffled[swapIndex]] = [
+      shuffled[swapIndex],
+      shuffled[index],
+    ];
   }
   return shuffled;
 };
 
-const urlCodesOf = (rows) => rows.map((row) => row.urlCode);
+const urlCodesOf = rows => rows.map(row => row.urlCode);
 
 describe('orderSubtitleRows', () => {
   it('puts every row of an earlier user language before any row of a later one', () => {
@@ -43,7 +46,12 @@ describe('orderSubtitleRows', () => {
       subtitleLanguageLimit: NO_LIMIT,
     });
 
-    expect(orderedRows.map((row) => row.languageCode)).toEqual(['tur', 'tur', 'eng', 'eng']);
+    expect(orderedRows.map(row => row.languageCode)).toEqual([
+      'tur',
+      'tur',
+      'eng',
+      'eng',
+    ]);
   });
 
   it('drops a row whose language is not in the user language list', () => {
@@ -126,9 +134,24 @@ describe('orderSubtitleRows', () => {
 
   it('breaks a score tie by site download count from high to low', () => {
     const rankedRows = [
-      makeRankedRow({urlCode: 'aaa', languageCode: 'tur', totalScore: 30, siteDownloadCount: 5}),
-      makeRankedRow({urlCode: 'bbb', languageCode: 'tur', totalScore: 30, siteDownloadCount: 500}),
-      makeRankedRow({urlCode: 'ccc', languageCode: 'tur', totalScore: 30, siteDownloadCount: 50}),
+      makeRankedRow({
+        urlCode: 'aaa',
+        languageCode: 'tur',
+        totalScore: 30,
+        siteDownloadCount: 5,
+      }),
+      makeRankedRow({
+        urlCode: 'bbb',
+        languageCode: 'tur',
+        totalScore: 30,
+        siteDownloadCount: 500,
+      }),
+      makeRankedRow({
+        urlCode: 'ccc',
+        languageCode: 'tur',
+        totalScore: 30,
+        siteDownloadCount: 50,
+      }),
     ];
 
     const orderedRows = orderSubtitleRows({
@@ -142,9 +165,24 @@ describe('orderSubtitleRows', () => {
 
   it('treats a missing site download count as zero', () => {
     const rankedRows = [
-      makeRankedRow({urlCode: 'aaa', languageCode: 'tur', totalScore: 30, siteDownloadCount: null}),
-      makeRankedRow({urlCode: 'bbb', languageCode: 'tur', totalScore: 30, siteDownloadCount: 1}),
-      makeRankedRow({urlCode: 'ccc', languageCode: 'tur', totalScore: 30, siteDownloadCount: 0}),
+      makeRankedRow({
+        urlCode: 'aaa',
+        languageCode: 'tur',
+        totalScore: 30,
+        siteDownloadCount: null,
+      }),
+      makeRankedRow({
+        urlCode: 'bbb',
+        languageCode: 'tur',
+        totalScore: 30,
+        siteDownloadCount: 1,
+      }),
+      makeRankedRow({
+        urlCode: 'ccc',
+        languageCode: 'tur',
+        totalScore: 30,
+        siteDownloadCount: 0,
+      }),
     ];
 
     const orderedRows = orderSubtitleRows({
@@ -158,9 +196,24 @@ describe('orderSubtitleRows', () => {
 
   it('breaks a score and download tie by url code ascending', () => {
     const rankedRows = [
-      makeRankedRow({urlCode: 'ccc', languageCode: 'tur', totalScore: 30, siteDownloadCount: 7}),
-      makeRankedRow({urlCode: 'aaa', languageCode: 'tur', totalScore: 30, siteDownloadCount: 7}),
-      makeRankedRow({urlCode: 'bbb', languageCode: 'tur', totalScore: 30, siteDownloadCount: 7}),
+      makeRankedRow({
+        urlCode: 'ccc',
+        languageCode: 'tur',
+        totalScore: 30,
+        siteDownloadCount: 7,
+      }),
+      makeRankedRow({
+        urlCode: 'aaa',
+        languageCode: 'tur',
+        totalScore: 30,
+        siteDownloadCount: 7,
+      }),
+      makeRankedRow({
+        urlCode: 'bbb',
+        languageCode: 'tur',
+        totalScore: 30,
+        siteDownloadCount: 7,
+      }),
     ];
 
     const orderedRows = orderSubtitleRows({
@@ -188,22 +241,80 @@ describe('orderSubtitleRows', () => {
       subtitleLanguageLimit: 2,
     });
 
-    expect(urlCodesOf(orderedRows)).toEqual(['tur-1', 'tur-2', 'eng-1', 'eng-2']);
+    expect(urlCodesOf(orderedRows)).toEqual([
+      'tur-1',
+      'tur-2',
+      'eng-1',
+      'eng-2',
+    ]);
   });
 
   it('gives the same order for every shuffle of the same input', () => {
     const rankedRows = [
-      makeRankedRow({urlCode: 'tur-a', languageCode: 'tur', totalScore: 30, siteDownloadCount: 7}),
-      makeRankedRow({urlCode: 'tur-b', languageCode: 'tur', totalScore: 30, siteDownloadCount: 7}),
-      makeRankedRow({urlCode: 'tur-c', languageCode: 'tur', totalScore: 30, siteDownloadCount: null}),
-      makeRankedRow({urlCode: 'tur-d', languageCode: 'tur', totalScore: 30, siteDownloadCount: 0}),
-      makeRankedRow({urlCode: 'tur-e', languageCode: 'tur', totalScore: 60, siteDownloadCount: 1}),
-      makeRankedRow({urlCode: 'eng-a', languageCode: 'eng', totalScore: 10, siteDownloadCount: 3}),
-      makeRankedRow({urlCode: 'eng-b', languageCode: 'eng', totalScore: 10, siteDownloadCount: 3}),
-      makeRankedRow({urlCode: 'eng-c', languageCode: 'eng', totalScore: 10, siteDownloadCount: 9}),
-      makeRankedRow({urlCode: 'fre-a', languageCode: 'fre', totalScore: 99, siteDownloadCount: 99}),
+      makeRankedRow({
+        urlCode: 'tur-a',
+        languageCode: 'tur',
+        totalScore: 30,
+        siteDownloadCount: 7,
+      }),
+      makeRankedRow({
+        urlCode: 'tur-b',
+        languageCode: 'tur',
+        totalScore: 30,
+        siteDownloadCount: 7,
+      }),
+      makeRankedRow({
+        urlCode: 'tur-c',
+        languageCode: 'tur',
+        totalScore: 30,
+        siteDownloadCount: null,
+      }),
+      makeRankedRow({
+        urlCode: 'tur-d',
+        languageCode: 'tur',
+        totalScore: 30,
+        siteDownloadCount: 0,
+      }),
+      makeRankedRow({
+        urlCode: 'tur-e',
+        languageCode: 'tur',
+        totalScore: 60,
+        siteDownloadCount: 1,
+      }),
+      makeRankedRow({
+        urlCode: 'eng-a',
+        languageCode: 'eng',
+        totalScore: 10,
+        siteDownloadCount: 3,
+      }),
+      makeRankedRow({
+        urlCode: 'eng-b',
+        languageCode: 'eng',
+        totalScore: 10,
+        siteDownloadCount: 3,
+      }),
+      makeRankedRow({
+        urlCode: 'eng-c',
+        languageCode: 'eng',
+        totalScore: 10,
+        siteDownloadCount: 9,
+      }),
+      makeRankedRow({
+        urlCode: 'fre-a',
+        languageCode: 'fre',
+        totalScore: 99,
+        siteDownloadCount: 99,
+      }),
     ];
-    const expectedUrlCodes = ['tur-e', 'tur-a', 'tur-b', 'tur-c', 'eng-c', 'eng-a', 'eng-b'];
+    const expectedUrlCodes = [
+      'tur-e',
+      'tur-a',
+      'tur-b',
+      'tur-c',
+      'eng-c',
+      'eng-a',
+      'eng-b',
+    ];
     const random = makeSeededRandom(SHUFFLE_SEED);
 
     for (let round = 0; round < SHUFFLE_ROUNDS; round += 1) {
@@ -224,7 +335,11 @@ describe('orderSubtitleRows', () => {
     ];
     const inputUrlCodes = urlCodesOf(rankedRows);
 
-    orderSubtitleRows({rankedRows, languageCodes: ['tur'], subtitleLanguageLimit: 1});
+    orderSubtitleRows({
+      rankedRows,
+      languageCodes: ['tur'],
+      subtitleLanguageLimit: 1,
+    });
 
     expect(urlCodesOf(rankedRows)).toEqual(inputUrlCodes);
   });
