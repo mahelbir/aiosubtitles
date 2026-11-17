@@ -10,6 +10,7 @@
     "./*": "./src/*"
   },
   "dependencies": {
+    "@cospired/i18n-iso-languages": "^4.2.0",
     "enum-plus": "^3.4.0",
     "es-toolkit": "^1.53.1",
     "qs": "^6.17.1",

@@ -7,3 +7,4 @@ apps/client/src/components/ui
 .agents
 .claude
 .superpowers
+packages/shared/tests/fixtures
