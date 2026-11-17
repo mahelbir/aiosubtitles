@@ -16,7 +16,7 @@
     "db": "pnpm --filter api db",
     "eval": "pnpm --filter @repo/eval eval",
     "test": "vitest run",
-    "test:unit": "vitest run --project shared --project api-unit --project subtitle-core",
+    "test:unit": "vitest run --project shared --project api-unit --project subtitle-core --project eval",
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage packages/shared/tests apps/api/tests/unit packages/subtitle-core/tests apps/eval/tests",
     "test:coverage:api": "rm -rf coverage/.v8 && NODE_V8_COVERAGE=coverage/.v8 vitest run --project api-integration && c8 report",

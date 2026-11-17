@@ -39,6 +39,13 @@ export default defineConfig({
       },
       {
         test: {
+          name: 'eval',
+          root: './apps/eval',
+          include: ['tests/**/*.test.js'],
+        },
+      },
+      {
+        test: {
           name: 'api-unit',
           root: './apps/api',
           include: ['tests/unit/**/*.test.js'],
