@@ -1,0 +1,4 @@
+@utility content-visibility-auto {
+  content-visibility: auto;
+  contain-intrinsic-size: auto calc(var(--spacing) * 6);
+}

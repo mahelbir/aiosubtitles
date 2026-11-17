@@ -1,0 +1,51 @@
+{
+  "private": true,
+  "type": "module",
+  "packageManager": "pnpm@12.16.1",
+  "engines": {
+    "node": ">=26"
+  },
+  "scripts": {
+    "dev:api": "pnpm --filter api dev",
+    "dev:client": "pnpm --filter client dev",
+    "db:migrate": "pnpm --filter api db:migrate",
+    "db:rollback": "pnpm --filter api db:rollback",
+    "db:seed": "pnpm --filter api db:seed",
+    "db:seed:mock": "pnpm --filter api db:seed:mock",
+    "db:sync": "pnpm --filter api db:sync",
+    "db": "pnpm --filter api db",
+    "test": "vitest run",
+    "test:unit": "vitest run --project shared --project api-unit",
+    "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage packages/shared/tests apps/api/tests/unit",
+    "test:coverage:api": "rm -rf coverage/.v8 && NODE_V8_COVERAGE=coverage/.v8 vitest run --project api-integration && c8 report",
+    "test:e2e": "pnpm --filter client test:e2e",
+    "test:e2e:kit": "pnpm --filter client test:e2e:kit",
+    "test:e2e:ui": "pnpm --filter client test:e2e:ui",
+    "lint": "eslint . && pnpm --filter client lint",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "prepare": "husky || true",
+    "docker:dev": "docker compose -f docker-compose.dev.yaml  up -d --build --force-recreate --remove-orphans"
+  },
+  "devDependencies": {
+    "@eslint/js": "9.39.5",
+    "@testcontainers/postgresql": "^12.2.1",
+    "@testcontainers/redis": "^12.2.1",
+    "@types/node": "^26.6.6",
+    "@vitest/coverage-v8": "^5.1.0",
+    "c8": "^12.0.0",
+    "eslint": "9.39.5",
+    "eslint-plugin-check-file": "^3.3.2",
+    "eslint-plugin-import": "2.32.0",
+    "get-port": "^7.2.0",
+    "globals": "17.7.0",
+    "husky": "^9.1.7",
+    "msw": "^3.0.3",
+    "nodemon": "^3.1.14",
+    "prettier": "^3.9.10",
+    "prettier-plugin-tailwindcss": "^0.8.1",
+    "testcontainers": "^12.2.1",
+    "vitest": "^5.1.0"
+  }
+}

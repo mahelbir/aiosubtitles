@@ -1,0 +1,206 @@
+x-db-port: &db-port ${DB_PORT:?}
+x-db-name: &db-name ${DB_NAME:?}
+x-db-env: &db-env
+  DB_HOST: ${DB_HOST:-network-alias-postgres}
+  DB_PORT: *db-port
+  DB_NAME: *db-name
+  DB_USER: ${DB_USER:-}
+  DB_PASS: ${DB_PASS:-}
+x-redis-port: &redis-port ${REDIS_PORT:?}
+x-redis-pass: &redis-pass ${REDIS_PASS:-default}
+x-redis-env: &redis-env
+  REDIS_HOST: ${REDIS_HOST:-network-alias-redis}
+  REDIS_PORT: *redis-port
+  REDIS_PASS: *redis-pass
+x-datastore-healthcheck: &datastore-healthcheck
+  interval: 10s
+  timeout: 3s
+  retries: 5
+x-http-healthcheck: &http-healthcheck
+  interval: 30s
+  timeout: 5s
+  retries: 3
+  start_period: 15s
+x-hardening: &hardening
+  security_opt:
+    - no-new-privileges:true
+  cap_drop:
+    - ALL
+  pids_limit: 256
+x-privilege-drop-hardening: &privilege-drop-hardening
+  <<: *hardening
+  cap_add:
+    - CHOWN
+    - DAC_READ_SEARCH
+    - SETUID
+    - SETGID
+
+services:
+  postgres:
+    <<: *privilege-drop-hardening
+    image: postgres:17-alpine
+    profiles: ['${DB_HOST:+external}']
+    cap_add:
+      - CHOWN
+      - DAC_READ_SEARCH
+      - FOWNER
+      - SETUID
+      - SETGID
+    pids_limit: 4096
+    environment:
+      POSTGRES_DB: *db-name
+      POSTGRES_USER: ${DB_USER:-${DB_NAME}}
+      POSTGRES_PASSWORD: ${DB_PASS:-${DB_NAME}}
+      PGPORT: *db-port
+    networks:
+      default:
+        aliases:
+          - network-alias-postgres
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    ports:
+      - '127.0.0.1:${DB_PORT}:${DB_PORT}'
+    restart: unless-stopped
+    healthcheck:
+      <<: *datastore-healthcheck
+      test: ['CMD-SHELL', 'pg_isready -U "$$POSTGRES_USER" -d "$$POSTGRES_DB"']
+
+  redis:
+    <<: *privilege-drop-hardening
+    image: valkey/valkey:9-alpine
+    profiles: ['${REDIS_HOST:+external}']
+    command:
+      [
+        '--port',
+        *redis-port,
+        '--appendonly',
+        'yes',
+        '--requirepass',
+        *redis-pass,
+      ]
+    environment:
+      REDISCLI_AUTH: *redis-pass
+    networks:
+      default:
+        aliases:
+          - network-alias-redis
+    volumes:
+      - redis-data:/data
+    ports:
+      - '127.0.0.1:${REDIS_PORT}:${REDIS_PORT}'
+    restart: unless-stopped
+    healthcheck:
+      <<: *datastore-healthcheck
+      test: ['CMD', 'redis-cli', '-p', *redis-port, 'ping']
+
+  migrate:
+    <<: *privilege-drop-hardening
+    build:
+      context: .
+      dockerfile: apps/api/Dockerfile
+    command: node src/db/cli/migrate.js up
+    env_file:
+      - path: .env
+        required: false
+    environment:
+      <<: *db-env
+      NODE_ENV: production
+    restart: 'no'
+    depends_on:
+      postgres:
+        condition: service_healthy
+        required: false
+
+  seed:
+    <<: *privilege-drop-hardening
+    build:
+      context: .
+      dockerfile: apps/api/Dockerfile
+    command: node src/db/cli/seed.js up
+    env_file:
+      - path: .env
+        required: false
+    environment:
+      <<: *db-env
+      NODE_ENV: production
+    restart: 'no'
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+
+  sync:
+    <<: *privilege-drop-hardening
+    build:
+      context: .
+      dockerfile: apps/api/Dockerfile
+    command: node src/db/cli/sync.js
+    env_file:
+      - path: .env
+        required: false
+    environment:
+      <<: [*db-env, *redis-env]
+      NODE_ENV: production
+    restart: 'no'
+    depends_on:
+      seed:
+        condition: service_completed_successfully
+      redis:
+        condition: service_healthy
+        required: false
+
+  api:
+    <<: *privilege-drop-hardening
+    build:
+      context: .
+      dockerfile: apps/api/Dockerfile
+    env_file:
+      - path: .env
+        required: false
+    environment:
+      <<: [*db-env, *redis-env]
+      NODE_ENV: production
+      HOST: 0.0.0.0
+      # Trusts private hops: a LAN or VPN client can forge its IP.
+      TRUST_PROXY: loopback,uniquelocal
+      API_BASE_PATH: ${API_BASE_PATH:-}
+    ports:
+      - '127.0.0.1:${PORT}:${PORT}'
+    volumes:
+      - ./data/storage:/app/storage
+    restart: unless-stopped
+    healthcheck:
+      <<: *http-healthcheck
+      test:
+        [
+          'CMD-SHELL',
+          'wget -q --spider http://127.0.0.1:${PORT}${API_BASE_PATH:-/}',
+        ]
+    depends_on:
+      sync:
+        condition: service_completed_successfully
+      postgres:
+        condition: service_healthy
+        required: false
+      redis:
+        condition: service_healthy
+        required: false
+
+  client:
+    <<: *hardening
+    build:
+      context: .
+      dockerfile: apps/client/Dockerfile
+    environment:
+      NODE_ENV: production
+      HOSTNAME: 0.0.0.0
+      PORT: ${NEXT_PORT}
+    ports:
+      - '127.0.0.1:${NEXT_PORT}:${NEXT_PORT}'
+    restart: unless-stopped
+    healthcheck:
+      <<: *http-healthcheck
+      test: ['CMD-SHELL', 'wget -q --spider http://127.0.0.1:${NEXT_PORT}/']
+
+volumes:
+  postgres-data:
+  redis-data:

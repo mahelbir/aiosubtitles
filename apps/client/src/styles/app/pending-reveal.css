@@ -1,0 +1,16 @@
+:root {
+  --reveal-delay: 200ms;
+}
+
+@utility pending-reveal {
+  animation: pending-reveal 200ms linear var(--reveal-delay) backwards;
+}
+
+@keyframes pending-reveal {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}

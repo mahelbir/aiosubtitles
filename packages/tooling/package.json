@@ -1,0 +1,16 @@
+{
+  "name": "@repo/tooling",
+  "private": true,
+  "sideEffects": false,
+  "type": "module",
+  "files": [
+    "src"
+  ],
+  "exports": {
+    "./*": "./src/*"
+  },
+  "dependencies": {
+    "dotenv": "^18.0.9",
+    "melperjs": "^17.4.0"
+  }
+}

@@ -1,0 +1,31 @@
+.nprogress-busy .fetch-indicator {
+  display: none;
+}
+
+.fetch-indicator {
+  position: fixed;
+  inset-block-start: 0;
+  inset-inline: 0;
+  z-index: 2000;
+  height: 4px;
+  background-image: linear-gradient(
+    90deg,
+    transparent,
+    var(--primary),
+    transparent
+  );
+  background-repeat: no-repeat;
+  background-size: 50% 100%;
+  animation:
+    fetch-indicator-slide 1.2s linear infinite,
+    pending-reveal 200ms linear var(--reveal-delay) backwards;
+}
+
+@keyframes fetch-indicator-slide {
+  0% {
+    background-position: -50% 0;
+  }
+  100% {
+    background-position: 150% 0;
+  }
+}

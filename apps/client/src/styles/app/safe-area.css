@@ -1,0 +1,3 @@
+@utility bottom-safe {
+  bottom: max(calc(var(--spacing) * 6), env(safe-area-inset-bottom));
+}

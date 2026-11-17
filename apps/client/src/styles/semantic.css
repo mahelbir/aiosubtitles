@@ -1,0 +1,26 @@
+:root {
+  --success: oklch(0.45 0.14 150);
+  --success-foreground: oklch(1 0 0);
+  --warning: oklch(0.48 0.14 80);
+  --warning-foreground: oklch(1 0 0);
+  --blue: oklch(0.38 0.19 255);
+  --sky: oklch(0.53 0.14 245);
+}
+
+.dark {
+  --success: oklch(0.68 0.14 150);
+  --success-foreground: oklch(1 0 0);
+  --warning: oklch(0.75 0.15 80);
+  --warning-foreground: oklch(0.1913 0 0);
+  --blue: oklch(0.54 0.17 255);
+  --sky: oklch(0.8 0.09 240);
+}
+
+@theme inline {
+  --color-success: var(--success);
+  --color-success-foreground: var(--success-foreground);
+  --color-warning: var(--warning);
+  --color-warning-foreground: var(--warning-foreground);
+  --color-blue: var(--blue);
+  --color-sky: var(--sky);
+}

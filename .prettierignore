@@ -1,0 +1,9 @@
+node_modules
+pnpm-lock.yaml
+.reference
+apps/client/src/components/ui
+**/storage
+.idea
+.agents
+.claude
+.superpowers

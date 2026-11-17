@@ -1,0 +1,71 @@
+import * as fs from 'node:fs/promises';
+import * as path from 'node:path';
+import {escapeRegExp} from 'es-toolkit';
+import {describe, expect, it} from 'vitest';
+import {getWorkspacePath} from '@repo/tooling/workspace.js';
+import {getEnvSchema} from '../../src/config/schema.js';
+import {createClientIpResolver} from '../../src/lib/ip.js';
+
+const envShape = getEnvSchema({appPath: '/app'}).shape;
+
+const bundledDbHost = envShape.DB_HOST.parse(undefined);
+
+const TRUST_PROXY_LINE = /^\s*TRUST_PROXY:\s*(.+)$/m;
+const DOCKER_GATEWAY = '172.18.0.1';
+const CLIENT = '203.0.113.7';
+const FORGED = '10.9.9.9';
+
+async function resolveBehindCompose(peer) {
+  const [, value] =
+    TRUST_PROXY_LINE.exec(await readCompose('docker-compose.yaml')) ?? [];
+  return createClientIpResolver({
+    header: '',
+    trustProxy: envShape.TRUST_PROXY.parse(value),
+  })(peer);
+}
+
+const readCompose = file =>
+  fs.readFile(path.join(getWorkspacePath(), file), 'utf8');
+
+describe.each(['docker-compose.yaml', 'docker-compose.dev.yaml'])(
+  '%s',
+  file => {
+    it('bundles PostgreSQL under the host the API treats as bundled', async () => {
+      const compose = await readCompose(file);
+      expect(compose).toMatch(
+        new RegExp(`aliases:\\s+- ${escapeRegExp(bundledDbHost)}$`, 'm'),
+      );
+      expect(compose).toContain(`DB_HOST: \${DB_HOST:-${bundledDbHost}}`);
+    });
+
+    it('keeps the :+ expansion Coolify cannot parse out of every value but a profile', async () => {
+      const lines = (await readCompose(file)).split('\n');
+      expect(
+        lines.filter(
+          line =>
+            line.includes(':+') && !line.trimStart().startsWith('profiles:'),
+        ),
+      ).toEqual([]);
+    });
+  },
+);
+
+describe('the production compose', () => {
+  it('names the caller behind the host proxy, not the proxy itself', async () => {
+    expect(
+      await resolveBehindCompose({
+        remoteAddress: DOCKER_GATEWAY,
+        headers: {'x-forwarded-for': CLIENT},
+      }),
+    ).toBe(CLIENT);
+  });
+
+  it('keeps the address the proxy saw for an internet caller forging a hop', async () => {
+    expect(
+      await resolveBehindCompose({
+        remoteAddress: DOCKER_GATEWAY,
+        headers: {'x-forwarded-for': `${FORGED}, ${CLIENT}`},
+      }),
+    ).toBe(CLIENT);
+  });
+});

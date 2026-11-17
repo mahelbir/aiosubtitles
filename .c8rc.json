@@ -1,0 +1,13 @@
+{
+  "src": ["apps/api/src", "packages/shared/src"],
+  "all": true,
+  "reporter": ["text-summary", "html", "lcov"],
+  "reports-dir": "coverage/api",
+  "temp-directory": "coverage/.v8",
+  "exclude": [
+    "**/node_modules/**",
+    "**/tests/**",
+    "apps/api/src/server.js",
+    "apps/api/src/db/cli/{migrate,seed}.js"
+  ]
+}

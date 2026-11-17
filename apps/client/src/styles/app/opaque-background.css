@@ -1,0 +1,7 @@
+@utility bg-opaque-* {
+  background-color: color-mix(
+    in srgb,
+    --value(--color-*) calc(--modifier(integer) * 1%),
+    --theme(--color-background)
+  );
+}

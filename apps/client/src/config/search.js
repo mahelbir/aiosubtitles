@@ -1,0 +1,2 @@
+export const SEARCH_DEBOUNCE_MS = 300;
+export const SEARCHABLE_THRESHOLD = 10;

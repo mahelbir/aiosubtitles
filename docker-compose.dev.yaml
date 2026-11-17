@@ -1,0 +1,141 @@
+x-db-port: &db-port ${DB_PORT:?}
+x-db-name: &db-name ${DB_NAME:?}
+x-db-env: &db-env
+  DB_HOST: ${DB_HOST:-network-alias-postgres}
+  DB_PORT: *db-port
+  DB_NAME: *db-name
+  DB_USER: ${DB_USER:-}
+  DB_PASS: ${DB_PASS:-}
+x-redis-port: &redis-port ${REDIS_PORT:?}
+x-redis-pass: &redis-pass ${REDIS_PASS:-default}
+x-redis-env: &redis-env
+  REDIS_HOST: ${REDIS_HOST:-network-alias-redis}
+  REDIS_PORT: *redis-port
+  REDIS_PASS: *redis-pass
+x-datastore-healthcheck: &datastore-healthcheck
+  interval: 10s
+  timeout: 3s
+  retries: 5
+x-workspace: &workspace
+  build:
+    context: .
+    dockerfile_inline: |
+      FROM node:26-alpine
+      COPY --from=ghcr.io/pnpm/pnpm:12-alpine /opt/pnpm /opt/pnpm
+      RUN for bin in pnpm pn pnpx pnx; do ln -s "/opt/pnpm/$$bin" "/usr/local/bin/$$bin"; done
+  working_dir: /repo
+  volumes:
+    - .:/repo
+    # Container-local installs — keep host (macOS/Windows) node_modules out.
+    - pnpm-home:/root/.local/share/pnpm
+    - pnpm-store:/pnpm-store
+    - pnpm-cache:/pnpm-cache
+    - root-modules:/repo/node_modules
+    - api-modules:/repo/apps/api/node_modules
+    - client-modules:/repo/apps/client/node_modules
+    - shared-modules:/repo/packages/shared/node_modules
+    - tooling-modules:/repo/packages/tooling/node_modules
+    - client-next:/repo/apps/client/.next
+x-workspace-env: &workspace-env
+  PNPM_CONFIG_STORE_DIR: /pnpm-store
+  PNPM_CONFIG_CACHE_DIR: /pnpm-cache
+
+services:
+  postgres:
+    image: postgres:17-alpine
+    profiles: ['${DB_HOST:+external}']
+    environment:
+      POSTGRES_DB: *db-name
+      POSTGRES_USER: ${DB_USER:-${DB_NAME}}
+      POSTGRES_PASSWORD: ${DB_PASS:-${DB_NAME}}
+      PGPORT: *db-port
+    networks:
+      default:
+        aliases:
+          - network-alias-postgres
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    ports:
+      - '127.0.0.1:${DB_PORT}:${DB_PORT}'
+    healthcheck:
+      <<: *datastore-healthcheck
+      test: ['CMD-SHELL', 'pg_isready -U "$$POSTGRES_USER" -d "$$POSTGRES_DB"']
+
+  redis:
+    image: valkey/valkey:9-alpine
+    profiles: ['${REDIS_HOST:+external}']
+    command:
+      [
+        '--port',
+        *redis-port,
+        '--appendonly',
+        'yes',
+        '--requirepass',
+        *redis-pass,
+      ]
+    environment:
+      REDISCLI_AUTH: *redis-pass
+    networks:
+      default:
+        aliases:
+          - network-alias-redis
+    volumes:
+      - redis-data:/data
+    ports:
+      - '127.0.0.1:${REDIS_PORT}:${REDIS_PORT}'
+    healthcheck:
+      <<: *datastore-healthcheck
+      test: ['CMD', 'redis-cli', '-p', *redis-port, 'ping']
+
+  install:
+    <<: *workspace
+    command: pnpm install
+    environment:
+      <<: *workspace-env
+      CI: 'true'
+    restart: 'no'
+
+  api:
+    <<: *workspace
+    command: sh -c "pnpm db && pnpm --filter api dev --exitcrash"
+    restart: unless-stopped
+    environment:
+      <<: [*workspace-env, *db-env, *redis-env]
+      HOST: 0.0.0.0
+    ports:
+      - '127.0.0.1:${PORT}:${PORT}'
+    depends_on:
+      install:
+        condition: service_completed_successfully
+      postgres:
+        condition: service_healthy
+        required: false
+      redis:
+        condition: service_healthy
+        required: false
+
+  client:
+    <<: *workspace
+    # The version string is read from the repo, and the node image ships no git
+    # client. safe.directory covers Linux hosts, where the mount keeps host ownership.
+    command: sh -c "apk add --no-cache git && git config --global --add safe.directory /repo && pnpm --filter client dev -H 0.0.0.0"
+    environment:
+      <<: *workspace-env
+    ports:
+      - '127.0.0.1:${NEXT_PORT}:${NEXT_PORT}'
+    depends_on:
+      install:
+        condition: service_completed_successfully
+
+volumes:
+  pnpm-home:
+  pnpm-store:
+  pnpm-cache:
+  root-modules:
+  api-modules:
+  client-modules:
+  shared-modules:
+  tooling-modules:
+  client-next:
+  postgres-data:
+  redis-data:

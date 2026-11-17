@@ -1,0 +1,40 @@
+:root:root {
+  --toastify-color-light: var(--popover);
+  --toastify-color-dark: var(--popover);
+  --toastify-toast-background: var(--popover);
+  --toastify-text-color-light: var(--popover-foreground);
+  --toastify-text-color-dark: var(--popover-foreground);
+  --toastify-color-transparent: color-mix(
+    in oklch,
+    var(--popover),
+    transparent 30%
+  );
+
+  --toastify-color-info: var(--primary);
+  --toastify-color-success: var(--success);
+  --toastify-color-warning: var(--warning);
+  --toastify-color-error: var(--destructive);
+
+  --toastify-text-color-info: var(--primary-foreground);
+  --toastify-text-color-success: var(--success-foreground);
+  --toastify-text-color-warning: var(--warning-foreground);
+  --toastify-text-color-error: var(--destructive-foreground);
+
+  --toastify-color-progress-light: var(--primary);
+  --toastify-color-progress-dark: var(--primary);
+
+  --toastify-spinner-color: var(--muted-foreground);
+  --toastify-spinner-color-empty-area: var(--muted);
+
+  --toastify-font-family: var(--font-sans);
+  --toastify-toast-bd-radius: var(--radius);
+  --toastify-toast-shadow: var(--shadow-lg);
+  --toastify-toast-min-height: 0;
+  --toastify-toast-padding: calc(var(--spacing) * 3);
+  --toastify-z-index: 60;
+}
+
+.Toastify__toast.Toastify__toast {
+  border: 1px solid var(--border);
+  letter-spacing: var(--tracking-normal);
+}

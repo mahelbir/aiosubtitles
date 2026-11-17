@@ -1,0 +1,10 @@
+{
+  "compilerOptions": {
+    "module": "nodenext",
+    "moduleResolution": "nodenext",
+    "target": "esnext",
+    "checkJs": false,
+    "paths": {}
+  },
+  "include": ["src", "types"]
+}
