@@ -74,6 +74,14 @@
  */
 
 /**
+ * @typedef {{
+ *   representative: SubtitleCandidate,
+ *   members: SubtitleCandidate[],
+ *   duplicateTier: number|null,
+ * }} DuplicateGroup
+ */
+
+/**
  * @typedef {{signalState: string, signalMagnitude: number}} SignalReading
  */
 

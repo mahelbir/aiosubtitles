@@ -13,6 +13,7 @@
     "@repo/shared": "workspace:*",
     "enum-plus": "^3.4.0",
     "es-toolkit": "^1.53.1",
+    "fastest-levenshtein": "^1.0.16",
     "melperjs": "^17.4.0"
   }
 }
