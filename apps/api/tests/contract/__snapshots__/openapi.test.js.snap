@@ -14,8 +14,54 @@ exports[`OpenAPI document > matches the recorded contract 1`] = `
     "/": {
       "get": {
         "responses": {
-          "200": {
-            "description": "Default Response",
+          "302": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "description": "Redirects to the configure page",
+                  "enum": [
+                    null,
+                  ],
+                  "nullable": true,
+                  "type": "string",
+                },
+              },
+            },
+            "description": "Redirects to the configure page",
+          },
+        },
+        "tags": [
+          "default",
+        ],
+      },
+    },
+    "/{userConfigId}/configure": {
+      "get": {
+        "parameters": [
+          {
+            "in": "path",
+            "name": "userConfigId",
+            "required": true,
+            "schema": {
+              "type": "string",
+            },
+          },
+        ],
+        "responses": {
+          "302": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "description": "Redirects to the configure page",
+                  "enum": [
+                    null,
+                  ],
+                  "nullable": true,
+                  "type": "string",
+                },
+              },
+            },
+            "description": "Redirects to the configure page",
           },
         },
         "tags": [

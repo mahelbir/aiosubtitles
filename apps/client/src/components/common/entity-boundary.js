@@ -1,7 +1,7 @@
 'use client';
 
 import {useEffect, useRef} from 'react';
-import {toast} from 'react-toastify';
+import {toast} from 'react-toastify/unstyled';
 import {StatusCodes} from 'http-status-codes';
 import {EntityNotFound} from '@/components/common/entity-not-found';
 import {QueryBoundary} from '@/components/common/query-boundary';

@@ -54,6 +54,15 @@ const COUNTER_PATTERN = /^\d+ \/ \d+$/;
 
 const CLEAR_SELECTION = 'Clear selection';
 
+const DATE_ORDER_PROBE = '01022000';
+
+const DATE_ORDER_BY_PROBE_VALUE = {
+  '2000-01-02': ['month', 'day', 'year'],
+  '2000-02-01': ['day', 'month', 'year'],
+};
+
+const DEFAULT_DATE_ORDER = ['year', 'month', 'day'];
+
 const CLEARABLE_SELECTS = [
   {label: 'Şehir', name: 'city', option: 'Ankara'},
   {label: 'Ülke', name: 'country', option: 'Fransa'},
@@ -91,6 +100,24 @@ async function readTriggerLook(page, label) {
     element => element.role === 'combobox' && element.label === label,
   );
   return {height: trigger.box.h, ...pick(trigger.style, TRIGGER_LOOK)};
+}
+
+async function typeDate(control, monthDayYear) {
+  await control.focus();
+  await control.pressSequentially(DATE_ORDER_PROBE);
+  const order =
+    DATE_ORDER_BY_PROBE_VALUE[await control.inputValue()] ?? DEFAULT_DATE_ORDER;
+  await control.fill('');
+  await control.blur();
+  await control.focus();
+  const segments = {
+    month: monthDayYear.slice(0, 2),
+    day: monthDayYear.slice(2, 4),
+    year: monthDayYear.slice(4),
+  };
+  await control.pressSequentially(
+    order.map(segment => segments[segment]).join(''),
+  );
 }
 
 async function clear(control) {
@@ -237,9 +264,8 @@ test.describe('form controls', () => {
 
   test('a typed date stores its YYYY-MM-DD string', async ({page}) => {
     const date = getControl(page, 'Doğum tarihi');
-    await date.focus();
 
-    await date.pressSequentially('03152024');
+    await typeDate(date, '03152024');
 
     await expect(date).toHaveValue('2024-03-15');
     await expectFixtureState(page).toMatchObject({
@@ -249,8 +275,7 @@ test.describe('form controls', () => {
 
   test('an emptied date stores undefined', async ({page}) => {
     const date = getControl(page, 'Doğum tarihi');
-    await date.focus();
-    await date.pressSequentially('03152024');
+    await typeDate(date, '03152024');
     await expectFixtureState(page).toMatchObject({
       fields: {birthDate: {value: '2024-03-15'}},
     });
@@ -266,9 +291,8 @@ test.describe('form controls', () => {
   for (const typed of ['02312024', '02292023']) {
     test(`refuses the impossible date ${typed}`, async ({page}) => {
       const date = getControl(page, 'Doğum tarihi');
-      await date.focus();
 
-      await date.pressSequentially(typed);
+      await typeDate(date, typed);
 
       await expect(date).toHaveValue('');
       await expectFixtureState(page).toMatchObject({

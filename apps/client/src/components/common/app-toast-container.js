@@ -1,6 +1,6 @@
 'use client';
 
-import {ToastContainer, Zoom} from 'react-toastify';
+import {ToastContainer, Zoom} from 'react-toastify/unstyled';
 import {APP_THEME} from '@/config/theme';
 
 export function AppToastContainer() {

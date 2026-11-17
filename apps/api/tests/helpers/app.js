@@ -6,13 +6,23 @@ import {HTTP_FIXTURE_URL, httpFixture, paginationFixture} from './fixtures.js';
 let instance = null;
 let scope = null;
 let basePath = config.apiBasePath;
+let testPlugins = [];
 const routes = [];
 
-export function setTestAppBasePath(path) {
+function assertNotBuilt() {
   if (instance) {
     throw new Error('The test app is already built');
   }
+}
+
+export function setTestAppBasePath(path) {
+  assertNotBuilt();
   basePath = basePathField.parse(path);
+}
+
+export function setTestAppPlugins(plugins) {
+  assertNotBuilt();
+  testPlugins = plugins;
 }
 
 export function getTestAppBasePath() {
@@ -24,7 +34,7 @@ export async function getTestApp() {
     instance = buildApp({
       logger: false,
       basePath,
-      extraPlugins: [httpFixture, paginationFixture],
+      extraPlugins: [httpFixture, paginationFixture, ...testPlugins],
     });
     /* Registration is deferred until ready(), so a hook added here still sees
        every route the autoloader is about to declare. */
@@ -62,6 +72,7 @@ export async function closeTestApp() {
   instance = null;
   scope = null;
   basePath = config.apiBasePath;
+  testPlugins = [];
   routes.length = 0;
   await app.close();
 }

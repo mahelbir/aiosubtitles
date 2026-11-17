@@ -39,16 +39,16 @@ function readPaintedColors(page) {
   );
 }
 
-async function expectLandingDark(page) {
-  await page.goto('/');
+async function expectConfigureDark(page) {
+  await page.goto('/configure');
   await expectDarkTheme(page);
 }
 
 test.describe('theme on a light system', () => {
   test.use({colorScheme: 'light'});
 
-  test('the landing page renders dark', async ({page}) => {
-    await expectLandingDark(page);
+  test('the configure page renders dark', async ({page}) => {
+    await expectConfigureDark(page);
   });
 
   for (const {slug} of FIXTURES.filter(
@@ -66,15 +66,15 @@ test.describe('theme without JavaScript', () => {
   test.use({colorScheme: 'light', javaScriptEnabled: false});
 
   test('the server HTML already renders dark', async ({page}) => {
-    await expectLandingDark(page);
+    await expectConfigureDark(page);
   });
 });
 
 test.describe('theme on a dark system', () => {
   test.use({colorScheme: 'dark'});
 
-  test('the landing page renders dark', async ({page}) => {
-    await expectLandingDark(page);
+  test('the configure page renders dark', async ({page}) => {
+    await expectConfigureDark(page);
   });
 });
 

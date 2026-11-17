@@ -2,7 +2,7 @@ import {StatusCodes} from 'http-status-codes';
 import {LinkButton} from '@/components/common/link-button';
 import {ErrorPage} from '@/components/common/error-page';
 import {THEME_COLORS} from '@/config/theme';
-import LandingLayout from './(landing)/layout';
+import {AppDocument} from './app-document';
 
 export const metadata = {
   title: 'Page not found',
@@ -14,17 +14,17 @@ export const viewport = {
 
 export default function GlobalNotFound() {
   return (
-    <LandingLayout>
+    <AppDocument>
       <ErrorPage
         code={StatusCodes.NOT_FOUND}
         title="Sorry!"
         message="The page you are looking for was not found."
         actions={
-          <LinkButton variant="secondary" href="/">
+          <LinkButton variant="secondary" href="/configure">
             Go to the home page
           </LinkButton>
         }
       />
-    </LandingLayout>
+    </AppDocument>
   );
 }

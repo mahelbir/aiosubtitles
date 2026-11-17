@@ -14,7 +14,6 @@ export function AppThemeProvider({children}) {
       defaultTheme={APP_THEME}
       forcedTheme={APP_THEME}
       enableSystem={false}
-      disableTransitionOnChange
     >
       <ThemeColorMeta />
       {children}

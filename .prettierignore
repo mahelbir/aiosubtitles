@@ -8,4 +8,5 @@ apps/client/src/components/ui
 .claude
 .superpowers
 packages/shared/tests/fixtures
+apps/api/tests/fixtures/client-export
 apps/eval/metrics*.md

@@ -148,22 +148,6 @@ services:
         condition: service_healthy
         required: false
 
-  client:
-    <<: *hardening
-    build:
-      context: .
-      dockerfile: apps/client/Dockerfile
-    environment:
-      NODE_ENV: production
-      HOSTNAME: 0.0.0.0
-      PORT: ${NEXT_PORT}
-    ports:
-      - '127.0.0.1:${NEXT_PORT}:${NEXT_PORT}'
-    restart: unless-stopped
-    healthcheck:
-      <<: *http-healthcheck
-      test: ['CMD-SHELL', 'wget -q --spider http://127.0.0.1:${NEXT_PORT}/']
-
 volumes:
   postgres-data:
   redis-data:

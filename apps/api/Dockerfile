@@ -1,6 +1,6 @@
 # Build from the REPO ROOT so the workspace (lockfile + @repo/shared) is visible:
 #   docker build -f apps/api/Dockerfile .
-FROM node:26-alpine AS build
+FROM node:26-alpine AS pnpm
 COPY --from=ghcr.io/pnpm/pnpm:12-alpine /opt/pnpm /opt/pnpm
 RUN for bin in pnpm pn pnpx pnx; do ln -s "/opt/pnpm/$bin" "/usr/local/bin/$bin"; done
 WORKDIR /repo
@@ -11,6 +11,28 @@ RUN pnpm --version
 
 ENV PNPM_CONFIG_STORE_DIR=/pnpm-store
 COPY pnpm-lock.yaml pnpm-workspace.yaml ./
+
+FROM pnpm AS client
+COPY apps/client/package.json apps/client/
+COPY packages/shared/package.json packages/shared/
+COPY packages/tooling/package.json packages/tooling/
+RUN --mount=type=cache,id=pnpm-store,target=/pnpm-store \
+    pnpm install --frozen-lockfile --prefer-offline --filter client...
+
+COPY packages/shared packages/shared
+COPY packages/tooling packages/tooling
+COPY apps/client apps/client
+
+ENV NEXT_TELEMETRY_DISABLED=1
+
+# The root .env is optional and linked from the mounted context for this step
+# only, so no layer keeps it.
+RUN --mount=type=bind,target=/context \
+    if [ -f /context/.env ]; then ln -s /context/.env .env; fi \
+    && APP_VERSION="$(date -u +%y%m%d.%H%M)" pnpm --filter client build \
+    && rm -f .env
+
+FROM pnpm AS build
 COPY apps/api/package.json apps/api/
 COPY packages/shared/package.json packages/shared/
 COPY packages/tooling/package.json packages/tooling/
@@ -20,6 +42,7 @@ RUN --mount=type=cache,id=pnpm-store,target=/pnpm-store \
 COPY packages/shared packages/shared
 COPY packages/tooling packages/tooling
 COPY apps/api apps/api
+COPY --from=client /repo/apps/client/out apps/api/public-client
 
 # Self-contained production bundle (workspace deps injected, dev deps dropped).
 # Injection is scoped to this step so dev installs keep symlinking the workspace.

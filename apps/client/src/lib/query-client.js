@@ -4,7 +4,7 @@ import {
   QueryCache,
   QueryClient,
 } from '@tanstack/react-query';
-import {toast} from 'react-toastify';
+import {toast} from 'react-toastify/unstyled';
 import {ErrorCode} from '@repo/shared/constants/error-code.js';
 import {isTransientRefetchError} from '@/lib/query';
 

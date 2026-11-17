@@ -40,7 +40,8 @@ variants, the `@layer base` reset and the reduced-motion block.
   hidden.
 - **`src/styles/vendor-overrides/`** — rules against a third-party package's _own_ shipped stylesheet.
   `react-toastify.css` maps `--toastify-*` onto our tokens; its doubled selectors (`:root:root`) raise specificity
-  so they win whatever order react-toastify injects its runtime stylesheet in.
+  so they win over the package stylesheet. A package that injects its stylesheet at run time is imported through its
+  unstyled entry and its stylesheet joins `globals.css` beside its override, so the page CSP serves it as `'self'`.
 - **`src/styles/ui-overrides/` is the last resort** — unlike `vendor-overrides/` we own the source, so the first fix is
   always the `components/ui/` file itself (a `cva` variant, a `data-*` prop, folding in a `:has()` rule). A file here is
   justified only when a rule cannot win from inside the component (a cascade/`@layer`-order tiebreak). One file per

@@ -14,7 +14,7 @@ import {
 import {get, has, isEmpty, set, toPath} from 'es-toolkit/compat';
 import {Immer} from 'immer';
 import {useRef} from 'react';
-import {toast} from 'react-toastify';
+import {toast} from 'react-toastify/unstyled';
 import {z} from 'zod';
 import {ErrorCode} from '@repo/shared/constants/error-code.js';
 

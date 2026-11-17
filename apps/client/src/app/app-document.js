@@ -22,7 +22,9 @@ export const APP_VIEWPORT = {
 };
 
 export function AppDocument({children}) {
-  preconnect(API_ORIGIN);
+  if (API_ORIGIN) {
+    preconnect(API_ORIGIN);
+  }
 
   return (
     <html

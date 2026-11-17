@@ -37,6 +37,11 @@ const restrictedImportPaths = [
     name: '@formkit/auto-animate/react',
     message: 'use useAutoAnimate from @/hooks/use-auto-animate',
   },
+  {
+    name: 'react-toastify',
+    message:
+      'import from react-toastify/unstyled: the default entry injects its stylesheet at run time, which the page CSP blocks',
+  },
 ];
 
 const restrictedClassPatterns = [

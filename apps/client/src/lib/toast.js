@@ -1,4 +1,4 @@
-import {toast} from 'react-toastify';
+import {toast} from 'react-toastify/unstyled';
 
 function off(value) {
   return value === false ? null : value;

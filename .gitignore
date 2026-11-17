@@ -372,6 +372,7 @@ brainstorming.md
 /apps/client/test-results/
 /apps/client/playwright-report/
 /apps/client/tests/e2e/.auth/
+/apps/api/public-client/
 /apps/api/storage/*/*
 !/apps/api/storage/*/.gitkeep
 /data/

@@ -1,7 +1,9 @@
 import {defineConfig, devices} from '@playwright/test';
+import {DEFAULT_TIMEZONE} from '@repo/shared/constants/app.js';
 import {getWorkspacePath} from '@repo/tooling/workspace.js';
 import {
   getE2eClientOrigin,
+  getE2eApiPort,
   getE2eClientPort,
   resolveE2ePorts,
 } from '../api/tests/e2e/ports.js';
@@ -9,6 +11,7 @@ import {loadClientEnv} from './env.mjs';
 import {getApiUrl} from './tests/e2e/lib/api.js';
 
 const SERVER_TIMEOUT = 180_000;
+const BROWSER_LOCALE = 'en-US';
 
 loadClientEnv();
 await resolveE2ePorts();
@@ -25,6 +28,8 @@ export default defineConfig({
   reporter: [['list'], ['html', {open: 'never'}]],
   use: {
     baseURL,
+    locale: BROWSER_LOCALE,
+    timezoneId: DEFAULT_TIMEZONE,
     trace: 'on-first-retry',
   },
   projects: [
@@ -66,7 +71,7 @@ export default defineConfig({
       name: 'api',
       command: 'pnpm --filter api e2e:server',
       cwd: getWorkspacePath(),
-      url: `${apiUrl}/`,
+      port: getE2eApiPort(),
       gracefulShutdown: {signal: 'SIGINT', timeout: 15_000},
       timeout: SERVER_TIMEOUT,
       reuseExistingServer: false,

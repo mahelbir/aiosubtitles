@@ -34,6 +34,7 @@ export const config = deepFreeze({
   appPath,
   workspacePath,
   srcPath: path.join(appPath, 'src'),
+  clientExportRoot: path.join(appPath, 'public-client'),
   storagePath: env.STORAGE_PATH,
   privateStoragePath: path.join(env.STORAGE_PATH, 'private'),
   publicStoragePath: path.join(env.STORAGE_PATH, 'public'),
