@@ -32,6 +32,13 @@ export default defineConfig({
       },
       {
         test: {
+          name: 'subtitle-core',
+          root: './packages/subtitle-core',
+          include: ['tests/**/*.test.js'],
+        },
+      },
+      {
+        test: {
           name: 'api-unit',
           root: './apps/api',
           include: ['tests/unit/**/*.test.js'],
@@ -65,7 +72,12 @@ export default defineConfig({
          under one, each file is matched against its own project's root, where
          `src/lib/settings.js` names a file in both packages. The logic tier is
          therefore selected by test path, never by `--project`. */
-      include: ['apps/api/src/**/*.js', 'packages/shared/src/**/*.js'],
+      include: [
+        'apps/api/src/**/*.js',
+        'apps/eval/src/**/*.js',
+        'packages/shared/src/**/*.js',
+        'packages/subtitle-core/src/**/*.js',
+      ],
       /* What only a booted application reaches. Those paths are covered by the
          integration project, whose coverage V8 cannot attribute — counting them
          here would report a number that is wrong in the pessimistic direction. */

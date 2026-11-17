@@ -101,7 +101,11 @@ export default [
         {
           zones: [
             {
-              target: ['./apps/api/src', './packages/*/src/**'],
+              target: [
+                './apps/api/src',
+                './apps/eval/src',
+                './packages/*/src/**',
+              ],
               from: ['./apps/*/tests/**', './packages/*/tests/**'],
               message: 'Shipped code never imports from a tests tree.',
             },

@@ -1,0 +1,12 @@
+{
+  "name": "@repo/eval",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "eval": "node src/cli.js"
+  },
+  "dependencies": {
+    "@repo/shared": "workspace:*",
+    "@repo/subtitle-core": "workspace:*"
+  }
+}

@@ -430,6 +430,15 @@ importers:
         specifier: ^1.4.0
         version: 1.4.0
 
+  apps/eval:
+    dependencies:
+      '@repo/shared':
+        specifier: workspace:*
+        version: link:../../packages/shared
+      '@repo/subtitle-core':
+        specifier: workspace:*
+        version: link:../../packages/subtitle-core
+
   packages/shared:
     dependencies:
       enum-plus:
@@ -444,6 +453,21 @@ importers:
       zod:
         specifier: ^4.6.7
         version: 4.6.7
+
+  packages/subtitle-core:
+    dependencies:
+      '@repo/shared':
+        specifier: workspace:*
+        version: link:../shared
+      enum-plus:
+        specifier: ^3.4.0
+        version: 3.4.0
+      es-toolkit:
+        specifier: ^1.53.1
+        version: 1.53.1
+      melperjs:
+        specifier: ^17.4.0
+        version: 17.4.0
 
   packages/tooling:
     dependencies:
