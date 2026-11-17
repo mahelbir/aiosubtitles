@@ -1,3 +1,10 @@
+import {
+  ScoreTableMode,
+  ScoringSignal,
+  SignalState,
+} from '../../src/constants/subtitle-core-enums.js';
+import {tokenizeReleaseName} from '../../src/release-name/name-tokens.js';
+
 export const makeReleaseInfo = (overrides = {}) => ({
   releaseTitle: null,
   releaseYear: null,
@@ -59,5 +66,32 @@ export const makeRankedRow = (overrides = {}) => ({
   totalScore: 0,
   confidenceWord: null,
   subtitleFileName: null,
+  ...overrides,
+});
+
+export const makeNamedRelease = (releaseName, overrides = {}) =>
+  makeReleaseInfo({nameTokens: tokenizeReleaseName(releaseName), ...overrides});
+
+export const makeSignalReading = (overrides = {}) => ({
+  signalState: SignalState.MATCH,
+  signalMagnitude: 1,
+  ...overrides,
+});
+
+export const makeSignalSet = (overrides = {}) => ({
+  ...Object.fromEntries(
+    ScoringSignal.values.map(scoringSignal => [
+      scoringSignal,
+      makeSignalReading({signalState: SignalState.UNKNOWN, signalMagnitude: 0}),
+    ]),
+  ),
+  ...overrides,
+});
+
+export const makeScoreTable = (overrides = {}) => ({
+  tableName: 'fixture-table',
+  tableCitations: ['tests/helpers/factories.js'],
+  tableMode: ScoreTableMode.ADDITIVE,
+  signalPoints: {},
   ...overrides,
 });

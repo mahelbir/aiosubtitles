@@ -70,6 +70,7 @@
  *   referenceComparison: {isSameTimeFamily: boolean}|null,
  *   variantReferenceFamilyCount: number,
  *   variantHashMatchCount: number,
+ *   independentCopyCount?: number,
  * }} SubtitleCandidate
  */
 
@@ -109,7 +110,7 @@
  *   totalScore: number,
  *   hardRejectReason: string|null,
  *   signalPoints: Object<string, number>,
- *   bestReleaseIndex: number,
+ *   bestReleaseIndex: number|null,
  *   confidenceWord: string|null,
  *   priorityVector: number[]|null,
  * }} ScoreBreakdown
