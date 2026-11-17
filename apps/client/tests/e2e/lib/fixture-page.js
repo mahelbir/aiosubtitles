@@ -10,16 +10,8 @@ export const DIALOG_SELECTOR = '[role="dialog"]';
 
 export const PUBLIC_FIXTURES_PATH = '/fixtures';
 
-export function openFixture(page, name, searchParams) {
-  return openFixtureAt(page, '/admin/fixtures', name, searchParams);
-}
-
-export function openPublicFixture(page, name, searchParams) {
-  return openFixtureAt(page, PUBLIC_FIXTURES_PATH, name, searchParams);
-}
-
-async function openFixtureAt(page, path, name, searchParams) {
-  await gotoWithQuery(page, `${path}/${name}`, searchParams);
+export async function openFixture(page, name, searchParams) {
+  await gotoWithQuery(page, `${PUBLIC_FIXTURES_PATH}/${name}`, searchParams);
   await page
     .locator(
       `[data-testid="fixture"][data-fixture="${name}"]:not([aria-busy="true"])`,

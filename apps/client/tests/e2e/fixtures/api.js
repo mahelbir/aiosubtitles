@@ -1,6 +1,8 @@
 import {keepPreviousData, useQueryClient} from '@tanstack/react-query';
 import {delay} from 'es-toolkit';
-import {apiData, apiEnvelope} from '@/lib/api-client';
+import {withApiQuery} from '@repo/shared/lib/url-query.js';
+import {env} from '@/config/env';
+import {requestApi} from '@/lib/api-request';
 import {optionSource} from '@/lib/option-source';
 import {
   useAppMutation,
@@ -37,6 +39,15 @@ export const fixtureKeys = {
   people: () => [...fixtureKeys.all, 'people'],
   person: id => [...fixtureKeys.people(), id],
 };
+
+async function apiData(path, {query, ...options} = {}) {
+  await Promise.resolve();
+  return requestApi(env.API_URL, withApiQuery(path, query), options);
+}
+
+function apiEnvelope(path, options = {}) {
+  return apiData(path, {...options, envelope: true});
+}
 
 export function submitFormPolicies(values) {
   return apiEnvelope('/fixtures/form-policies', {method: 'POST', body: values});
@@ -139,10 +150,6 @@ export function fetchFixtureEntity(id, {signal}) {
 export async function fetchFixturePerson({id, latency, signal}) {
   await delay(latency, {signal});
   return findFixturePerson(id);
-}
-
-export function updateFixtureProfile(values) {
-  return apiEnvelope('/fixtures/profile', {method: 'PATCH', body: values});
 }
 
 export function useSubmitFormPolicies(options) {
@@ -255,14 +262,4 @@ export function useInvalidatingFixtureEntry(options) {
 
 export function useToastFixtureEntry(options) {
   return useToastMutation({mutationFn: postFixtureEntry}, options);
-}
-
-export function useUpdateFixtureProfile(options) {
-  return useAppMutation(
-    {
-      mutationFn: updateFixtureProfile,
-      meta: {touchPrincipal: ({isSelf}) => isSelf},
-    },
-    options,
-  );
 }

@@ -1,14 +1,7 @@
 import {buildApp} from '../../src/build.js';
 import {config} from '../../src/config/index.js';
 import {basePathField} from '../../src/config/schema.js';
-import {SECURITY_KEY_HEADER} from '../../src/plugins/security-key.js';
-import {
-  SECURITY_KEY_FIXTURE_URL,
-  httpFixture,
-  paginationFixture,
-  securityKeyFixture,
-  settingsFixture,
-} from './fixtures.js';
+import {HTTP_FIXTURE_URL, httpFixture, paginationFixture} from './fixtures.js';
 
 let instance = null;
 let scope = null;
@@ -31,12 +24,7 @@ export async function getTestApp() {
     instance = buildApp({
       logger: false,
       basePath,
-      extraPlugins: [
-        securityKeyFixture,
-        settingsFixture,
-        httpFixture,
-        paginationFixture,
-      ],
+      extraPlugins: [httpFixture, paginationFixture],
     });
     /* Registration is deferred until ready(), so a hook added here still sees
        every route the autoloader is about to declare. */
@@ -50,11 +38,7 @@ export async function getTestApp() {
       scope ??= request.server;
     });
     await instance.ready();
-    await instance.inject({
-      method: 'GET',
-      url: basePath + SECURITY_KEY_FIXTURE_URL,
-      headers: {[SECURITY_KEY_HEADER]: config.securityKey},
-    });
+    await instance.inject({method: 'GET', url: basePath + HTTP_FIXTURE_URL});
   }
   return instance;
 }

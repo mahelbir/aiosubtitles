@@ -13,8 +13,7 @@
     "db:rollback": "node src/db/cli/migrate.js down",
     "db:seed": "node src/db/cli/seed.js up",
     "db:seed:mock": "node src/db/cli/seed-mock.dev.js",
-    "db:sync": "node src/db/cli/sync.js",
-    "db": "pnpm db:migrate && pnpm db:seed && pnpm db:sync",
+    "db": "pnpm db:migrate && pnpm db:seed",
     "e2e:server": "NODE_ENV=test node tests/e2e/server.js"
   },
   "dependencies": {

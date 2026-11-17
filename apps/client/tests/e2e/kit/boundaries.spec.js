@@ -420,7 +420,7 @@ test.describe('boundaries', () => {
           await expectNotFound(section);
           await expect(
             section.getByRole('link', {name: 'Geri dön'}),
-          ).toHaveAttribute('href', '/admin/fixtures');
+          ).toHaveAttribute('href', '/fixtures');
           await expectFixtureState(page).toMatchObject({
             entity: {status: 'error'},
           });

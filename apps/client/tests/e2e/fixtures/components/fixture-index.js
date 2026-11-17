@@ -10,7 +10,7 @@ export function FixtureIndex() {
       <ul className="flex flex-col gap-2">
         {FIXTURES.map(fixture => (
           <li key={fixture.slug} className="flex flex-col gap-1">
-            <FixtureLink href={`/admin/fixtures/${fixture.slug}`}>
+            <FixtureLink href={`/fixtures/${fixture.slug}`}>
               {fixture.title}
             </FixtureLink>
             {fixture.variants.length > 0 && (
@@ -20,9 +20,7 @@ export function FixtureIndex() {
               >
                 {fixture.variants.map(variant => (
                   <li key={variant}>
-                    <FixtureLink
-                      href={`/admin/fixtures/${fixture.slug}${variant}`}
-                    >
+                    <FixtureLink href={`/fixtures/${fixture.slug}${variant}`}>
                       {variant}
                     </FixtureLink>
                   </li>

@@ -1,7 +1,6 @@
 import fp from 'fastify-plugin';
 import {config} from '../config/index.js';
 import {securityFromHooks} from '../lib/openapi.js';
-import {SECURITY_KEY_HEADER} from './security-key.js';
 
 export default fp(
   async function swaggerPlugin(fastify, {basePath = config.apiBasePath} = {}) {
@@ -35,17 +34,6 @@ export default fp(
     await fastify.register(swagger, {
       openapi: {
         info: {title: 'API', version: 'latest'},
-        components: {
-          securitySchemes: {
-            bearerAuth: {type: 'http', scheme: 'bearer', bearerFormat: 'JWT'},
-            securityKey: {
-              type: 'apiKey',
-              in: 'query',
-              name: 'securityKey',
-              description: `Also accepted as the \`${SECURITY_KEY_HEADER}\` header when this parameter is absent.`,
-            },
-          },
-        },
       },
       transform: jsonSchemaTransform,
     });

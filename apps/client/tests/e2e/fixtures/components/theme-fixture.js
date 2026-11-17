@@ -1,7 +1,7 @@
 'use client';
 
 import {useTheme} from 'next-themes';
-import {ThemeModeToggle} from '@/components/layout/admin/theme-mode-toggle';
+import {ThemeModeToggle} from '@/components/common/theme-mode-toggle';
 import {useIsClient} from '@/hooks/use-is-client';
 import {FixtureState} from './fixture-state';
 

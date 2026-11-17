@@ -193,15 +193,6 @@ export const FIXTURES = [
       ),
   },
   {
-    slug: 'api-client',
-    title: 'API client',
-    variants: ['?expiresIn=10', '?expiresIn=0'],
-    load: () =>
-      import('./components/api-client-fixture').then(
-        ({ApiClientFixture}) => ApiClientFixture,
-      ),
-  },
-  {
     slug: 'connectivity',
     title: 'Connectivity',
     variants: [],
@@ -265,16 +256,6 @@ export const FIXTURES = [
       ),
   },
   {
-    slug: 'require-session',
-    title: 'Require session',
-    variants: [],
-    isSessionGuarded: true,
-    load: () =>
-      import('./components/require-session-fixture').then(
-        ({RequireSessionFixture}) => RequireSessionFixture,
-      ),
-  },
-  {
     slug: 'form-skeletons',
     title: 'Form skeletons',
     variants: [
@@ -288,24 +269,6 @@ export const FIXTURES = [
     load: () =>
       import('./components/form-skeletons-fixture').then(
         ({FormSkeletonsFixture}) => FormSkeletonsFixture,
-      ),
-  },
-  {
-    slug: 'admin-nav',
-    title: 'Admin nav',
-    variants: ['?isCollapsed'],
-    load: () =>
-      import('./components/admin-nav-fixture').then(
-        ({AdminNavFixture}) => AdminNavFixture,
-      ),
-  },
-  {
-    slug: 'admin-shell',
-    title: 'Admin shell',
-    variants: [],
-    load: () =>
-      import('./components/admin-shell-fixture').then(
-        ({AdminShellFixture}) => AdminShellFixture,
       ),
   },
 ];

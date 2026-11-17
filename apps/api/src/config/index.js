@@ -55,21 +55,12 @@ export const config = deepFreeze({
 
   rateLimitWindow: env.RATE_LIMIT_WINDOW,
   rateLimitIpMax: env.RATE_LIMIT_IP_MAX,
-  rateLimitUserMax: env.RATE_LIMIT_USER_MAX,
   rateLimitIpPenalty: env.RATE_LIMIT_IP_PENALTY,
-  rateLimitUserPenalty: env.RATE_LIMIT_USER_PENALTY,
   rateLimitAllowList: env.RATE_LIMIT_ALLOW_LIST,
   isRateLimitHeadersEnabled: env.RATE_LIMIT_HEADERS,
 
-  isPasswordLoginEnabled: true,
   secretKey: env.SECRET_KEY,
-  securityKey: env.SECURITY_KEY,
   bcryptStrength: env.BCRYPT_STRENGTH,
-  accessTokenTtl: env.ACCESS_TOKEN_TTL,
-  refreshTokenTtl: env.REFRESH_TOKEN_TTL,
-
-  userCacheTtl: env.USER_CACHE_TTL,
-  authCacheTtl: env.AUTH_CACHE_TTL,
 
   dbHost: env.DB_HOST,
   dbPort: env.DB_PORT,

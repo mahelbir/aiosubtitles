@@ -169,11 +169,7 @@ export function FormShellsFixture() {
         </TabMenuCard>
       </TabSubmitContext>
       <section aria-label="Profil">
-        <PageCardForm
-          form={profileForm}
-          title="Profil kartı"
-          back="/admin/fixtures"
-        >
+        <PageCardForm form={profileForm} title="Profil kartı" back="/fixtures">
           <FormField name="name">
             <TextInput label="Ad" />
           </FormField>

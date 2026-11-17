@@ -2,7 +2,6 @@
 
 import {useState} from 'react';
 import {useSearchParams} from 'next/navigation';
-import {RolePlacement} from '@repo/shared/constants/role.js';
 import {Form} from '@/components/form/form';
 import {FormField} from '@/components/form/form-field';
 import {FormGrid} from '@/components/form/form-grid';
@@ -10,6 +9,10 @@ import {SubmitButton} from '@/components/form/submit-button';
 import {ToggleGroupInput} from '@/components/form/toggle-group-input';
 import {useAppForm} from '@/lib/form';
 import {useFieldStates} from '../hooks/use-field-states';
+import {
+  FIXTURE_PLACEMENT_OPTIONS,
+  FixturePlacement,
+} from '../lib/fixture-placement';
 import {FixtureState} from './fixture-state';
 
 const STATUS_OPTIONS = [
@@ -22,13 +25,14 @@ const STATUS_VALIDATORS = {
 };
 
 const PLACEMENT_EXTRAS = {
-  [RolePlacement.ABOVE]: {help: 'Seçili rolün üstüne yerleşir.'},
-  [RolePlacement.SAME]: {disabled: true},
+  [FixturePlacement.ABOVE]: {help: 'Seçili rolün üstüne yerleşir.'},
+  [FixturePlacement.SAME]: {disabled: true},
 };
 
-const placementOptions = RolePlacement.toList({
-  extra: ({value}) => PLACEMENT_EXTRAS[value],
-});
+const placementOptions = FIXTURE_PLACEMENT_OPTIONS.map(option => ({
+  ...option,
+  ...PLACEMENT_EXTRAS[option.value],
+}));
 
 export function ToggleGroupInputFixture() {
   const searchParams = useSearchParams();
@@ -36,7 +40,7 @@ export function ToggleGroupInputFixture() {
   const form = useAppForm({
     defaultValues: {
       isActive: !searchParams.has('isPassive'),
-      placement: RolePlacement.ABOVE,
+      placement: FixturePlacement.ABOVE,
     },
     onSubmit: ({value}) => setSubmitted(value),
   });

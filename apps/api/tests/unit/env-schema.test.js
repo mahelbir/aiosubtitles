@@ -13,7 +13,6 @@ const parseEnv = env =>
     PORT: '3001',
     CORS_ORIGINS: '',
     SECRET_KEY: 'secret-key-of-the-app',
-    SECURITY_KEY: 'security-key',
     DB_PORT: '5432',
     DB_NAME,
     REDIS_PORT: '6379',
@@ -21,14 +20,6 @@ const parseEnv = env =>
   });
 
 describe('service keys', () => {
-  it('refuses an empty security key', () => {
-    expect(shape.SECURITY_KEY.safeParse('').success).toBe(false);
-  });
-
-  it('accepts any non-empty security key', () => {
-    expect(shape.SECURITY_KEY.safeParse('service-key').success).toBe(true);
-  });
-
   it('refuses an empty secret key', () => {
     expect(shape.SECRET_KEY.safeParse('').success).toBe(false);
   });

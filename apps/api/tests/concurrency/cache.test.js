@@ -2,13 +2,19 @@ import {describe, expect, it, vi} from 'vitest';
 import {sequelize} from '../../src/db/index.js';
 import {redis} from '../../src/redis/index.js';
 import {RedisCache} from '../../src/redis/cache.js';
-import {userCache} from '../../src/lib/user-cache.js';
-import {Role} from '../../src/db/models/role.js';
-import {User} from '../../src/db/models/user.js';
-import {UserRole} from '../../src/db/models/user-role.js';
 import {recordRedisCommands} from '../helpers/counters.js';
 import {runConcurrently} from '../helpers/concurrency.js';
-import {createRole, createUser, toEmail} from '../helpers/factories.js';
+import {
+  createFixtureRecord,
+  createFixtureTag,
+  toEmail,
+} from '../helpers/factories.js';
+import {fixtureRecordCache, fixtureTagCache} from '../helpers/fixture-cache.js';
+import {
+  FixtureRecord,
+  FixtureRecordTag,
+  FixtureTag,
+} from '../helpers/fixture-models.js';
 
 const FIXTURE_PREFIX = 'fixture:race:';
 const FIXTURE_TTL = 60;
@@ -46,10 +52,10 @@ async function fillAcrossInvalidation(invalidate, {before, after}) {
   return {cache, load};
 }
 
-async function primeUserCache(user) {
+async function primeRecordCache(record) {
   await redis.flushdb();
-  await userCache.get(user.id);
-  expect(await userCache.peek(user.id)).toBeDefined();
+  await fixtureRecordCache.get(record.id);
+  expect(await fixtureRecordCache.peek(record.id)).toBeDefined();
 }
 
 describe('single flight', () => {
@@ -103,128 +109,160 @@ describe('single flight', () => {
 
 describe('invalidation', () => {
   it('drops the entry so the next read sees the write', async () => {
-    const user = await createUser({email: toEmail('before')});
-    await primeUserCache(user);
-    await user.update({email: toEmail('after')});
-    expect((await userCache.get(user.id)).email).toBe(toEmail('after'));
+    const record = await createFixtureRecord({name: toEmail('before')});
+    await primeRecordCache(record);
+    await record.update({name: toEmail('after')});
+    expect((await fixtureRecordCache.get(record.id)).name).toBe(
+      toEmail('after'),
+    );
   });
 
   it('keeps serving the old value until the transaction commits', async () => {
-    const user = await createUser({email: toEmail('pre-commit')});
-    await primeUserCache(user);
+    const record = await createFixtureRecord({name: toEmail('pre-commit')});
+    await primeRecordCache(record);
 
     await sequelize.transaction(async transaction => {
-      await user.update({email: toEmail('mid-commit')}, {transaction});
-      const during = await userCache.get(user.id);
-      expect(during.email).toBe(toEmail('pre-commit'));
+      await record.update({name: toEmail('mid-commit')}, {transaction});
+      const during = await fixtureRecordCache.get(record.id);
+      expect(during.name).toBe(toEmail('pre-commit'));
     });
 
-    expect((await userCache.get(user.id)).email).toBe(toEmail('mid-commit'));
+    expect((await fixtureRecordCache.get(record.id)).name).toBe(
+      toEmail('mid-commit'),
+    );
   });
 
   it('restores the cached value when the transaction rolls back', async () => {
-    const user = await createUser({email: toEmail('rolled-back')});
-    await primeUserCache(user);
+    const record = await createFixtureRecord({name: toEmail('rolled-back')});
+    await primeRecordCache(record);
 
     await expect(
       sequelize.transaction(async transaction => {
-        await user.update({email: toEmail('never-lands')}, {transaction});
+        await record.update({name: toEmail('never-lands')}, {transaction});
         throw new Error('rollback');
       }),
     ).rejects.toThrow('rollback');
 
-    expect((await userCache.get(user.id)).email).toBe(toEmail('rolled-back'));
+    expect((await fixtureRecordCache.get(record.id)).name).toBe(
+      toEmail('rolled-back'),
+    );
   });
 
   it('drops the entry when the record is destroyed', async () => {
-    const user = await createUser({email: toEmail('destroyed')});
-    await primeUserCache(user);
+    const record = await createFixtureRecord({name: toEmail('destroyed')});
+    await primeRecordCache(record);
 
-    await user.destroy();
+    await record.destroy();
 
-    expect(await userCache.get(user.id)).toBeNull();
+    expect(await fixtureRecordCache.get(record.id)).toBeNull();
   });
 
   it('drops only the entry a bulk update names, without a sweep', async () => {
-    const user = await createUser({email: toEmail('bulk-before')});
-    await primeUserCache(user);
+    const record = await createFixtureRecord({name: toEmail('bulk-before')});
+    await primeRecordCache(record);
 
     const commands = await recordRedisCommands(() =>
-      User.update({email: toEmail('bulk-after')}, {where: {id: user.id}}),
+      FixtureRecord.update(
+        {name: toEmail('bulk-after')},
+        {where: {id: record.id}},
+      ),
     );
 
     expect(commands).not.toContain('incr');
-    expect((await userCache.get(user.id)).email).toBe(toEmail('bulk-after'));
+    expect((await fixtureRecordCache.get(record.id)).name).toBe(
+      toEmail('bulk-after'),
+    );
   });
 
   it('drops only the entry a bulk destroy names, without a sweep', async () => {
-    const user = await createUser({email: toEmail('bulk-destroyed')});
-    await primeUserCache(user);
+    const record = await createFixtureRecord({name: toEmail('bulk-destroyed')});
+    await primeRecordCache(record);
 
     const commands = await recordRedisCommands(() =>
-      User.destroy({where: {id: [user.id]}}),
+      FixtureRecord.destroy({where: {id: [record.id]}}),
     );
 
     expect(commands).not.toContain('incr');
-    expect(await userCache.get(user.id)).toBeNull();
+    expect(await fixtureRecordCache.get(record.id)).toBeNull();
   });
 
   it('sweeps on a bulk write that names no record', async () => {
-    const user = await createUser({email: toEmail('swept-before')});
-    await primeUserCache(user);
+    const record = await createFixtureRecord({name: toEmail('swept-before')});
+    await primeRecordCache(record);
 
-    await User.update(
-      {email: toEmail('swept-after')},
-      {where: {email: toEmail('swept-before')}},
+    await FixtureRecord.update(
+      {name: toEmail('swept-after')},
+      {where: {name: toEmail('swept-before')}},
     );
 
-    expect((await userCache.get(user.id)).email).toBe(toEmail('swept-after'));
+    expect((await fixtureRecordCache.get(record.id)).name).toBe(
+      toEmail('swept-after'),
+    );
   });
 
-  it('reaches every holder of a role when the role itself changes', async () => {
-    const role = await createRole({slug: 'shifting', position: 700});
-    const holder = await createUser({email: toEmail('holder'), roles: [role]});
-    await primeUserCache(holder);
-    expect((await userCache.get(holder.id)).roles[0].position).toBe(700);
+  it('drops a holder’s entry when a tag is assigned to it', async () => {
+    const tag = await createFixtureTag({label: 'granted', rank: 700});
+    const holder = await createFixtureRecord({name: toEmail('granted')});
+    await primeRecordCache(holder);
 
-    await Role.update({position: 800}, {where: {id: role.id}});
+    await holder.addTags([tag.id]);
 
-    expect((await userCache.get(holder.id)).roles[0].position).toBe(800);
+    expect(
+      (await fixtureRecordCache.get(holder.id)).tags.map(({id}) => id),
+    ).toEqual([tag.id]);
   });
 
-  it('drops a holder’s entry when a role is assigned to it', async () => {
-    const role = await createRole({slug: 'granted', position: 700});
-    const holder = await createUser({email: toEmail('granted')});
-    await primeUserCache(holder);
+  it('drops a holder’s entry when a tag is taken from it', async () => {
+    const tag = await createFixtureTag({label: 'revoked', rank: 700});
+    const holder = await createFixtureRecord({
+      name: toEmail('revoked'),
+      tags: [tag],
+    });
+    await primeRecordCache(holder);
 
-    await holder.addRoles([role.id]);
+    await holder.removeTags([tag.id]);
 
-    expect((await userCache.get(holder.id)).roles.map(({id}) => id)).toEqual([
-      role.id,
-    ]);
-  });
-
-  it('drops a holder’s entry when a role is taken from it', async () => {
-    const role = await createRole({slug: 'revoked', position: 700});
-    const holder = await createUser({email: toEmail('revoked'), roles: [role]});
-    await primeUserCache(holder);
-
-    await holder.removeRoles([role.id]);
-
-    expect((await userCache.get(holder.id)).roles).toEqual([]);
+    expect((await fixtureRecordCache.get(holder.id)).tags).toEqual([]);
   });
 
   it('drops a holder’s entry when a bulk update moves its assignment', async () => {
-    const from = await createRole({slug: 'moved-from', position: 700});
-    const to = await createRole({slug: 'moved-to', position: 600});
-    const holder = await createUser({email: toEmail('moved'), roles: [from]});
-    await primeUserCache(holder);
+    const from = await createFixtureTag({label: 'moved-from', rank: 700});
+    const to = await createFixtureTag({label: 'moved-to', rank: 600});
+    const holder = await createFixtureRecord({
+      name: toEmail('moved'),
+      tags: [from],
+    });
+    await primeRecordCache(holder);
 
-    await UserRole.update({roleId: to.id}, {where: {userId: holder.id}});
+    await FixtureRecordTag.update(
+      {tagId: to.id},
+      {where: {recordId: holder.id}},
+    );
 
-    expect((await userCache.get(holder.id)).roles.map(({id}) => id)).toEqual([
-      to.id,
-    ]);
+    expect(
+      (await fixtureRecordCache.get(holder.id)).tags.map(({id}) => id),
+    ).toEqual([to.id]);
+  });
+
+  it('drops a whole-list cache on every write to its model', async () => {
+    await createFixtureTag({label: 'listed', rank: 100});
+    expect(await fixtureTagCache.get()).toHaveLength(1);
+
+    await createFixtureTag({label: 'added', rank: 200});
+
+    expect(await fixtureTagCache.get()).toHaveLength(2);
+  });
+
+  it('defers a whole-list drop until the transaction commits', async () => {
+    const tag = await createFixtureTag({label: 'kept', rank: 100});
+    expect(await fixtureTagCache.get()).toHaveLength(1);
+
+    await sequelize.transaction(async transaction => {
+      await FixtureTag.destroy({where: {id: tag.id}, transaction});
+      expect(await fixtureTagCache.get()).toHaveLength(1);
+    });
+
+    expect(await fixtureTagCache.get()).toEqual([]);
   });
 });
 

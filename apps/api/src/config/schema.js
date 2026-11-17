@@ -97,19 +97,11 @@ export function getEnvSchema({appPath}) {
       .default(path.join(appPath, 'storage')),
 
     SECRET_KEY: z.string().min(16),
-    SECURITY_KEY: z.string().min(1),
     BCRYPT_STRENGTH: z.coerce.number().int().min(4).max(31).default(12),
-    ACCESS_TOKEN_TTL: z.coerce.number().int().positive().default(3600),
-    REFRESH_TOKEN_TTL: z.coerce.number().int().positive().default(604800),
-
-    USER_CACHE_TTL: z.coerce.number().int().nonnegative().default(60),
-    AUTH_CACHE_TTL: z.coerce.number().int().nonnegative().default(60),
 
     RATE_LIMIT_WINDOW: z.coerce.number().int().nonnegative().default(60000),
     RATE_LIMIT_IP_MAX: z.coerce.number().int().positive().default(3000),
-    RATE_LIMIT_USER_MAX: z.coerce.number().int().positive().default(300),
     RATE_LIMIT_IP_PENALTY: rateLimitPenaltyField,
-    RATE_LIMIT_USER_PENALTY: rateLimitPenaltyField,
     RATE_LIMIT_ALLOW_LIST: z
       .string()
       .default('')

@@ -1,13 +1,5 @@
-import {
-  ADMIN_THEME_KEY,
-  PUBLIC_THEME_KEY,
-  THEME_COLORS,
-} from '../../../src/config/theme.js';
-import {
-  expectFixtureState,
-  openFixture,
-  openPublicFixture,
-} from '../lib/fixture-page.js';
+import {PUBLIC_THEME_KEY, THEME_COLORS} from '../../../src/config/theme.js';
+import {expectFixtureState, openFixture} from '../lib/fixture-page.js';
 import {expect, test} from '../lib/test.js';
 
 function getToggle(page) {
@@ -18,7 +10,7 @@ function getRoot(page) {
   return page.locator('html');
 }
 
-function readStoredTheme(page, key = ADMIN_THEME_KEY) {
+function readStoredTheme(page, key = PUBLIC_THEME_KEY) {
   return page.evaluate(name => localStorage.getItem(name), key);
 }
 
@@ -125,45 +117,6 @@ test.describe('theme on a light system', () => {
 
     const darkColor = await expectThemeColorToFollowBody(page);
     expect(darkColor).not.toBe(lightColor);
-  });
-});
-
-test.describe('theme across root layouts on a light system', () => {
-  test.use({colorScheme: 'light'});
-
-  test('a choice made in the admin reaches neither the public pages nor the landing', async ({
-    page,
-  }) => {
-    await openFixture(page, 'theme');
-    await getToggle(page).click();
-    await expectAppliedTheme(page, 'dark');
-
-    await openPublicFixture(page, 'theme');
-
-    await expectAppliedTheme(page, 'light');
-    expect(await readStoredTheme(page, PUBLIC_THEME_KEY)).toBeNull();
-
-    await page.goto('/');
-
-    await expectAppliedTheme(page, 'light');
-  });
-
-  test('a choice made on a public page persists there and leaves the admin alone', async ({
-    page,
-  }) => {
-    await openPublicFixture(page, 'theme');
-    await getToggle(page).click();
-    await expectAppliedTheme(page, 'dark');
-
-    await openPublicFixture(page, 'theme');
-
-    await expectAppliedTheme(page, 'dark');
-    expect(await readStoredTheme(page, PUBLIC_THEME_KEY)).toBe('dark');
-
-    await openFixture(page, 'theme');
-
-    await expectAppliedTheme(page, 'light');
-    expect(await readStoredTheme(page)).toBeNull();
   });
 });
 

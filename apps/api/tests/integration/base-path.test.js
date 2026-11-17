@@ -4,16 +4,12 @@ import {uniq} from 'es-toolkit';
 import {afterAll, beforeAll, describe, expect, it} from 'vitest';
 import {StatusCodes} from 'http-status-codes';
 import {config} from '../../src/config/index.js';
-import {SECURITY_KEY_HEADER} from '../../src/plugins/security-key.js';
 import {
   getRegisteredRoutes,
   getTestApp,
   setTestAppBasePath,
 } from '../helpers/app.js';
-import {
-  SECURITY_KEY_FIXTURE_URL,
-  SETTINGS_FIXTURE_URL,
-} from '../helpers/fixtures.js';
+import {HTTP_FIXTURE_URL, PAGINATION_FIXTURE_URL} from '../helpers/fixtures.js';
 
 const BASE_PATH = '/edge/api';
 const STATIC_FILE = 'base-path-fixture.txt';
@@ -35,20 +31,10 @@ describe('an API mounted under a base path', () => {
   it('serves its routes there and nowhere else', async () => {
     const app = await getTestApp();
     const statusOf = async url =>
-      (
-        await app.inject({
-          method: 'GET',
-          url,
-          headers: {[SECURITY_KEY_HEADER]: config.securityKey},
-        })
-      ).statusCode;
+      (await app.inject({method: 'GET', url})).statusCode;
 
-    expect(await statusOf(BASE_PATH + SECURITY_KEY_FIXTURE_URL)).toBe(
-      StatusCodes.OK,
-    );
-    expect(await statusOf(SECURITY_KEY_FIXTURE_URL)).toBe(
-      StatusCodes.NOT_FOUND,
-    );
+    expect(await statusOf(BASE_PATH + HTTP_FIXTURE_URL)).toBe(StatusCodes.OK);
+    expect(await statusOf(HTTP_FIXTURE_URL)).toBe(StatusCodes.NOT_FOUND);
   });
 
   it('answers outside it with the same not-found envelope and headers', async () => {
@@ -98,6 +84,8 @@ describe('an API mounted under a base path', () => {
       );
 
     expect(tagsAt(BASE_PATH)).toEqual(['default']);
-    expect(tagsAt(BASE_PATH + SETTINGS_FIXTURE_URL)).toEqual(['__fixtures__']);
+    expect(tagsAt(BASE_PATH + PAGINATION_FIXTURE_URL)).toEqual([
+      '__fixtures__',
+    ]);
   });
 });

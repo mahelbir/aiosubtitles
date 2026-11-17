@@ -2,43 +2,49 @@ import {describe, expect, it} from 'vitest';
 import {EmptyResultError} from 'sequelize';
 import {sequelize} from '../../src/db/index.js';
 import {mapDbError} from '../../src/db/errors.js';
-import {Role} from '../../src/db/models/role.js';
-import {User} from '../../src/db/models/user.js';
-import {UserRole} from '../../src/db/models/user-role.js';
 import {BaseModel} from '../../src/db/base-model.js';
-import {createRole, createUser, toEmail} from '../helpers/factories.js';
+import {
+  createFixtureRecord,
+  createFixtureTag,
+  toEmail,
+} from '../helpers/factories.js';
+import {
+  FixtureRecord,
+  FixtureRecordTag,
+  FixtureTag,
+} from '../helpers/fixture-models.js';
 
 const MISSING_ID = '018f3a2b-6c4d-7e8f-9a0b-1c2d3e4f5061';
 
 describe('failure vocabulary', () => {
   it('gives each model its own wording, inherited where none is declared', () => {
-    expect(User.notFoundMessage).toBe('Kullanıcı bulunamadı.');
-    expect(Role.notFoundMessage).toBe('Rol bulunamadı.');
+    expect(FixtureRecord.notFoundMessage).toBe('Fixture kaydı bulunamadı.');
+    expect(FixtureTag.notFoundMessage).toBe(BaseModel.notFoundMessage);
     expect(BaseModel.notFoundMessage).toBe('Kayıt bulunamadı.');
   });
 
   it('builds a fresh error per read, since a stack belongs to one throw', () => {
-    const first = User.notFound;
-    const second = User.notFound;
+    const first = FixtureRecord.notFound;
+    const second = FixtureRecord.notFound;
     expect(first).toBeInstanceOf(EmptyResultError);
     expect(first).not.toBe(second);
-    expect(first.message).toBe(User.notFoundMessage);
+    expect(first.message).toBe(FixtureRecord.notFoundMessage);
   });
 });
 
 describe('foreign key refusals', () => {
   it('refuses a delete of a row still referenced with the shared message', async () => {
-    const role = await createRole({position: 500});
-    await createUser({roles: [role]});
-    const err = await role.destroy().catch(error => error);
+    const tag = await createFixtureTag({rank: 500});
+    await createFixtureRecord({tags: [tag]});
+    const err = await tag.destroy().catch(error => error);
     expect(mapDbError(err).message).toBe(BaseModel.foreignKeyMessage);
   });
 
   it('refuses a row that points at nothing with the same message', async () => {
-    const user = await createUser();
-    const err = await UserRole.create({
-      userId: user.id,
-      roleId: MISSING_ID,
+    const record = await createFixtureRecord();
+    const err = await FixtureRecordTag.create({
+      recordId: record.id,
+      tagId: MISSING_ID,
     }).catch(error => error);
     expect(mapDbError(err).message).toBe(BaseModel.foreignKeyMessage);
   });
@@ -46,72 +52,85 @@ describe('foreign key refusals', () => {
 
 describe('findOneAndUpdate', () => {
   it('applies the change and hands back the row', async () => {
-    const user = await createUser({email: toEmail('to-rename')});
-    const updated = await User.findOneAndUpdate(
-      {where: {id: user.id}},
-      {email: toEmail('renamed')},
+    const record = await createFixtureRecord({name: toEmail('to-rename')});
+    const updated = await FixtureRecord.findOneAndUpdate(
+      {where: {id: record.id}},
+      {name: toEmail('renamed')},
     );
-    expect(updated.email).toBe(toEmail('renamed'));
-    expect((await User.findByPk(user.id)).email).toBe(toEmail('renamed'));
+    expect(updated.name).toBe(toEmail('renamed'));
+    expect((await FixtureRecord.findByPk(record.id)).name).toBe(
+      toEmail('renamed'),
+    );
   });
 
   it('answers null for a row that is not there, without writing', async () => {
     expect(
-      await User.findOneAndUpdate(
+      await FixtureRecord.findOneAndUpdate(
         {where: {id: MISSING_ID}},
-        {email: toEmail('nobody')},
+        {name: toEmail('nobody')},
       ),
     ).toBeNull();
   });
 
   it('works inside its own transaction when asked to', async () => {
-    const user = await createUser({email: toEmail('transactional')});
-    const updated = await User.findOneAndUpdate(
-      {where: {id: user.id}},
-      {email: toEmail('committed')},
+    const record = await createFixtureRecord({name: toEmail('transactional')});
+    const updated = await FixtureRecord.findOneAndUpdate(
+      {where: {id: record.id}},
+      {name: toEmail('committed')},
       true,
     );
-    expect(updated.email).toBe(toEmail('committed'));
-    expect((await User.findByPk(user.id)).email).toBe(toEmail('committed'));
+    expect(updated.name).toBe(toEmail('committed'));
+    expect((await FixtureRecord.findByPk(record.id)).name).toBe(
+      toEmail('committed'),
+    );
   });
 
   it('skips a row another transaction already holds rather than waiting on it', async () => {
-    const user = await createUser({email: toEmail('contended-row')});
+    const record = await createFixtureRecord({name: toEmail('contended-row')});
 
     /* The inner call takes its own connection, so the outer lock is genuinely
        held by someone else — `skipLocked` must answer rather than wait. */
     const result = await sequelize.transaction(async transaction => {
-      await User.findOneLocked({where: {id: user.id}}, transaction);
-      return User.findOneAndUpdate(
-        {where: {id: user.id}},
-        {email: toEmail('stolen')},
+      await FixtureRecord.findOneLocked({where: {id: record.id}}, transaction);
+      return FixtureRecord.findOneAndUpdate(
+        {where: {id: record.id}},
+        {name: toEmail('stolen')},
         true,
       );
     });
 
     expect(result).toBeNull();
-    expect((await User.findByPk(user.id)).email).toBe(toEmail('contended-row'));
+    expect((await FixtureRecord.findByPk(record.id)).name).toBe(
+      toEmail('contended-row'),
+    );
   });
 });
 
 describe('findOffsetPage', () => {
   it('counts what the eliminating include leaves, not the joined rows', async () => {
-    const role = await createRole({slug: 'counted', position: 900});
-    const holder = await createUser({email: toEmail('holder'), roles: [role]});
-    await createUser({email: toEmail('outsider')});
-
-    const page = await User.withScope('withRoles').findOffsetPage(0, 100, {
-      attributes: ['id'],
-      include: [{association: 'roles', required: true, where: {id: role.id}}],
+    const tag = await createFixtureTag({label: 'counted', rank: 900});
+    const holder = await createFixtureRecord({
+      name: toEmail('holder'),
+      tags: [tag],
     });
+    await createFixtureRecord({name: toEmail('outsider')});
+
+    const page = await FixtureRecord.withScope('withTags').findOffsetPage(
+      0,
+      100,
+      {
+        attributes: ['id'],
+        include: [{association: 'tags', required: true, where: {id: tag.id}}],
+      },
+    );
 
     expect(page.count).toBe(1);
     expect(page.rows.map(row => row.id)).toEqual([holder.id]);
   });
 
   it('reads rows and total from one snapshot when consistency is asked for', async () => {
-    await createUser({email: toEmail('first')});
-    const page = await User.findOffsetPage(0, 100, {
+    await createFixtureRecord({name: toEmail('first')});
+    const page = await FixtureRecord.findOffsetPage(0, 100, {
       attributes: ['id'],
       consistent: true,
     });
@@ -120,15 +139,15 @@ describe('findOffsetPage', () => {
 
   it('joins a caller transaction instead of opening its own', async () => {
     await sequelize.transaction(async transaction => {
-      await User.create(
-        {email: toEmail('invisible-outside'), password: 'x'},
+      await FixtureRecord.create(
+        {name: toEmail('invisible-outside'), secret: 'x'},
         {transaction},
       );
-      const page = await User.findOffsetPage(0, 100, {
-        attributes: ['id', 'email'],
+      const page = await FixtureRecord.findOffsetPage(0, 100, {
+        attributes: ['id', 'name'],
         transaction,
       });
-      expect(page.rows.map(row => row.email)).toContain(
+      expect(page.rows.map(row => row.name)).toContain(
         toEmail('invisible-outside'),
       );
     });
@@ -137,75 +156,81 @@ describe('findOffsetPage', () => {
 
 describe('locking helpers', () => {
   it('holds a row until the transaction ends', async () => {
-    const user = await createUser({email: toEmail('locked-row')});
+    const record = await createFixtureRecord({name: toEmail('locked-row')});
 
     await sequelize.transaction(async transaction => {
-      const locked = await User.findOneLocked(
-        {where: {id: user.id}},
+      const locked = await FixtureRecord.findOneLocked(
+        {where: {id: record.id}},
         transaction,
       );
-      expect(locked.id).toBe(user.id);
+      expect(locked.id).toBe(record.id);
     });
 
-    const after = await User.findByPk(user.id);
-    expect(after.id).toBe(user.id);
+    const after = await FixtureRecord.findByPk(record.id);
+    expect(after.id).toBe(record.id);
   });
 
   it('locks a whole set in a stable order', async () => {
-    await createRole({slug: 'lock-a', position: 610});
-    await createRole({slug: 'lock-b', position: 620});
+    await createFixtureTag({label: 'lock-a', rank: 610});
+    await createFixtureTag({label: 'lock-b', rank: 620});
 
     const locked = await sequelize.transaction(transaction =>
-      Role.findAllLocked(
-        {attributes: ['id', 'position'], order: [['position', 'ASC']]},
+      FixtureTag.findAllLocked(
+        {attributes: ['id', 'rank'], order: [['rank', 'ASC']]},
         transaction,
       ),
     );
 
-    const positions = locked.map(role => role.position);
-    expect(positions).toEqual([...positions].sort((a, b) => a - b));
+    const ranks = locked.map(tag => tag.rank);
+    expect(ranks).toEqual([...ranks].sort((a, b) => a - b));
   });
 });
 
 describe('withScope', () => {
-  const NOBODY = {maxPosition: -2, selfId: null};
+  const NONE = -2;
 
   it('keeps every scope in the chain, arguments included', async () => {
-    const low = await createRole({slug: 'chain-low', position: 500});
-    const high = await createRole({slug: 'chain-high', position: 9000});
-    await createUser({email: toEmail('chain-seen'), roles: [low]});
-    await createUser({email: toEmail('chain-hidden'), roles: [high]});
+    const low = await createFixtureTag({label: 'chain-low', rank: 500});
+    const high = await createFixtureTag({label: 'chain-high', rank: 9000});
+    await createFixtureRecord({name: toEmail('chain-seen'), tags: [low]});
+    await createFixtureRecord({name: toEmail('chain-hidden'), tags: [high]});
 
-    const rows = await User.withScope('withRoles')
-      .withScope('visibleTo', {maxPosition: 1000, selfId: null})
-      .findAll({attributes: ['id', 'email']});
+    const rows = await FixtureRecord.withScope('withTags')
+      .withScope('rankedAtMost', 1000)
+      .findAll({attributes: ['id', 'name']});
 
-    const chained = rows.filter(row => row.email.startsWith('chain-'));
-    expect(chained.map(row => row.email)).toEqual([toEmail('chain-seen')]);
-    expect(chained[0].roles.map(role => role.id)).toEqual([low.id]);
+    const chained = rows.filter(row => row.name.startsWith('chain-'));
+    expect(chained.map(row => row.name)).toEqual([toEmail('chain-seen')]);
+    expect(chained[0].tags.map(tag => tag.id)).toEqual([low.id]);
   });
 
   it('applies a lone scope that takes no argument', async () => {
-    await createUser({
-      email: toEmail('lone-scope'),
-      roles: [await createRole({position: 400})],
+    await createFixtureRecord({
+      name: toEmail('lone-scope'),
+      tags: [await createFixtureTag({rank: 400})],
     });
-    const row = await User.withScope('withRoles').findOne({
-      where: {email: toEmail('lone-scope')},
+    const row = await FixtureRecord.withScope('withTags').findOne({
+      where: {name: toEmail('lone-scope')},
       attributes: ['id'],
     });
-    expect(row.roles).toHaveLength(1);
+    expect(row.tags).toHaveLength(1);
   });
 
   it('starts each chain from the model it is called on', async () => {
-    const total = (await User.unscoped().findAll({attributes: ['id']})).length;
-    const narrowed = User.withScope('visibleTo', NOBODY);
+    await createFixtureRecord({
+      name: toEmail('ranked'),
+      tags: [await createFixtureTag({rank: 400})],
+    });
+    const total = (await FixtureRecord.unscoped().findAll({attributes: ['id']}))
+      .length;
+    const narrowed = FixtureRecord.withScope('rankedAtMost', NONE);
 
     expect((await narrowed.findAll({attributes: ['id']})).length).toBeLessThan(
       total,
     );
     expect(
-      (await User.withScope('withRoles').findAll({attributes: ['id']})).length,
+      (await FixtureRecord.withScope('withTags').findAll({attributes: ['id']}))
+        .length,
     ).toBe(total);
   });
 });

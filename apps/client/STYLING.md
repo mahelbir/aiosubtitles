@@ -20,8 +20,7 @@ variants, the `@layer base` reset and the reduced-motion block.
   opaque — anything sticky, which content scrolls beneath — uses `bg-opaque-*`: the same pair, pre-mixed onto the page
   background so it looks identical to the translucent one.
 - **Two independent axes.** The colour theme is fixed in code (no selector); light/dark is live via `next-themes`,
-  class-based. The toggle lives in the admin navbar, in the sidebar footer on a phone, not the login screen — the admin
-  `ThemeProvider` wraps auth too, so a persisted choice already applies. Each root layout persists the choice under a
+  class-based. The toggle is `components/common/theme-mode-toggle.js`. Each root layout persists the choice under a
   storage key of its own, so a choice made in one never reaches another.
 - **`src/components/ui/`** is shadcn CLI output (`.jsx`, excluded from Prettier by the root ignore file, so Prettier
   runs from the repo root). Editing it is expected — shadcn's Open

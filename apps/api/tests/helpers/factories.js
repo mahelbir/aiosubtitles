@@ -1,12 +1,5 @@
-import {Role} from '../../src/db/models/role.js';
-import {RolePermission} from '../../src/db/models/role-permission.js';
-import {User} from '../../src/db/models/user.js';
-import {hashPassword} from '../../src/lib/crypto.js';
-import {generateAccessToken} from '../../src/lib/auth/token.js';
-import {ADMIN_ROLE_SLUG} from '../../src/db/seeders/00001-roles.js';
-import {ADMIN_EMAIL} from '../../src/db/seeders/00002-users.js';
+import {FixtureRecord, FixtureTag} from './fixture-models.js';
 
-export const DEFAULT_PASSWORD = 'test-password';
 export const EMAIL_DOMAIN = 'example.com';
 
 let sequence = 0;
@@ -20,43 +13,18 @@ export function toEmail(name) {
   return `${name}@${EMAIL_DOMAIN}`;
 }
 
-export async function createRole({position, permissions = [], ...values} = {}) {
-  const slug = values.slug ?? nextName('role');
-  const role = await Role.create({
-    slug,
-    label: values.label ?? slug,
-    position,
-    isLocked: values.isLocked ?? false,
-  });
-  if (permissions.length > 0) {
-    await RolePermission.bulkCreate(
-      permissions.map(permission => ({roleId: role.id, permission})),
-    );
-  }
-  return role;
+export async function createFixtureTag({rank, ...values} = {}) {
+  return FixtureTag.create({label: values.label ?? nextName('tag'), rank});
 }
 
-export async function createUser({roles = [], ...values} = {}) {
-  const user = await User.create({
-    email: values.email ?? toEmail(nextName('user')),
-    password: hashPassword(values.password ?? DEFAULT_PASSWORD),
+export async function createFixtureRecord({tags = [], ...values} = {}) {
+  const record = await FixtureRecord.create({
+    name: values.name ?? toEmail(nextName('record')),
+    secret: values.secret ?? null,
     disabledAt: values.disabledAt ?? null,
   });
-  if (roles.length > 0) {
-    await user.addRoles(roles.map(role => role.id));
+  if (tags.length > 0) {
+    await record.addTags(tags.map(tag => tag.id));
   }
-  return user;
-}
-
-export function getSeededAdminRole() {
-  return Role.findOne({where: {slug: ADMIN_ROLE_SLUG}});
-}
-
-export function getSeededAdminUser() {
-  return User.findOne({where: {email: ADMIN_EMAIL}});
-}
-
-export async function authHeaders(user) {
-  const {token} = await generateAccessToken(user.id);
-  return {authorization: `Bearer ${token}`};
+  return record;
 }

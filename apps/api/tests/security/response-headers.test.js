@@ -4,16 +4,11 @@ import {StatusCodes} from 'http-status-codes';
 import {config} from '../../src/config/index.js';
 import {getRegisteredRoutes, getTestApp} from '../helpers/app.js';
 import {routeCalls} from '../helpers/assertions.js';
-import {authHeaders, getSeededAdminUser} from '../helpers/factories.js';
 import {HTTP_FIXTURE_URL} from '../helpers/fixtures.js';
 
 async function getFixture() {
   const app = await getTestApp();
-  return app.inject({
-    method: 'GET',
-    url: HTTP_FIXTURE_URL,
-    headers: await authHeaders(await getSeededAdminUser()),
-  });
+  return app.inject({method: 'GET', url: HTTP_FIXTURE_URL});
 }
 
 describe('response headers', () => {

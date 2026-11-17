@@ -7,7 +7,6 @@ import {
 } from '../api/tests/e2e/ports.js';
 import {loadClientEnv} from './env.mjs';
 import {getApiUrl} from './tests/e2e/lib/api.js';
-import {ADMIN_STORAGE_STATE_PATH} from './tests/e2e/lib/session.js';
 
 const SERVER_TIMEOUT = 180_000;
 
@@ -42,32 +41,19 @@ export default defineConfig({
       use: {...devices['Desktop Chrome']},
     },
     {
-      name: 'setup',
-      testMatch: ['setup/auth.setup.js', 'setup/sweep.setup.js'],
-      dependencies: ['warmup'],
-      teardown: 'cleanup',
-    },
-    {
-      name: 'cleanup',
-      testMatch: 'setup/**/*.teardown.js',
-    },
-    {
       name: 'flows',
       testMatch: 'flows/**/*.spec.js',
-      dependencies: ['setup'],
+      dependencies: ['warmup'],
       fullyParallel: false,
       workers: 1,
-      use: {
-        ...devices['Desktop Chrome'],
-        storageState: ADMIN_STORAGE_STATE_PATH,
-      },
+      use: {...devices['Desktop Chrome']},
     },
   ],
   webServer: [
     {
       name: 'client',
       command: 'pnpm dev',
-      url: `${baseURL}/admin/fixtures`,
+      url: `${baseURL}/fixtures`,
       env: {
         NODE_ENV: 'test',
         NEXT_PORT: String(clientPort),

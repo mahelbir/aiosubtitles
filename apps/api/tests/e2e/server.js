@@ -2,9 +2,9 @@ import closeWithGrace from 'close-with-grace';
 import {startInfrastructure} from '../helpers/infrastructure.js';
 import {getE2eApiPort, getE2eClientOrigin} from './ports.js';
 
-/* A browser-driven run trips both the budgets `.env.test` sizes for the API
-   suite and the login route's own windows, so a zero window removes the
-   limiter before the config parses the environment. */
+/* A browser-driven run trips the budgets `.env.test` sizes for the API
+   suite, so a zero window removes the limiter before the config parses the
+   environment. */
 const E2E_ENV = {
   RATE_LIMIT_WINDOW: '0',
   CLIENT_IP_HEADER: '',
@@ -30,15 +30,11 @@ closeWithGrace(async ({signal, err}) => {
   }
 });
 
-const [{seedBaseline}, {buildApp}, {config}, {sessionPlugin}] =
-  await Promise.all([
-    import('../helpers/reset.js'),
-    import('../../src/build.js'),
-    import('../../src/config/index.js'),
-    import('./session.js'),
-  ]);
-await seedBaseline();
+const [{buildApp}, {config}] = await Promise.all([
+  import('../../src/build.js'),
+  import('../../src/config/index.js'),
+]);
 
-fastify = buildApp({extraPlugins: [sessionPlugin]});
+fastify = buildApp();
 
 await fastify.listen({port: config.port, host: config.host});

@@ -258,15 +258,15 @@ test.describe('table kit pagination', () => {
 
     await expect(getPageLink(page, '1')).toHaveAttribute(
       'href',
-      '/admin/fixtures/table-kit?search=Kaya',
+      '/fixtures/table-kit?search=Kaya',
     );
     await expect(getPageLink(page, '2')).toHaveAttribute(
       'href',
-      '/admin/fixtures/table-kit?search=Kaya&pageNumber=2',
+      '/fixtures/table-kit?search=Kaya&pageNumber=2',
     );
     await expect(getPageLink(page, 'Son sayfa')).toHaveAttribute(
       'href',
-      '/admin/fixtures/table-kit?search=Kaya&pageNumber=2',
+      '/fixtures/table-kit?search=Kaya&pageNumber=2',
     );
   });
 
@@ -303,9 +303,7 @@ test.describe('table kit pagination', () => {
       getPageLink(page, '3').click({modifiers: ['ControlOrMeta']}),
     ]);
 
-    await expect(popup).toHaveURL(
-      /\/admin\/fixtures\/table-kit\?pageNumber=3$/,
-    );
+    await expect(popup).toHaveURL(/\/fixtures\/table-kit\?pageNumber=3$/);
     await expectSearchParams(page).toEqual({});
     await expect(getRangeStatus(page)).toHaveText('1-10 / 96');
   });
@@ -336,7 +334,7 @@ test.describe('table kit pagination', () => {
     for (const label of ['İlk sayfa', 'Önceki sayfa']) {
       await expect(getPageLink(page, label)).toHaveAttribute(
         'href',
-        /\/admin\/fixtures\/table-kit(\?pageNumber=9)?$/,
+        /\/fixtures\/table-kit(\?pageNumber=9)?$/,
       );
     }
   });
@@ -1736,7 +1734,7 @@ test.describe('table kit row actions', () => {
 
     await expect(history).toHaveAttribute(
       'href',
-      '/admin/fixtures/table-kit?history=1',
+      '/fixtures/table-kit?history=1',
     );
     await history.click();
 

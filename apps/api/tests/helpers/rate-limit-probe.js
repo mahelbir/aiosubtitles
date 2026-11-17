@@ -3,7 +3,7 @@ import clientIpPlugin from '../../src/plugins/client-ip.js';
 import rateLimitPlugin from '../../src/plugins/rate-limit.js';
 import responsePlugin from '../../src/plugins/response.js';
 
-const USER_HEADER = 'x-probe-user';
+const CALLER_HEADER = 'x-probe-caller';
 
 const opened = [];
 
@@ -15,22 +15,17 @@ export async function buildProbe(routes) {
   await app.register(responsePlugin);
   await app.register(clientIpPlugin);
   await app.register(rateLimitPlugin);
-  app.decorateRequest('auth', null);
 
-  const authenticate = async request => {
+  const guard = async () => {
     guarded += 1;
-    const id = request.headers[USER_HEADER];
-    if (id) {
-      request.auth = {id};
-    }
   };
 
-  for (const {path, config, authenticated, handler} of routes) {
+  for (const {path, config, isGuarded, handler} of routes) {
     app.get(
       path,
       {
         ...(config && {config}),
-        ...(authenticated && {onRequest: [authenticate]}),
+        ...(isGuarded && {onRequest: [guard]}),
       },
       handler ? handler(app) : async (request, reply) => reply.success(),
     );
@@ -40,7 +35,9 @@ export async function buildProbe(routes) {
   return {app, guarded: () => guarded};
 }
 
-export const asUser = id => ({[USER_HEADER]: id});
+export const asCaller = id => ({[CALLER_HEADER]: id});
+
+export const callerOf = request => request.headers[CALLER_HEADER];
 
 export async function closeProbes() {
   await Promise.all(opened.splice(0).map(app => app.close()));

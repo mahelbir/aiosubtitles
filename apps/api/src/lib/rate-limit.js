@@ -4,7 +4,6 @@ export const GLOBAL_RATE_LIMIT_SCOPE = '~global';
 
 export const RateLimitKey = Enum({
   IP: 'ip',
-  USER: 'user',
 });
 
 export const RateLimitPenalty = Enum({

@@ -3,37 +3,33 @@ import {StatusCodes} from 'http-status-codes';
 import {getTestApp} from '../helpers/app.js';
 import {readEnvelope} from '../helpers/assertions.js';
 import {
-  authHeaders,
-  createRole,
-  createUser,
-  getSeededAdminUser,
+  createFixtureRecord,
+  createFixtureTag,
   toEmail,
 } from '../helpers/factories.js';
 import {PAGINATION_FIXTURE_URL} from '../helpers/fixtures.js';
 
-let headers;
-let editorRole;
-let reviewerRole;
+let editorTag;
+let reviewerTag;
 
 beforeEach(async () => {
-  headers = await authHeaders(await getSeededAdminUser());
-  [editorRole, reviewerRole] = await Promise.all([
-    createRole({slug: 'editor', position: 500}),
-    createRole({slug: 'reviewer', position: 400}),
+  [editorTag, reviewerTag] = await Promise.all([
+    createFixtureTag({label: 'editor', rank: 500}),
+    createFixtureTag({label: 'reviewer', rank: 400}),
   ]);
-  await createUser({
-    email: toEmail('alpha'),
-    roles: [editorRole, reviewerRole],
+  await createFixtureRecord({name: toEmail('admin')});
+  await createFixtureRecord({
+    name: toEmail('alpha'),
+    tags: [editorTag, reviewerTag],
   });
-  await createUser({email: toEmail('beta')});
-  await createUser({email: toEmail('gamma'), disabledAt: new Date()});
+  await createFixtureRecord({name: toEmail('beta')});
+  await createFixtureRecord({name: toEmail('gamma'), disabledAt: new Date()});
 });
 
 const list = async (app, query = '') => {
   const response = await app.inject({
     method: 'GET',
     url: `${PAGINATION_FIXTURE_URL}${query}`,
-    headers,
   });
   expect(response.statusCode).toBe(StatusCodes.OK);
   return readEnvelope(response).data;
@@ -75,7 +71,6 @@ describe('paging', () => {
     const response = await app.inject({
       method: 'GET',
       url: `${PAGINATION_FIXTURE_URL}?pageSize=1000`,
-      headers,
     });
     expect(response.statusCode).toBe(StatusCodes.UNPROCESSABLE_ENTITY);
   });
@@ -85,7 +80,7 @@ describe('filters', () => {
   it('ignores a query key no rule covers and the model does not own', async () => {
     const app = await getTestApp();
     const all = await list(app);
-    const junk = await list(app, '?password=whatever&nonsense=1');
+    const junk = await list(app, '?secret=whatever&nonsense=1');
     expect(junk.meta.totalItemCount).toBe(all.meta.totalItemCount);
   });
 
@@ -98,11 +93,11 @@ describe('filters', () => {
 
   it('splits on the disabled state, and drops the filter when both are asked for', async () => {
     const app = await getTestApp();
-    expect((await list(app, '?disabled=true')).items.map(i => i.email)).toEqual(
-      [toEmail('gamma')],
-    );
+    expect((await list(app, '?disabled=true')).items.map(i => i.name)).toEqual([
+      toEmail('gamma'),
+    ]);
     expect(
-      (await list(app, '?disabled=false')).items.map(i => i.email).toSorted(),
+      (await list(app, '?disabled=false')).items.map(i => i.name).toSorted(),
     ).toEqual([toEmail('admin'), toEmail('alpha'), toEmail('beta')]);
     expect(
       (await list(app, '?disabled=true&disabled=false')).meta.totalItemCount,
@@ -113,20 +108,20 @@ describe('filters', () => {
     const app = await getTestApp();
     const found = await list(
       app,
-      `?roleId=${editorRole.id}&roleId=${reviewerRole.id}`,
+      `?tagId=${editorTag.id}&tagId=${reviewerTag.id}`,
     );
-    expect(found.items.map(item => item.email)).toEqual([toEmail('alpha')]);
+    expect(found.items.map(item => item.name)).toEqual([toEmail('alpha')]);
     expect(found.meta.totalItemCount).toBe(1);
   });
 
   it('narrows the page to the requested ids', async () => {
     const app = await getTestApp();
     const everyone = await list(app);
-    const byEmail = Object.fromEntries(
-      everyone.items.map(item => [item.email, item.id]),
+    const byName = Object.fromEntries(
+      everyone.items.map(item => [item.name, item.id]),
     );
-    const a = byEmail[toEmail('alpha')];
-    const b = byEmail[toEmail('gamma')];
+    const a = byName[toEmail('alpha')];
+    const b = byName[toEmail('gamma')];
     const found = await list(app, `?id=${a}&id=${b}`);
     expect(new Set(found.items.map(item => item.id))).toEqual(new Set([a, b]));
     expect(found.meta.totalItemCount).toBe(2);
@@ -137,7 +132,6 @@ describe('filters', () => {
     const response = await app.inject({
       method: 'GET',
       url: `${PAGINATION_FIXTURE_URL}?id=5`,
-      headers,
     });
     expect(response.statusCode).toBe(StatusCodes.UNPROCESSABLE_ENTITY);
   });
@@ -146,8 +140,7 @@ describe('filters', () => {
     const app = await getTestApp();
     const response = await app.inject({
       method: 'GET',
-      url: `${PAGINATION_FIXTURE_URL}?roleId=not-a-uuid`,
-      headers,
+      url: `${PAGINATION_FIXTURE_URL}?tagId=not-a-uuid`,
     });
     expect(response.statusCode).toBe(StatusCodes.UNPROCESSABLE_ENTITY);
   });
@@ -156,15 +149,15 @@ describe('filters', () => {
 describe('sorting', () => {
   it('orders by a declared field in both directions', async () => {
     const app = await getTestApp();
-    const ascending = await list(app, '?sort=email');
-    const descending = await list(app, '?sort=-email');
-    expect(ascending.items.map(item => item.email)).toEqual([
+    const ascending = await list(app, '?sort=name');
+    const descending = await list(app, '?sort=-name');
+    expect(ascending.items.map(item => item.name)).toEqual([
       toEmail('admin'),
       toEmail('alpha'),
       toEmail('beta'),
       toEmail('gamma'),
     ]);
-    expect(descending.items.map(item => item.email)).toEqual([
+    expect(descending.items.map(item => item.name)).toEqual([
       toEmail('gamma'),
       toEmail('beta'),
       toEmail('alpha'),
@@ -176,8 +169,7 @@ describe('sorting', () => {
     const app = await getTestApp();
     const response = await app.inject({
       method: 'GET',
-      url: `${PAGINATION_FIXTURE_URL}?sort=password`,
-      headers,
+      url: `${PAGINATION_FIXTURE_URL}?sort=secret`,
     });
     expect(response.statusCode).toBe(StatusCodes.UNPROCESSABLE_ENTITY);
   });
@@ -185,8 +177,8 @@ describe('sorting', () => {
   it('places nulls consistently when sorting a nullable column', async () => {
     const app = await getTestApp();
     const ascending = await list(app, '?sort=disabledAt');
-    expect(ascending.items.at(-1).email).toBe(toEmail('gamma'));
+    expect(ascending.items.at(-1).name).toBe(toEmail('gamma'));
     const descending = await list(app, '?sort=-disabledAt');
-    expect(descending.items[0].email).toBe(toEmail('gamma'));
+    expect(descending.items[0].name).toBe(toEmail('gamma'));
   });
 });

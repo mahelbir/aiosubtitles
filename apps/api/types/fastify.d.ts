@@ -10,20 +10,6 @@ declare module 'fastify' {
       disableJob(id: string | number): void;
     }): void;
 
-    authenticate(request: FastifyRequest, reply: FastifyReply): Promise<void>;
-
-    requirePermission(
-      required: string,
-    ): (request: FastifyRequest, reply: FastifyReply) => Promise<void> | void;
-
-    requirePermissions(
-      required: string[],
-    ): (request: FastifyRequest, reply: FastifyReply) => Promise<void> | void;
-
-    requireAnyPermission(
-      required: string[],
-    ): (request: FastifyRequest, reply: FastifyReply) => Promise<void> | void;
-
     resolveClientIp(peer: {
       remoteAddress?: string;
       headers: import('node:http').IncomingHttpHeaders;
@@ -41,18 +27,6 @@ declare module 'fastify' {
       refund(request: FastifyRequest): Promise<void>;
     };
 
-    guardSubtree(
-      guards: ((
-        request: FastifyRequest,
-        reply: FastifyReply,
-      ) => Promise<void> | void)[],
-    ): void;
-
-    requireSecurityKey(
-      request: FastifyRequest,
-      reply: FastifyReply,
-    ): Promise<void>;
-
     settings: typeof import('../src/lib/settings.js').settings;
 
     settingsDefinition: typeof import('@repo/shared/schemas/setting.js').settingsDefinition;
@@ -61,24 +35,9 @@ declare module 'fastify' {
   interface FastifyRequest {
     readonly clientIp: string;
 
-    auth: {
-      id: string;
-      email: string;
-      roles: {
-        id: string;
-        label: string;
-        position: number;
-      }[];
-      permissions: string[];
-    } | null;
-
     rateLimit: Awaited<
       ReturnType<ReturnType<FastifyInstance['createRateLimit']>>
     > | null;
-
-    roleMap: Record<string, string[]> | null;
-    userPolicy: import('../src/lib/auth/user-policy.js').UserPolicy | null;
-    rolePolicy: import('../src/lib/auth/role-policy.js').RolePolicy | null;
   }
 
   interface FastifyReply {

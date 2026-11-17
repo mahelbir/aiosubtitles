@@ -18,20 +18,6 @@ describe('OpenAPI document', () => {
         }
       }
     }
-    expect(open.toSorted()).toEqual([
-      'GET /',
-      'POST /auth/login',
-      'POST /auth/refresh',
-    ]);
-  });
-
-  it('declares both schemes the guards can demand', async () => {
-    await getTestApp();
-    const schemes =
-      getScopeWith('swagger').swagger().components.securitySchemes;
-    expect(Object.keys(schemes).toSorted()).toEqual([
-      'bearerAuth',
-      'securityKey',
-    ]);
+    expect(open.toSorted()).toEqual(['GET /']);
   });
 });

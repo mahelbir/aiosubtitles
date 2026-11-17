@@ -123,7 +123,6 @@ export async function stubApi(page, url, respond) {
   await page.route(url, async route => {
     const request = route.request();
     const hit = {
-      authorization: request.headers().authorization ?? null,
       url: new URL(request.url()),
       body: request.postDataJSON(),
     };

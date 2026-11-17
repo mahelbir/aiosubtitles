@@ -20,12 +20,10 @@ const toAddress = request =>
 
 const IDENTIFY = {
   [RateLimitKey.IP]: toAddress,
-  [RateLimitKey.USER]: request => request.auth?.id ?? toAddress(request),
 };
 
 const PHASE = {
   [RateLimitKey.IP]: 'onRequest',
-  [RateLimitKey.USER]: 'preHandler',
 };
 
 const STORE_FLAGS = {
@@ -49,7 +47,6 @@ const isGlobalSkipped = async request =>
 
 const DEFAULT_PENALTY = {
   [RateLimitKey.IP]: config.rateLimitIpPenalty,
-  [RateLimitKey.USER]: config.rateLimitUserPenalty,
 };
 
 const NAMESPACE = 'rate:';
@@ -304,12 +301,6 @@ export default fp(
     fastify.addHook(
       PHASE[RateLimitKey.IP],
       toGlobalHook(RateLimitKey.IP, config.rateLimitIpMax, () => true),
-    );
-    fastify.addHook(
-      PHASE[RateLimitKey.USER],
-      toGlobalHook(RateLimitKey.USER, config.rateLimitUserMax, request =>
-        Boolean(request.auth),
-      ),
     );
 
     fastify.addHook('onRoute', route => {

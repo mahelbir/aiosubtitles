@@ -26,7 +26,7 @@ test.describe('the app error page', () => {
         {json: getSuccessEnvelope({id: 1, name: 'Ada Yılmaz'})},
       ),
     );
-    await page.goto('/admin/fixtures/app-error');
+    await page.goto('/fixtures/app-error');
     await expect(page.getByRole('heading', {name: 'Hay aksi!'})).toBeVisible();
 
     await clickButton(page, 'Tekrar dene');

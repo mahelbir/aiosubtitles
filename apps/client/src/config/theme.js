@@ -1,5 +1,3 @@
-export const ADMIN_THEME_KEY = 'admin-theme';
-
 export const PUBLIC_THEME_KEY = 'public-theme';
 
 export const THEME_COLORS = [

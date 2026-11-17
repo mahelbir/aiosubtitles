@@ -166,7 +166,7 @@ test.describe('page card form skeleton', () => {
       expect(busy.getByText('Profil kartı')).toBeVisible(),
       expect(busy.getByRole('link', {name: 'Geri dön'})).toHaveAttribute(
         'href',
-        '/admin/fixtures',
+        '/fixtures',
       ),
     ]);
 

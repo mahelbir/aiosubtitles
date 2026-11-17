@@ -1,9 +1,6 @@
 import {sequelize} from '../../src/db/index.js';
 import {redis} from '../../src/redis/index.js';
-import {roleCache} from '../../src/lib/auth/role-cache.js';
-import {userCache} from '../../src/lib/user-cache.js';
-import * as roleSeeder from '../../src/db/seeders/00001-roles.js';
-import * as userSeeder from '../../src/db/seeders/00002-users.js';
+import {fixtureRecordCache, fixtureTagCache} from './fixture-cache.js';
 import {getAppModels} from './models.js';
 
 export async function resetState() {
@@ -13,14 +10,9 @@ export async function resetState() {
     .join(', ');
   await sequelize.query(`TRUNCATE TABLE ${tables} RESTART IDENTITY CASCADE`);
 
-  await seedBaseline();
-
   await redis.flushdb();
-  await Promise.all([roleCache.invalidateAll(), userCache.invalidateAll()]);
-}
-
-export async function seedBaseline() {
-  const context = sequelize.getQueryInterface();
-  await roleSeeder.up({context});
-  await userSeeder.up({context});
+  await Promise.all([
+    fixtureRecordCache.invalidateAll(),
+    fixtureTagCache.invalidateAll(),
+  ]);
 }

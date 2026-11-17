@@ -10,7 +10,12 @@ import {
 import {redis} from '../../src/redis/index.js';
 import {tooManyRequests} from '../../src/lib/errors.js';
 import {readEnvelope} from '../helpers/assertions.js';
-import {asUser, buildProbe, closeProbes} from '../helpers/rate-limit-probe.js';
+import {
+  asCaller,
+  buildProbe,
+  callerOf,
+  closeProbes,
+} from '../helpers/rate-limit-probe.js';
 
 const TWO_PER_MINUTE = [{max: 2, timeWindow: 60000}];
 const PENALTY_CEILING = 3600000;
@@ -105,18 +110,6 @@ describe('a route that declares nothing', () => {
     );
   });
 
-  it('rides the shared account budget once a caller is known', async () => {
-    const {app} = await buildProbe([{path: '/plain', authenticated: true}]);
-    const headers = asUser('alice');
-
-    const seen = await codes(app, '/plain', config.rateLimitUserMax + 1, {
-      headers,
-    });
-
-    expect(seen.at(-1)).toBe(LIMITED);
-    expect(await globalBuckets(RateLimitKey.USER)).toEqual(['alice']);
-  });
-
   it('spends one address bucket across every path', async () => {
     const {app} = await buildProbe([{path: '/one'}, {path: '/two'}]);
 
@@ -124,39 +117,6 @@ describe('a route that declares nothing', () => {
     await call(app, '/two');
 
     expect(await globalBuckets(RateLimitKey.IP)).toEqual(['127.0.0.1']);
-  });
-
-  it('spends one account bucket across every path', async () => {
-    const {app} = await buildProbe([
-      {path: '/one', authenticated: true},
-      {path: '/two', authenticated: true},
-    ]);
-    const headers = asUser('alice');
-
-    await call(app, '/one', {headers});
-    await call(app, '/two', {headers});
-
-    expect(await globalBuckets(RateLimitKey.USER)).toEqual(['alice']);
-  });
-
-  it('never opens an account bucket for an anonymous caller', async () => {
-    const {app} = await buildProbe([{path: '/plain', authenticated: true}]);
-
-    await codes(app, '/plain', 3);
-
-    expect(await globalBuckets(RateLimitKey.USER)).toEqual([]);
-  });
-
-  it('keeps one account clear of another', async () => {
-    const {app} = await buildProbe([{path: '/plain', authenticated: true}]);
-
-    const alice = await codes(app, '/plain', config.rateLimitUserMax + 1, {
-      headers: asUser('alice'),
-    });
-    const bob = await call(app, '/plain', {headers: asUser('bob')});
-
-    expect(alice.at(-1)).toBe(LIMITED);
-    expect(bob.statusCode).toBe(OK);
   });
 
   it('treats one IPv6 allocation as one caller', async () => {
@@ -452,14 +412,13 @@ describe('a route that declares its own windows', () => {
       {
         path: '/tight',
         config: {rateLimits: TWO_PER_MINUTE},
-        authenticated: true,
+        isGuarded: true,
       },
     ]);
 
-    await call(app, '/tight', {headers: asUser('alice')});
+    await call(app, '/tight', {headers: asCaller('alice')});
 
     expect(await globalBuckets(RateLimitKey.IP)).toEqual(['127.0.0.1']);
-    expect(await globalBuckets(RateLimitKey.USER)).toEqual(['alice']);
     expect(await routeBuckets()).toHaveLength(1);
   });
 });
@@ -521,42 +480,40 @@ describe('a window that escalates its penalty', () => {
   });
 });
 
-describe('a window keyed by account', () => {
+describe('a window keyed by a named caller', () => {
   it('spends per caller rather than per address', async () => {
     const {app} = await buildProbe([
       {
         path: '/mine',
         config: {
-          rateLimits: [{max: 2, timeWindow: 60000, key: RateLimitKey.USER}],
+          rateLimits: [{max: 2, timeWindow: 60000, identify: callerOf}],
         },
-        authenticated: true,
       },
     ]);
 
-    const alice = await codes(app, '/mine', 3, {headers: asUser('alice')});
-    const bob = await call(app, '/mine', {headers: asUser('bob')});
+    const alice = await codes(app, '/mine', 3, {headers: asCaller('alice')});
+    const bob = await call(app, '/mine', {headers: asCaller('bob')});
 
     expect(alice).toEqual([OK, OK, LIMITED]);
     expect(bob.statusCode).toBe(OK);
     expect(await routeBuckets()).toEqual([
-      'user:2/60000:GET/mine-alice',
-      'user:2/60000:GET/mine-bob',
+      'ip:2/60000:GET/mine-alice',
+      'ip:2/60000:GET/mine-bob',
     ]);
   });
 
-  it('falls back to the address when nobody is signed in', async () => {
+  it('falls back to the address when no caller is named', async () => {
     const {app} = await buildProbe([
       {
         path: '/mine',
         config: {
-          rateLimits: [{max: 2, timeWindow: 60000, key: RateLimitKey.USER}],
+          rateLimits: [{max: 2, timeWindow: 60000, identify: callerOf}],
         },
-        authenticated: true,
       },
     ]);
 
     expect(await codes(app, '/mine', 3)).toEqual([OK, OK, LIMITED]);
-    expect(await routeBuckets()).toEqual(['user:2/60000:GET/mine-127.0.0.1']);
+    expect(await routeBuckets()).toEqual(['ip:2/60000:GET/mine-127.0.0.1']);
   });
 
   it('stacks with an address window on the same route', async () => {
@@ -566,20 +523,19 @@ describe('a window keyed by account', () => {
         config: {
           rateLimits: [
             {max: 5, timeWindow: 60000},
-            {max: 2, timeWindow: 60000, key: RateLimitKey.USER},
+            {max: 2, timeWindow: 60000, identify: callerOf},
           ],
         },
-        authenticated: true,
       },
     ]);
 
-    const alice = await codes(app, '/mixed', 3, {headers: asUser('alice')});
+    const alice = await codes(app, '/mixed', 3, {headers: asCaller('alice')});
     expect(alice).toEqual([OK, OK, LIMITED]);
 
-    const bob = await codes(app, '/mixed', 3, {headers: asUser('bob')});
+    const bob = await codes(app, '/mixed', 3, {headers: asCaller('bob')});
     expect(bob).toEqual([OK, OK, LIMITED]);
 
-    expect(await routeBuckets('ip:*')).toEqual([
+    expect(await routeBuckets('ip:5/*')).toEqual([
       'ip:5/60000:GET/mixed-127.0.0.1',
     ]);
   });
@@ -644,35 +600,33 @@ describe('a group of routes', () => {
     ]);
   });
 
-  it('still spends per caller when the window is keyed by account', async () => {
+  it('still spends per caller when the window is keyed by a named caller', async () => {
     const {app} = await buildProbe([
       {
         path: '/send',
         config: {
-          rateLimits: [{max: 2, timeWindow: 60000, key: RateLimitKey.USER}],
+          rateLimits: [{max: 2, timeWindow: 60000, identify: callerOf}],
           rateLimitGroup: 'otp',
         },
-        authenticated: true,
       },
       {
         path: '/resend',
         config: {
-          rateLimits: [{max: 2, timeWindow: 60000, key: RateLimitKey.USER}],
+          rateLimits: [{max: 2, timeWindow: 60000, identify: callerOf}],
           rateLimitGroup: 'otp',
         },
-        authenticated: true,
       },
     ]);
 
-    await codes(app, '/send', 2, {headers: asUser('alice')});
-    const alice = await call(app, '/resend', {headers: asUser('alice')});
-    const bob = await call(app, '/resend', {headers: asUser('bob')});
+    await codes(app, '/send', 2, {headers: asCaller('alice')});
+    const alice = await call(app, '/resend', {headers: asCaller('alice')});
+    const bob = await call(app, '/resend', {headers: asCaller('bob')});
 
     expect(alice.statusCode).toBe(LIMITED);
     expect(bob.statusCode).toBe(OK);
     expect(await routeBuckets()).toEqual([
-      'user:2/60000:otp-alice',
-      'user:2/60000:otp-bob',
+      'ip:2/60000:otp-alice',
+      'ip:2/60000:otp-bob',
     ]);
   });
 });
@@ -683,31 +637,15 @@ describe('the order the windows run in', () => {
       {
         path: '/tight',
         config: {rateLimits: TWO_PER_MINUTE},
-        authenticated: true,
+        isGuarded: true,
       },
     ]);
 
-    await codes(app, '/tight', 2, {headers: asUser('alice')});
+    await codes(app, '/tight', 2, {headers: asCaller('alice')});
     expect(guarded()).toBe(2);
 
-    const refused = await call(app, '/tight', {headers: asUser('alice')});
+    const refused = await call(app, '/tight', {headers: asCaller('alice')});
     expect(refused.statusCode).toBe(LIMITED);
-    expect(guarded()).toBe(2);
-  });
-
-  it('lets the guard run first when the window needs a caller', async () => {
-    const {app, guarded} = await buildProbe([
-      {
-        path: '/mine',
-        config: {
-          rateLimits: [{max: 1, timeWindow: 60000, key: RateLimitKey.USER}],
-        },
-        authenticated: true,
-      },
-    ]);
-
-    await codes(app, '/mine', 2, {headers: asUser('alice')});
-
     expect(guarded()).toBe(2);
   });
 });
@@ -750,25 +688,6 @@ describe('a route that watches its own refusals', () => {
     await codes(app, '/plain', config.rateLimitIpMax + 1);
 
     expect(seen).toEqual([config.rateLimitIpMax]);
-  });
-
-  it('hears the shared account budget refuse', async () => {
-    const seen = [];
-    const {app} = await buildProbe([
-      {
-        path: '/plain',
-        authenticated: true,
-        config: {
-          onRateLimited: (request, result) => seen.push(result.max),
-        },
-      },
-    ]);
-
-    await codes(app, '/plain', config.rateLimitUserMax + 1, {
-      headers: asUser('alice'),
-    });
-
-    expect(seen).toEqual([config.rateLimitUserMax]);
   });
 
   it('waits for a hook that answers slowly', async () => {
@@ -835,12 +754,12 @@ describe('a route that waves some callers through', () => {
     const {app} = await buildProbe([
       {
         path: '/plain',
-        authenticated: true,
+        isGuarded: true,
         config: {skipRateLimit: () => true},
       },
     ]);
 
-    await codes(app, '/plain', 3, {headers: asUser('alice')});
+    await codes(app, '/plain', 3, {headers: asCaller('alice')});
 
     expect(await redis.keys('rate:*')).toEqual([]);
   });
@@ -849,7 +768,7 @@ describe('a route that waves some callers through', () => {
 describe('a route that waves some callers past the shared budgets only', () => {
   const skipped = {
     path: '/act',
-    authenticated: true,
+    isGuarded: true,
     config: {skipGlobalRateLimit: request => request.query.relay === 'yes'},
     handler: app => {
       const rate = app.rateLimiter({max: 2, timeWindow: 60000});
@@ -865,10 +784,9 @@ describe('a route that waves some callers past the shared budgets only', () => {
   it('opens no shared bucket for the ones it waves through', async () => {
     const {app} = await buildProbe([skipped]);
 
-    await call(app, '/act?relay=yes', {headers: asUser('alice')});
+    await call(app, '/act?relay=yes', {headers: asCaller('alice')});
 
     expect(await globalBuckets(RateLimitKey.IP)).toEqual([]);
-    expect(await globalBuckets(RateLimitKey.USER)).toEqual([]);
   });
 
   it('still lets its own limiter count them', async () => {
@@ -880,10 +798,9 @@ describe('a route that waves some callers past the shared budgets only', () => {
   it('keeps everyone else on the shared budgets', async () => {
     const {app} = await buildProbe([skipped]);
 
-    await call(app, '/act', {headers: asUser('alice')});
+    await call(app, '/act', {headers: asCaller('alice')});
 
     expect(await globalBuckets(RateLimitKey.IP)).toEqual(['127.0.0.1']);
-    expect(await globalBuckets(RateLimitKey.USER)).toEqual(['alice']);
   });
 });
 
@@ -940,14 +857,13 @@ describe('opting out of the shared budgets', () => {
       {
         path: '/alone',
         config: {rateLimits: TWO_PER_MINUTE, exclusiveRateLimits: true},
-        authenticated: true,
+        isGuarded: true,
       },
     ]);
 
-    await call(app, '/alone', {headers: asUser('alice')});
+    await call(app, '/alone', {headers: asCaller('alice')});
 
     expect(await globalBuckets(RateLimitKey.IP)).toEqual([]);
-    expect(await globalBuckets(RateLimitKey.USER)).toEqual([]);
     expect(await routeBuckets()).toHaveLength(1);
   });
 
@@ -956,21 +872,20 @@ describe('opting out of the shared budgets', () => {
       {
         path: '/hollow',
         config: {exclusiveRateLimits: true},
-        authenticated: true,
+        isGuarded: true,
       },
     ]);
 
-    await call(app, '/hollow', {headers: asUser('alice')});
+    await call(app, '/hollow', {headers: asCaller('alice')});
 
     expect(await globalBuckets(RateLimitKey.IP)).toEqual(['127.0.0.1']);
-    expect(await globalBuckets(RateLimitKey.USER)).toEqual(['alice']);
   });
 });
 
 describe('a handler reading what is left of its budget', () => {
   const reporting = config => ({
     path: '/plain',
-    authenticated: true,
+    isGuarded: true,
     ...(config && {config}),
     handler: () => async (request, reply) =>
       reply.success({
@@ -1023,11 +938,16 @@ describe('a handler reading what is left of its budget', () => {
 });
 
 describe('a limiter a handler drives itself', () => {
-  const counted = ({scope, key} = {}) => ({
+  const counted = ({scope, identify} = {}) => ({
     path: '/act',
-    authenticated: true,
+    isGuarded: true,
     handler: app => {
-      const rate = app.rateLimiter({max: 2, timeWindow: 60000, scope, key});
+      const rate = app.rateLimiter({
+        max: 2,
+        timeWindow: 60000,
+        scope,
+        identify,
+      });
       return async (request, reply) => {
         const status = await rate(request);
         return status.isExceeded
@@ -1126,11 +1046,11 @@ describe('a limiter a handler drives itself', () => {
     expect(await routeBuckets()).toEqual(['ip:2/60000:checkout-127.0.0.1']);
   });
 
-  it('counts the caller when the limiter is keyed by account', async () => {
-    const {app} = await buildProbe([counted({key: RateLimitKey.USER})]);
+  it('counts the caller when the limiter is keyed by a named caller', async () => {
+    const {app} = await buildProbe([counted({identify: callerOf})]);
 
-    const alice = await codes(app, '/act', 3, {headers: asUser('alice')});
-    const bob = await call(app, '/act', {headers: asUser('bob')});
+    const alice = await codes(app, '/act', 3, {headers: asCaller('alice')});
+    const bob = await call(app, '/act', {headers: asCaller('bob')});
 
     expect(alice).toEqual([OK, OK, LIMITED]);
     expect(bob.statusCode).toBe(OK);

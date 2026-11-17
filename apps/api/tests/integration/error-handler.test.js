@@ -3,7 +3,6 @@ import {StatusCodes} from 'http-status-codes';
 import {ErrorCode} from '@repo/shared/constants/error-code.js';
 import {getTestApp} from '../helpers/app.js';
 import {readEnvelope} from '../helpers/assertions.js';
-import {authHeaders, getSeededAdminUser} from '../helpers/factories.js';
 import {
   HTTP_FIXTURE_RECORDS_URL,
   HTTP_FIXTURE_URL,
@@ -14,12 +13,9 @@ afterEach(() => {
   vi.restoreAllMocks();
 });
 
-const asAdmin = async () => authHeaders(await getSeededAdminUser());
-
 describe('an unexpected failure', () => {
   it('answers the envelope rather than leaking a stack', async () => {
     const app = await getTestApp();
-    const headers = await asAdmin();
     vi.spyOn(fixtureSource, 'read').mockRejectedValueOnce(
       new Error('the datastore fell over'),
     );
@@ -27,7 +23,6 @@ describe('an unexpected failure', () => {
     const response = await app.inject({
       method: 'GET',
       url: HTTP_FIXTURE_URL,
-      headers,
     });
 
     expect(response.statusCode).toBe(StatusCodes.INTERNAL_SERVER_ERROR);
@@ -40,7 +35,6 @@ describe('an unexpected failure', () => {
 
   it('carries the description so an operator can correlate it with the log', async () => {
     const app = await getTestApp();
-    const headers = await asAdmin();
     vi.spyOn(fixtureSource, 'read').mockRejectedValueOnce(
       new Error('the datastore fell over'),
     );
@@ -48,7 +42,6 @@ describe('an unexpected failure', () => {
     const response = await app.inject({
       method: 'GET',
       url: HTTP_FIXTURE_URL,
-      headers,
     });
     expect(readEnvelope(response).data.errorDescription).toBe(
       'the datastore fell over',
@@ -57,14 +50,12 @@ describe('an unexpected failure', () => {
 
   it('does not leave the connection in a state the next request inherits', async () => {
     const app = await getTestApp();
-    const headers = await asAdmin();
     vi.spyOn(fixtureSource, 'read').mockRejectedValueOnce(new Error('boom'));
 
-    await app.inject({method: 'GET', url: HTTP_FIXTURE_URL, headers});
+    await app.inject({method: 'GET', url: HTTP_FIXTURE_URL});
     const recovered = await app.inject({
       method: 'GET',
       url: HTTP_FIXTURE_URL,
-      headers,
     });
     expect(recovered.statusCode).toBe(StatusCodes.OK);
   });
@@ -76,7 +67,6 @@ describe('a known client error', () => {
     const response = await app.inject({
       method: 'GET',
       url: `${HTTP_FIXTURE_RECORDS_URL}/not-a-uuid`,
-      headers: await asAdmin(),
     });
     expect(response.statusCode).toBe(StatusCodes.UNPROCESSABLE_ENTITY);
     expect(readEnvelope(response).data.errorCode).toBe(
@@ -89,7 +79,6 @@ describe('a known client error', () => {
     const response = await app.inject({
       method: 'POST',
       url: HTTP_FIXTURE_URL,
-      headers: await asAdmin(),
       payload: {code: 'ABCDE', count: 0},
     });
     const {errors, message} = readEnvelope(response).data
@@ -113,7 +102,7 @@ describe('a known client error', () => {
     const response = await app.inject({
       method: 'POST',
       url: HTTP_FIXTURE_URL,
-      headers: {...(await asAdmin()), 'content-type': 'application/json'},
+      headers: {'content-type': 'application/json'},
       payload: '"just a string"',
     });
     expect(response.statusCode).toBe(StatusCodes.UNPROCESSABLE_ENTITY);
@@ -125,7 +114,7 @@ describe('a known client error', () => {
     const response = await app.inject({
       method: 'POST',
       url: HTTP_FIXTURE_URL,
-      headers: {...(await asAdmin()), 'content-type': 'application/json'},
+      headers: {'content-type': 'application/json'},
       payload: '{not json',
     });
     expect(response.statusCode).toBeLessThan(StatusCodes.INTERNAL_SERVER_ERROR);

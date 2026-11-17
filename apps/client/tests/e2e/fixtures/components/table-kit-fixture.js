@@ -202,7 +202,7 @@ function UserTable({
           key: 'history',
           label: 'Geçmiş',
           icon: HistoryIcon,
-          href: `/admin/fixtures/table-kit?history=${row.original.id}`,
+          href: `/fixtures/table-kit?history=${row.original.id}`,
         },
         !row.original.disabledAt && {
           key: 'delete',

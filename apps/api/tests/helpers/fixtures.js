@@ -4,20 +4,15 @@ import {
   getMultiFilterField,
   getOffsetPaginationSchema,
 } from '@repo/shared/schemas/pagination.js';
-import {User} from '../../src/db/models/user.js';
-import {UserRole} from '../../src/db/models/user-role.js';
+import {sequelize} from '../../src/db/index.js';
 import {dbUtils} from '../../src/db/utils.js';
-import guardAdminSubtree from '../../src/routes/(admin)/autohooks.js';
-import getSettingsRoute from '../../src/routes/(admin)/settings/get.js';
-import updateSettingsRoute from '../../src/routes/(admin)/settings/update.js';
-import {fixtureSettings, fixtureSettingsDefinition} from './settings.js';
+import {FixtureRecord, FixtureRecordTag, FixtureTag} from './fixture-models.js';
 
-export const SECURITY_KEY_FIXTURE_URL = '/__fixtures__/security-key';
-export const SETTINGS_FIXTURE_URL = '/__fixtures__/settings';
 export const HTTP_FIXTURE_URL = '/__fixtures__/http';
 export const HTTP_FIXTURE_RECORDS_URL = `${HTTP_FIXTURE_URL}/records`;
 export const HTTP_FIXTURE_MESSAGE = 'Fixture yanıtı.';
 export const PAGINATION_FIXTURE_URL = '/__fixtures__/pagination';
+export const PAGINATION_FIXTURE_TAGS_URL = `${PAGINATION_FIXTURE_URL}/tags`;
 
 export const fixtureSource = {read: async () => null};
 
@@ -32,50 +27,34 @@ const httpFixtureBodySchema = z.object({
     .positive('Sayı sıfırdan büyük olmalıdır'),
 });
 
-const httpFixtureRecordSchema = z.object({email: z.string('E-posta geçersiz')});
+const httpFixtureRecordSchema = z.object({name: z.string('Ad geçersiz')});
+
+const httpFixtureRecordUpdateSchema = z.object({
+  name: z.string('Ad geçersiz').optional(),
+  tagIds: z.array(z.uuid('Geçersiz etiket')).optional(),
+});
 
 const paginationFixtureSchema = getOffsetPaginationSchema({
-  sort: ['id', 'email', 'disabledAt'],
+  sort: ['id', 'name', 'disabledAt'],
   disabled: getMultiFilterField(z.stringbool(), 'Durum geçersiz').optional(),
-  roleId: getMultiFilterField(
-    z.uuid('Geçersiz rol'),
-    'Geçersiz rol',
+  tagId: getMultiFilterField(
+    z.uuid('Geçersiz etiket'),
+    'Geçersiz etiket',
   ).optional(),
 });
 
-async function prepareAdminFixture(fastify) {
-  await guardAdminSubtree(fastify);
+const paginationFixtureTagsSchema = getOffsetPaginationSchema({
+  sort: ['id', 'label', 'rank'],
+});
+
+async function hideFixtureRoutes(fastify) {
   fastify.addHook('onRoute', route => {
     (route.schema ??= {}).hide = true;
   });
 }
 
-export async function securityKeyFixture(fastify) {
-  const routeOptions = {
-    onRequest: [fastify.requireSecurityKey],
-    schema: {hide: true},
-  };
-  fastify.get(SECURITY_KEY_FIXTURE_URL, routeOptions, async (request, reply) =>
-    reply.success(),
-  );
-  fastify.post(SECURITY_KEY_FIXTURE_URL, routeOptions, async (request, reply) =>
-    reply.success(),
-  );
-}
-
-export async function settingsFixture(fastify) {
-  fastify.decorate('settings', fixtureSettings);
-  fastify.decorate('settingsDefinition', fixtureSettingsDefinition);
-  await prepareAdminFixture(fastify);
-  await Promise.all(
-    [getSettingsRoute, updateSettingsRoute].map(route =>
-      fastify.register(route, {prefix: SETTINGS_FIXTURE_URL}),
-    ),
-  );
-}
-
 export async function httpFixture(fastify) {
-  await prepareAdminFixture(fastify);
+  await hideFixtureRoutes(fastify);
   fastify.get(HTTP_FIXTURE_URL, async (request, reply) =>
     reply.success(await fixtureSource.read(), HTTP_FIXTURE_MESSAGE),
   );
@@ -88,50 +67,90 @@ export async function httpFixture(fastify) {
     `${HTTP_FIXTURE_RECORDS_URL}/:id`,
     {schema: {params: uuidSchema}},
     async (request, reply) => {
-      const record = await User.findByPk(request.params.id, {
-        attributes: ['id'],
-        rejectOnEmpty: User.notFound,
-      });
-      return reply.success({id: record.id});
+      const record = await FixtureRecord.withScope('withTags').findByPk(
+        request.params.id,
+        {rejectOnEmpty: FixtureRecord.notFound},
+      );
+      return reply.success(dbUtils.getPlain(record));
     },
   );
   fastify.post(
     HTTP_FIXTURE_RECORDS_URL,
     {schema: {body: httpFixtureRecordSchema}},
     async (request, reply) => {
-      const record = await User.create({email: request.body.email});
+      const record = await FixtureRecord.create({name: request.body.name});
       return reply.success({id: record.id});
+    },
+  );
+  fastify.patch(
+    `${HTTP_FIXTURE_RECORDS_URL}/:id`,
+    {schema: {params: uuidSchema, body: httpFixtureRecordUpdateSchema}},
+    async (request, reply) => {
+      const {tagIds, ...values} = request.body;
+      await sequelize.transaction(async transaction => {
+        const record = await FixtureRecord.findOneLocked(
+          {
+            where: {id: request.params.id},
+            attributes: ['id', 'name'],
+            rejectOnEmpty: FixtureRecord.notFound,
+          },
+          transaction,
+        );
+        await record.update(values, {transaction});
+        if (tagIds) {
+          await record.setTags(tagIds, {transaction});
+        }
+      });
+      return reply.success();
     },
   );
 }
 
 export async function paginationFixture(fastify) {
-  await prepareAdminFixture(fastify);
+  await hideFixtureRoutes(fastify);
+  await fastify.register(paginationFixtureRoutes, {
+    prefix: PAGINATION_FIXTURE_URL,
+  });
+}
+
+async function paginationFixtureRoutes(fastify) {
   fastify.get(
-    PAGINATION_FIXTURE_URL,
+    '/',
     {schema: {querystring: paginationFixtureSchema}},
     async (request, reply) => {
-      const result = await User.paginateByOffset(request.query, {
-        attributes: ['id', 'email', 'disabledAt'],
+      const result = await FixtureRecord.paginateByOffset(request.query, {
+        attributes: ['id', 'name', 'disabledAt'],
+        include: [FixtureRecord.tagsInclude],
         filters: {
-          search: search => ({email: dbUtils.iLike(search)}),
+          search: search => ({name: dbUtils.iLike(search)}),
           disabled: flags => {
             const state = dbUtils.nullState(flags);
             return state && {disabledAt: state};
           },
-          roleId: roleIds =>
+          tagId: tagIds =>
             dbUtils.relatedTo(
               {
-                through: UserRole,
-                foreignKey: 'userId',
-                otherKey: 'roleId',
-                values: roleIds,
+                through: FixtureRecordTag,
+                foreignKey: 'recordId',
+                otherKey: 'tagId',
+                values: tagIds,
               },
-              User,
+              FixtureRecord,
             ),
         },
       });
       return reply.success(result);
     },
+  );
+  fastify.get(
+    '/tags',
+    {schema: {querystring: paginationFixtureTagsSchema}},
+    async (request, reply) =>
+      reply.success(
+        await FixtureTag.paginateByOffset(request.query, {
+          attributes: ['id', 'label', 'rank'],
+          filters: {search: search => ({label: dbUtils.iLike(search)})},
+        }),
+      ),
   );
 }

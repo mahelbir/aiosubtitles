@@ -1,6 +1,4 @@
 import {config} from '../../config/index.js';
-import {roleCache} from '../../lib/auth/role-cache.js';
-import {userCache} from '../../lib/user-cache.js';
 import {redis} from '../../redis/index.js';
 import {sequelize} from '../index.js';
 import {initializeDatabase} from '../init.js';
@@ -27,10 +25,7 @@ if (config.env === 'production') {
 
   await dbCli.run(seedMocks, {
     cleanup: async () => {
-      await dbCli.dropCaches([
-        () => roleCache.invalidate(),
-        () => userCache.invalidateAll(),
-      ]);
+      await dbCli.dropCaches([]);
       redis.disconnect();
     },
   });

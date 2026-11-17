@@ -111,43 +111,6 @@ services:
         condition: service_healthy
         required: false
 
-  seed:
-    <<: *privilege-drop-hardening
-    build:
-      context: .
-      dockerfile: apps/api/Dockerfile
-    command: node src/db/cli/seed.js up
-    env_file:
-      - path: .env
-        required: false
-    environment:
-      <<: *db-env
-      NODE_ENV: production
-    restart: 'no'
-    depends_on:
-      migrate:
-        condition: service_completed_successfully
-
-  sync:
-    <<: *privilege-drop-hardening
-    build:
-      context: .
-      dockerfile: apps/api/Dockerfile
-    command: node src/db/cli/sync.js
-    env_file:
-      - path: .env
-        required: false
-    environment:
-      <<: [*db-env, *redis-env]
-      NODE_ENV: production
-    restart: 'no'
-    depends_on:
-      seed:
-        condition: service_completed_successfully
-      redis:
-        condition: service_healthy
-        required: false
-
   api:
     <<: *privilege-drop-hardening
     build:
@@ -176,7 +139,7 @@ services:
           'wget -q --spider http://127.0.0.1:${PORT}${API_BASE_PATH:-/}',
         ]
     depends_on:
-      sync:
+      migrate:
         condition: service_completed_successfully
       postgres:
         condition: service_healthy

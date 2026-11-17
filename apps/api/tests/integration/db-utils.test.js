@@ -2,8 +2,8 @@ import {afterAll, beforeAll, describe, expect, it} from 'vitest';
 import {DataTypes} from 'sequelize';
 import {sequelize} from '../../src/db/index.js';
 import {dbUtils} from '../../src/db/utils.js';
-import {User} from '../../src/db/models/user.js';
-import {createUser} from '../helpers/factories.js';
+import {createFixtureRecord} from '../helpers/factories.js';
+import {FixtureRecord} from '../helpers/fixture-models.js';
 
 const Charge = sequelize.define(
   'Charge',
@@ -15,13 +15,13 @@ const Charge = sequelize.define(
 );
 
 const totalDue = async user => {
-  const row = await User.findOne({
+  const row = await FixtureRecord.findOne({
     where: {id: user.id},
     attributes: [
       [
         dbUtils.relatedSum(
           {target: Charge, foreignKey: 'userId', attribute: 'amountDue'},
-          User,
+          FixtureRecord,
         ),
         'total',
       ],
@@ -41,7 +41,7 @@ afterAll(async () => {
 
 describe('relatedSum', () => {
   it('answers the sum of the related rows as a number', async () => {
-    const user = await createUser();
+    const user = await createFixtureRecord();
     await Charge.bulkCreate([
       {userId: user.id, amountDue: '12.50'},
       {userId: user.id, amountDue: '7.25'},
@@ -51,7 +51,7 @@ describe('relatedSum', () => {
   });
 
   it('answers the number zero when nothing is related', async () => {
-    const user = await createUser();
+    const user = await createFixtureRecord();
 
     expect(await totalDue(user)).toBe(0);
   });
@@ -70,7 +70,7 @@ describe('refuseRollbackIf', () => {
     );
 
   it('throws while a row the rollback would lose remains', async () => {
-    const user = await createUser();
+    const user = await createFixtureRecord();
     await Charge.bulkCreate([
       {userId: user.id, amountDue: '1.00'},
       {userId: user.id, amountDue: '2.00'},
@@ -82,14 +82,17 @@ describe('refuseRollbackIf', () => {
   });
 
   it('lets the rollback through when only rows it keeps exist', async () => {
-    const [user, other] = await Promise.all([createUser(), createUser()]);
+    const [user, other] = await Promise.all([
+      createFixtureRecord(),
+      createFixtureRecord(),
+    ]);
     await Charge.create({userId: other.id, amountDue: '1.00'});
 
     await expect(refuseWhileCharged(user)).resolves.toBeUndefined();
   });
 
   it('counts the rows its own transaction sees', async () => {
-    const user = await createUser();
+    const user = await createFixtureRecord();
     const transaction = await sequelize.transaction();
     try {
       await Charge.create({userId: user.id, amountDue: '1.00'}, {transaction});

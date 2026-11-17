@@ -3,7 +3,6 @@
 import {Fragment} from 'react';
 import {useSearchParams} from 'next/navigation';
 import {pick} from 'es-toolkit';
-import {RolePlacement} from '@repo/shared/constants/role.js';
 import {CheckboxInput} from '@/components/form/checkbox-input';
 import {
   CheckboxFieldSkeleton,
@@ -36,12 +35,13 @@ import {useAppForm} from '@/lib/form';
 import {useFixturePerson} from '../api';
 import {useLatency} from '../hooks/use-latency';
 import {FIXTURE_PEOPLE} from '../lib/fake-people';
+import {FIXTURE_PLACEMENT_OPTIONS} from '../lib/fixture-placement';
 import {FixtureSection} from './fixture-section';
 import {FixtureState} from './fixture-state';
 
 const QUICK_EDIT_ACTION = 'quick-edit';
 const PANEL_ACTIONS = [PanelAction.EDIT, QUICK_EDIT_ACTION];
-const CARD_PROPS = {title: 'Profil kartı', back: '/admin/fixtures'};
+const CARD_PROPS = {title: 'Profil kartı', back: '/fixtures'};
 const GENERAL_TAB_LABEL = 'Genel';
 const LATE_PERSON_ID = '2';
 const LATE_FIELD_MS = 400;
@@ -57,7 +57,7 @@ function usePersonForm(person) {
 function PlacementField() {
   return (
     <FormField name="placement">
-      <ToggleGroupInput label="Konum" options={RolePlacement.toList()} />
+      <ToggleGroupInput label="Konum" options={FIXTURE_PLACEMENT_OPTIONS} />
     </FormField>
   );
 }

@@ -3,9 +3,11 @@ import {DataTypes, Op} from 'sequelize';
 import {sequelize} from '../../src/db/index.js';
 import {dbUtils} from '../../src/db/utils.js';
 import {isValidUuid} from '../../src/lib/common.js';
-import {User} from '../../src/db/models/user.js';
-import {UserRole} from '../../src/db/models/user-role.js';
-import {Role} from '../../src/db/models/role.js';
+import {
+  FixtureRecord,
+  FixtureRecordTag,
+  FixtureTag,
+} from '../helpers/fixture-models.js';
 
 describe('uuidPrimaryKey', () => {
   it('generates a valid, distinct key per row', () => {
@@ -56,8 +58,11 @@ describe('getPlain', () => {
   });
 
   it('unwraps a model instance', () => {
-    const instance = User.build({email: 'someone@example.com', password: 'x'});
-    expect(dbUtils.getPlain(instance).email).toBe('someone@example.com');
+    const instance = FixtureRecord.build({
+      name: 'someone@example.com',
+      secret: 'x',
+    });
+    expect(dbUtils.getPlain(instance).name).toBe('someone@example.com');
   });
 });
 
@@ -110,19 +115,19 @@ describe('relatedTo', () => {
   const build = values =>
     dbUtils.relatedTo(
       {
-        through: UserRole,
-        foreignKey: 'userId',
-        otherKey: 'roleId',
+        through: FixtureRecordTag,
+        foreignKey: 'recordId',
+        otherKey: 'tagId',
         values,
       },
-      User,
+      FixtureRecord,
     ).val;
 
   it('names the physical columns rather than the attribute names', () => {
     const sql = build(['a']);
-    expect(sql).toContain('"user_id"');
-    expect(sql).toContain('"role_id"');
-    expect(sql).toContain('"user_roles"');
+    expect(sql).toContain('"record_id"');
+    expect(sql).toContain('"tag_id"');
+    expect(sql).toContain('"fixture_record_tags"');
   });
 
   it('escapes every value, so a filter cannot break out of the clause', () => {
@@ -137,27 +142,27 @@ describe('relatedMaxAtMost', () => {
   const build = limit =>
     dbUtils.relatedMaxAtMost(
       {
-        through: UserRole,
-        foreignKey: 'userId',
-        otherKey: 'roleId',
-        target: Role,
-        attribute: 'position',
+        through: FixtureRecordTag,
+        foreignKey: 'recordId',
+        otherKey: 'tagId',
+        target: FixtureTag,
+        attribute: 'rank',
         limit,
       },
-      User,
+      FixtureRecord,
     ).val;
 
   it('passes a row by proving no related row rises above the limit', () => {
     const sql = build(1000);
     expect(sql.startsWith('NOT EXISTS')).toBe(true);
-    expect(sql).toContain('"position" > 1000');
+    expect(sql).toContain('"rank" > 1000');
   });
 
   it('names the physical columns and joins the target on its own key', () => {
     const sql = build(0);
-    expect(sql).toContain('"roles"');
-    expect(sql).toContain('"role_id"');
-    expect(sql).toContain('"user_id"');
+    expect(sql).toContain('"fixture_tags"');
+    expect(sql).toContain('"tag_id"');
+    expect(sql).toContain('"record_id"');
   });
 
   it('escapes the limit, so a value cannot break out of the clause', () => {
@@ -170,23 +175,23 @@ describe('relatedMaxAtMost', () => {
 describe('relatedCount', () => {
   it('counts related rows as an integer, correlated on the physical keys', () => {
     const sql = dbUtils.relatedCount(
-      {target: UserRole, foreignKey: 'userId'},
-      User,
+      {target: FixtureRecordTag, foreignKey: 'recordId'},
+      FixtureRecord,
     ).val;
     expect(sql).toContain('SELECT COUNT(*)::int');
-    expect(sql).toContain('"user_roles"');
-    expect(sql).toContain('rel."user_id" = "User"."id"');
+    expect(sql).toContain('"fixture_record_tags"');
+    expect(sql).toContain('rel."record_id" = "FixtureRecord"."id"');
   });
 });
 
 describe('relatedNone', () => {
   it('passes a row only while no related row points at it, correlated on the physical keys', () => {
     const sql = dbUtils.relatedNone(
-      {target: UserRole, foreignKey: 'userId'},
-      User,
+      {target: FixtureRecordTag, foreignKey: 'recordId'},
+      FixtureRecord,
     ).val;
     expect(sql).toBe(
-      'NOT EXISTS (SELECT 1 FROM "user_roles" rel WHERE rel."user_id" = "User"."id")',
+      'NOT EXISTS (SELECT 1 FROM "fixture_record_tags" rel WHERE rel."record_id" = "FixtureRecord"."id")',
     );
   });
 });
@@ -194,18 +199,18 @@ describe('relatedNone', () => {
 describe('relatedSum', () => {
   const Charge = sequelize.define(
     'Charge',
-    {userId: DataTypes.UUID, amountDue: DataTypes.DECIMAL},
+    {recordId: DataTypes.UUID, amountDue: DataTypes.DECIMAL},
     {tableName: 'charges'},
   );
   const sql = dbUtils.relatedSum(
-    {target: Charge, foreignKey: 'userId', attribute: 'amountDue'},
-    User,
+    {target: Charge, foreignKey: 'recordId', attribute: 'amountDue'},
+    FixtureRecord,
   ).val;
 
   it('sums the physical column, correlated on the physical keys', () => {
     expect(sql).toContain('SUM(rel."amount_due")');
     expect(sql).toContain('"charges"');
-    expect(sql).toContain('rel."user_id" = "User"."id"');
+    expect(sql).toContain('rel."record_id" = "FixtureRecord"."id"');
   });
 
   it('answers zero rather than null when nothing is related', () => {
@@ -216,26 +221,26 @@ describe('relatedSum', () => {
 describe('caseMap', () => {
   it('falls back to the plain column when there is nothing to map', () => {
     const literal = dbUtils.caseMap(
-      {keyAttribute: 'id', valueAttribute: 'position', rows: []},
-      Role,
+      {keyAttribute: 'id', valueAttribute: 'rank', rows: []},
+      FixtureTag,
     );
-    expect(literal.val).toBe('"position"');
+    expect(literal.val).toBe('"rank"');
   });
 
   it('builds one branch per row, escaping both sides', () => {
     const literal = dbUtils.caseMap(
       {
         keyAttribute: 'id',
-        valueAttribute: 'position',
+        valueAttribute: 'rank',
         rows: [
-          {id: 'a', position: 1000},
-          {id: "b'--", position: 2000},
+          {id: 'a', rank: 1000},
+          {id: "b'--", rank: 2000},
         ],
       },
-      Role,
+      FixtureTag,
     );
     expect(literal.val).toContain("WHEN 'a' THEN 1000");
     expect(literal.val).toContain("WHEN 'b''--' THEN 2000");
-    expect(literal.val).toContain('ELSE "position" END');
+    expect(literal.val).toContain('ELSE "rank" END');
   });
 });

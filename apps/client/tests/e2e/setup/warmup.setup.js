@@ -1,7 +1,6 @@
 import {StatusCodes} from 'http-status-codes';
 import {FIXTURES} from '../fixtures/registry.js';
 import {PUBLIC_FIXTURES_PATH} from '../lib/fixture-page.js';
-import {PANEL_ROUTES} from '../lib/routes.js';
 import {expect, test as warmup} from '../lib/test.js';
 
 warmup(
@@ -12,16 +11,12 @@ warmup(
     const publicThemeRoute = `${PUBLIC_FIXTURES_PATH}/theme`;
     const routes = [
       '/',
-      '/admin/login',
-      ...PANEL_ROUTES,
-      '/admin/fixtures',
-      ...FIXTURES.map(({slug}) => `/admin/fixtures/${slug}`),
-      publicThemeRoute,
-      `${PUBLIC_FIXTURES_PATH}/alerts`,
+      PUBLIC_FIXTURES_PATH,
+      ...FIXTURES.map(({slug}) => `${PUBLIC_FIXTURES_PATH}/${slug}`),
     ];
 
     const coldResponses = [];
-    for (const route of ['/admin/fixtures/theme', publicThemeRoute]) {
+    for (const route of [publicThemeRoute]) {
       coldResponses.push(await requestRoute(route));
     }
     const [missing, ...responses] = await Promise.all(

@@ -745,7 +745,7 @@ test.describe('page card form', () => {
     await expect(getSaveButton(profile)).toBeVisible();
     await expect(profile.getByRole('link', {name: 'Geri dön'})).toHaveAttribute(
       'href',
-      '/admin/fixtures',
+      '/fixtures',
     );
     await expect(address.getByText('Adres kartı')).toBeVisible();
     await expect(getSaveButton(address)).toBeVisible();
@@ -757,7 +757,7 @@ test.describe('page card form', () => {
 
     await getCard(page, 'Profil').getByRole('link', {name: 'Geri dön'}).click();
 
-    await expect(page).toHaveURL(/\/admin\/fixtures$/);
+    await expect(page).toHaveURL(/\/fixtures$/);
     await expect(
       page.getByRole('heading', {level: 1, name: 'Fixtures'}),
     ).toBeVisible();

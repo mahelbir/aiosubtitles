@@ -3,7 +3,7 @@ import {
   openAlerts,
   stubEntries,
 } from '../lib/alerts-fixture.js';
-import {expectFixtureState, openPublicFixture} from '../lib/fixture-page.js';
+import {expectFixtureState} from '../lib/fixture-page.js';
 import {getTopLoader} from '../lib/locators.js';
 import {clickButton} from '../lib/page.js';
 import {expect, test} from '../lib/test.js';
@@ -11,7 +11,7 @@ import {expectToasts} from '../lib/toasts.js';
 
 test.describe('public root layout', () => {
   test.beforeEach(async ({page}) => {
-    await openAlerts(page, openPublicFixture);
+    await openAlerts(page);
   });
 
   test('a confirm opens its alertdialog and resolves once answered', async ({

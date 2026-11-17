@@ -53,11 +53,7 @@ export function BoundariesFixture() {
         </QueryBoundary>
       </FixtureSection>
       <FixtureSection title="Kayıt sayfası">
-        <PageEntityBoundary
-          id={entityId}
-          query={entityQuery}
-          back="/admin/fixtures"
-        >
+        <PageEntityBoundary id={entityId} query={entityQuery} back="/fixtures">
           {entity => <p>{entity ? entity.name : 'Yeni kayıt'}</p>}
         </PageEntityBoundary>
       </FixtureSection>

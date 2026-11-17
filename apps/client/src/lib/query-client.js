@@ -6,22 +6,9 @@ import {
 } from '@tanstack/react-query';
 import {toast} from 'react-toastify';
 import {ErrorCode} from '@repo/shared/constants/error-code.js';
-import {refreshPrincipal} from '@/api/principal';
 import {isTransientRefetchError} from '@/lib/query';
-import {useAuthStore} from '@/stores/auth-store';
 
 export const ALL_QUERIES = Object.freeze([]);
-
-function shouldRefreshPrincipal(mutation, variables) {
-  const declared = mutation.meta?.touchPrincipal;
-  if (!declared) {
-    return false;
-  }
-  if (declared === true) {
-    return true;
-  }
-  return Boolean(declared(variables, useAuthStore.getState().principal));
-}
 
 function toQueryKeys(invalidates) {
   if (!invalidates) {
@@ -46,9 +33,6 @@ function makeQueryClient() {
   const mutationCache = new MutationCache({
     onSuccess: async (data, variables, _context, mutation) => {
       await invalidateDeclared(client, mutation, 'success');
-      if (shouldRefreshPrincipal(mutation, variables)) {
-        refreshPrincipal().catch(() => {});
-      }
       if (!mutation.meta?.isSuccessHandled && data?.message) {
         toast.success(data.message);
       }

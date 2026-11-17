@@ -22,14 +22,11 @@ export class ApiError extends Error {
 export async function requestApi(
   baseUrl,
   path,
-  {method = 'GET', body, token, signal, envelope = false} = {},
+  {method = 'GET', body, signal, envelope = false} = {},
 ) {
   const headers = {};
   if (body !== undefined) {
     headers['Content-Type'] = 'application/json';
-  }
-  if (token) {
-    headers.Authorization = `Bearer ${token}`;
   }
   let response;
   try {
