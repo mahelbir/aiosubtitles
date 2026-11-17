@@ -1,0 +1,57 @@
+{
+  "id": "V92",
+  "slot": 2,
+  "scenario": "fixture film",
+  "container": "mp4",
+  "durationMs": 5400000,
+  "startTimeMs": 0,
+  "tracks": [],
+  "truth": {
+    "kind": "embedded-text",
+    "method": "mkvextract-srt",
+    "track": 2,
+    "command": ["fixture"],
+    "cues": [[2000, 2600]],
+    "contentDigest": "0000000000000000000000000000000000000000000000000000000000000003"
+  },
+  "truthAudit": {
+    "status": "suspect",
+    "checks": [{"kind": "second-track", "isPassed": false}]
+  },
+  "candidates": [
+    {
+      "id": "V92/c1",
+      "contentDigest": "0000000000000000000000000000000000000000000000000000000000000021",
+      "language": "tur",
+      "source": "Orion",
+      "via": "addon:Orion",
+      "costsQuota": "unknown",
+      "isValid": true,
+      "expectedClass": "wrong"
+    },
+    {
+      "id": "V92/c2",
+      "contentDigest": "0000000000000000000000000000000000000000000000000000000000000022",
+      "language": "tur",
+      "source": "Orion",
+      "via": "addon:Orion",
+      "costsQuota": "unknown",
+      "isValid": true,
+      "expectedClass": null
+    }
+  ],
+  "poolList": [
+    {
+      "candidateId": "V92/c1",
+      "contentDigest": "0000000000000000000000000000000000000000000000000000000000000021",
+      "timeFamily": "f1"
+    },
+    {
+      "candidateId": "V92/c2",
+      "contentDigest": "0000000000000000000000000000000000000000000000000000000000000022",
+      "timeFamily": "f1"
+    }
+  ],
+  "ablations": [],
+  "notes": []
+}

@@ -1,0 +1,64 @@
+{
+  "code": "V92",
+  "stream": {
+    "catalogId": "tt9000002",
+    "fileName": "Fixture.Film.2019.1080p.mp4",
+    "sizeBytes": 7654321
+  },
+  "media": {"file": "Fixture.Film.2019.1080p.mp4"},
+  "gate": {},
+  "truth": {
+    "format": "srt",
+    "sha256": "0000000000000000000000000000000000000000000000000000000000000004"
+  },
+  "lists": {
+    "Orion": {
+      "role": "pool",
+      "fetchedAt": "2026-01-01T00:00:00.000Z",
+      "sha256": "9db9d3cb4c6ce27250abd2f3d28dbf825fffda005c7b8b018563b2fcdc871eb5",
+      "rowIds": [
+        "[AltyazıDB] ✓ Ücretsiz | Fixture Film (2019)",
+        "[TheSubtitleDB] ✓ Ücretsiz | Fixture.Film.2019.1080p"
+      ]
+    }
+  },
+  "nextCandidate": 3,
+  "candidates": {
+    "V92/c1": {
+      "entryName": "Orion",
+      "rowId": "[AltyazıDB] ✓ Ücretsiz | Fixture Film (2019)",
+      "rank": 0,
+      "language": "tur",
+      "source": "Orion",
+      "via": "addon:Orion",
+      "costsQuota": "unknown",
+      "status": "frozen",
+      "rawSha256": "c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1",
+      "trackSha256": "d1d1d1d1d1d1d1d1d1d1d1d1d1d1d1d1d1d1d1d1d1d1d1d1d1d1d1d1d1d1d1d1",
+      "candidateKey": "11111111111111111111111111111111",
+      "cueCount": 1,
+      "isValid": true,
+      "invalidReasons": [],
+      "duplicateOf": null,
+      "timeFamily": "f1"
+    },
+    "V92/c2": {
+      "entryName": "Orion",
+      "rowId": "[TheSubtitleDB] ✓ Ücretsiz | Fixture.Film.2019.1080p",
+      "rank": 1,
+      "language": "tur",
+      "source": "Orion",
+      "via": "addon:Orion",
+      "costsQuota": "unknown",
+      "status": "frozen",
+      "rawSha256": "c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2",
+      "trackSha256": "d2d2d2d2d2d2d2d2d2d2d2d2d2d2d2d2d2d2d2d2d2d2d2d2d2d2d2d2d2d2d2d2",
+      "candidateKey": "11111111111111111111111111111111",
+      "cueCount": 1,
+      "isValid": true,
+      "invalidReasons": [],
+      "duplicateOf": "V92/c1",
+      "timeFamily": "f1"
+    }
+  }
+}

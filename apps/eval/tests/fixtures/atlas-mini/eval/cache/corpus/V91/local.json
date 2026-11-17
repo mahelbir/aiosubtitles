@@ -1,0 +1,36 @@
+{
+  "code": "V91",
+  "stream": {
+    "catalogId": "tt9000001:1:1",
+    "fileName": "Fixture.Show.S01E01.720p.TWIN.mkv",
+    "sizeBytes": 111
+  },
+  "media": {"file": "Fixture.Show.S01E01.720p.TWIN.mkv"},
+  "gate": {},
+  "truth": {
+    "format": "srt",
+    "sha256": "0000000000000000000000000000000000000000000000000000000000000005"
+  },
+  "lists": {},
+  "nextCandidate": 2,
+  "candidates": {
+    "V91/c1": {
+      "entryName": "Orion",
+      "rowId": "[SubDL] ✓ Ücretsiz | Fixture.Show.S01E01.TWIN",
+      "rank": 0,
+      "language": "tur",
+      "source": "Orion",
+      "via": "addon:Orion",
+      "costsQuota": "unknown",
+      "status": "frozen",
+      "rawSha256": "e1e1e1e1e1e1e1e1e1e1e1e1e1e1e1e1e1e1e1e1e1e1e1e1e1e1e1e1e1e1e1e1",
+      "trackSha256": "f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1",
+      "candidateKey": "44444444444444444444444444444444",
+      "cueCount": 1,
+      "isValid": true,
+      "invalidReasons": [],
+      "duplicateOf": null,
+      "timeFamily": "f1"
+    }
+  }
+}

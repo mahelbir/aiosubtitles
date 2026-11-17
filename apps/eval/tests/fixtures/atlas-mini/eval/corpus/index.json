@@ -1,0 +1,6 @@
+{
+  "cases": [
+    {"slot": 1, "code": "V90", "twin": "V91"},
+    {"slot": 2, "code": "V92", "twin": null}
+  ]
+}

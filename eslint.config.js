@@ -25,6 +25,7 @@ export default [
       '.reference/**',
       '.claude/**',
       'apps/client/**',
+      'apps/eval/.out/**',
     ],
   },
   js.configs.recommended,

@@ -1,0 +1,22 @@
+{
+  "codeRule": "fixture",
+  "videos": {
+    "V90": {
+      "title": "Fixture Show",
+      "fileName": "Fixture.Show.S01E01.1080p.WEB-FAKE.mkv",
+      "osHash": "0123456789abcdef"
+    },
+    "V91": {
+      "title": "Fixture Show",
+      "fileName": "Fixture.Show.S01E01.720p.TWIN.mkv",
+      "osHash": "1111222233334444"
+    },
+    "V92": {
+      "title": "Fixture Film",
+      "fileName": "Fixture.Film.2019.1080p.mp4",
+      "osHash": "fedcba9876543210"
+    }
+  },
+  "redactions": [],
+  "ignoredWholeFiles": []
+}

@@ -438,6 +438,12 @@ importers:
       '@repo/subtitle-core':
         specifier: workspace:*
         version: link:../../packages/subtitle-core
+      enum-plus:
+        specifier: ^3.4.0
+        version: 3.4.0
+      melperjs:
+        specifier: ^17.4.0
+        version: 17.4.0
 
   packages/shared:
     dependencies:

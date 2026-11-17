@@ -1,0 +1,151 @@
+{
+  "code": "V90",
+  "stream": {
+    "catalogId": "tt9000001:1:1",
+    "fileName": "Fixture.Show.S01E01.1080p.WEB-FAKE.mkv",
+    "sizeBytes": 1234567
+  },
+  "media": {"file": "Fixture.Show.S01E01.1080p.WEB-FAKE.mkv"},
+  "gate": {},
+  "truth": {
+    "format": "srt",
+    "sha256": "0000000000000000000000000000000000000000000000000000000000000002"
+  },
+  "lists": {
+    "Orion": {
+      "role": "pool",
+      "fetchedAt": "2026-01-01T00:00:00.000Z",
+      "sha256": "efbbfa80dc39bf85141bfbb8d380128330b8221bb2b389f7014a58defc5bc5cd",
+      "rowIds": [
+        "[OpenSubtitles] 1 hak harcar · bugün 9 kaldı | Fixture.Show.S01E01.1080p.WEB-FAKE",
+        "[AltyazıDB] ✓ Ücretsiz · HI | Fixture.Show.S01E01.1080p.WEB-FAKE (2)",
+        "[SubSource] ✓ Ücretsiz | Fixture_Show_S01E01",
+        "[OpenSubtitles] ✓ Ücretsiz · Resmi | Fixture.Show.S01E01.720p",
+        "[SubDL] ✓ Ücretsiz | Fixture.Show.S01E01.WEB _ Fixture.Show.S01E01.HDTV",
+        "[AniSub] ✓ Ücretsiz | Fixture Show 01"
+      ]
+    }
+  },
+  "nextCandidate": 8,
+  "candidates": {
+    "V90/c1": {
+      "entryName": "Orion",
+      "rowId": "[OpenSubtitles] 1 hak harcar · bugün 9 kaldı | Fixture.Show.S01E01.1080p.WEB-FAKE",
+      "rank": 0,
+      "language": "tur",
+      "source": "Orion",
+      "via": "addon:Orion",
+      "costsQuota": "unknown",
+      "status": "frozen",
+      "rawSha256": "a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1",
+      "trackSha256": "b1b1b1b1b1b1b1b1b1b1b1b1b1b1b1b1b1b1b1b1b1b1b1b1b1b1b1b1b1b1b1b1",
+      "candidateKey": "11111111111111111111111111111111",
+      "cueCount": 2,
+      "isValid": true,
+      "invalidReasons": [],
+      "duplicateOf": null,
+      "timeFamily": "f1"
+    },
+    "V90/c2": {
+      "entryName": "Orion",
+      "rowId": "[AltyazıDB] ✓ Ücretsiz · HI | Fixture.Show.S01E01.1080p.WEB-FAKE (2)",
+      "rank": 1,
+      "language": "tur",
+      "source": "Orion",
+      "via": "addon:Orion",
+      "costsQuota": "unknown",
+      "status": "frozen",
+      "rawSha256": "a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2",
+      "trackSha256": "b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2",
+      "candidateKey": "11111111111111111111111111111111",
+      "cueCount": 2,
+      "isValid": true,
+      "invalidReasons": [],
+      "duplicateOf": "V90/c1",
+      "timeFamily": "f1"
+    },
+    "V90/c3": {
+      "entryName": "Orion",
+      "rowId": "[TheSubtitleDB] ✓ Ücretsiz | Fixture Show S01E01",
+      "rank": 2,
+      "language": "tur",
+      "source": "Orion",
+      "via": "addon:Orion",
+      "costsQuota": "unknown",
+      "status": "frozen",
+      "rawSha256": "a3a3a3a3a3a3a3a3a3a3a3a3a3a3a3a3a3a3a3a3a3a3a3a3a3a3a3a3a3a3a3a3",
+      "trackSha256": "b3b3b3b3b3b3b3b3b3b3b3b3b3b3b3b3b3b3b3b3b3b3b3b3b3b3b3b3b3b3b3b3",
+      "candidateKey": "22222222222222222222222222222222",
+      "cueCount": 3,
+      "isValid": true,
+      "invalidReasons": [],
+      "duplicateOf": null,
+      "timeFamily": "f2"
+    },
+    "V90/c4": {
+      "entryName": "Orion",
+      "rowId": "[SubSource] ✓ Ücretsiz | Fixture_Show_S01E01",
+      "rank": 2,
+      "language": "tur",
+      "source": "Orion",
+      "via": "addon:Orion",
+      "costsQuota": "unknown",
+      "status": "frozen",
+      "rawSha256": "a4a4a4a4a4a4a4a4a4a4a4a4a4a4a4a4a4a4a4a4a4a4a4a4a4a4a4a4a4a4a4a4",
+      "trackSha256": "b4b4b4b4b4b4b4b4b4b4b4b4b4b4b4b4b4b4b4b4b4b4b4b4b4b4b4b4b4b4b4b4",
+      "candidateKey": "22222222222222222222222222222222",
+      "cueCount": 3,
+      "isValid": true,
+      "invalidReasons": [],
+      "duplicateOf": "V90/c3",
+      "timeFamily": "f2"
+    },
+    "V90/c5": {
+      "entryName": "Orion",
+      "rowId": "[OpenSubtitles] ✓ Ücretsiz · Resmi | Fixture.Show.S01E01.720p",
+      "rank": 3,
+      "language": "tur",
+      "source": "Orion",
+      "via": "addon:Orion",
+      "costsQuota": "unknown",
+      "status": "frozen",
+      "rawSha256": "a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5",
+      "trackSha256": "b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5",
+      "candidateKey": "33333333333333333333333333333333",
+      "cueCount": 1,
+      "isValid": false,
+      "invalidReasons": ["too-small"],
+      "duplicateOf": null,
+      "timeFamily": null
+    },
+    "V90/c6": {
+      "entryName": "Orion",
+      "rowId": "[SubDL] ✓ Ücretsiz | Fixture.Show.S01E01.WEB _ Fixture.Show.S01E01.HDTV",
+      "rank": 4,
+      "language": "tur",
+      "source": "Orion",
+      "via": "addon:Orion",
+      "costsQuota": "unknown",
+      "status": "frozen",
+      "rawSha256": "a6a6a6a6a6a6a6a6a6a6a6a6a6a6a6a6a6a6a6a6a6a6a6a6a6a6a6a6a6a6a6a6",
+      "trackSha256": null,
+      "candidateKey": null,
+      "cueCount": null,
+      "isValid": false,
+      "invalidReasons": ["no-cues"],
+      "duplicateOf": null,
+      "timeFamily": null
+    },
+    "V90/c7": {
+      "entryName": "Orion",
+      "rowId": "[AniSub] ✓ Ücretsiz | Fixture Show 01",
+      "rank": 5,
+      "language": "tur",
+      "source": "Orion",
+      "via": "addon:Orion",
+      "costsQuota": "unknown",
+      "status": "error-file",
+      "reason": "fixture error text"
+    }
+  }
+}

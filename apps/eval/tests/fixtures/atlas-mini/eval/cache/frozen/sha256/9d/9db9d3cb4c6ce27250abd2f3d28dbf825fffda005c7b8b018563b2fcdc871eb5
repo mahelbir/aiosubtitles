@@ -1,0 +1,16 @@
+{
+  "subtitles": [
+    {
+      "id": "[AltyazıDB] ✓ Ücretsiz | Fixture Film (2019)",
+      "url": "https://pool.example/languages=tr&ui=tr&auth=FAKE-AUTH-0002/adb/tr/77-88-99.srt",
+      "lang": "tur",
+      "label": "[AltyazıDB] ✓ Ücretsiz | Fixture Film (2019)"
+    },
+    {
+      "id": "[TheSubtitleDB] ✓ Ücretsiz | Fixture.Film.2019.1080p",
+      "url": "https://tsdb.example/get/6001",
+      "lang": "tur",
+      "label": "[TheSubtitleDB] ✓ Ücretsiz | Fixture.Film.2019.1080p"
+    }
+  ]
+}

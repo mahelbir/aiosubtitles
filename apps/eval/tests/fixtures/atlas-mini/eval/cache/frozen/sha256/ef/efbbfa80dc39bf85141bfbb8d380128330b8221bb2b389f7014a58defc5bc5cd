@@ -1,0 +1,40 @@
+{
+  "subtitles": [
+    {
+      "id": "[OpenSubtitles] 1 hak harcar · bugün 9 kaldı | Fixture.Show.S01E01.1080p.WEB-FAKE",
+      "url": "https://pool.example/languages=tr&ui=tr&auth=FAKE-AUTH-0001/sub/tr/tt9000001/7001.srt",
+      "lang": "tur",
+      "label": "[OpenSubtitles] 1 hak harcar · bugün 9 kaldı | Fixture.Show.S01E01.1080p.WEB-FAKE"
+    },
+    {
+      "id": "[AltyazıDB] ✓ Ücretsiz · HI | Fixture.Show.S01E01.1080p.WEB-FAKE (2)",
+      "url": "https://pool.example/languages=tr&ui=tr&auth=FAKE-AUTH-0001/adb/tr/11-22-33.srt",
+      "lang": "tur",
+      "label": "[AltyazıDB] ✓ Ücretsiz · HI | Fixture.Show.S01E01.1080p.WEB-FAKE"
+    },
+    {
+      "id": "[SubSource] ✓ Ücretsiz | Fixture_Show_S01E01",
+      "url": "https://pool.example/languages=tr&ui=tr&auth=FAKE-AUTH-0001/ss/tr/44-55-66.srt",
+      "lang": "tur",
+      "label": "[SubSource] ✓ Ücretsiz | Fixture_Show_S01E01"
+    },
+    {
+      "id": "[OpenSubtitles] ✓ Ücretsiz · Resmi | Fixture.Show.S01E01.720p",
+      "url": "https://official.example/en/download/subencoding-stremio-utf8/src-api/file/8001",
+      "lang": "tur",
+      "label": "[OpenSubtitles] ✓ Ücretsiz · Resmi | Fixture.Show.S01E01.720p"
+    },
+    {
+      "id": "[SubDL] ✓ Ücretsiz | Fixture.Show.S01E01.WEB _ Fixture.Show.S01E01.HDTV",
+      "url": "https://pool.example/languages=tr&ui=tr&auth=FAKE-AUTH-0001/sd/tr/9001.srt",
+      "lang": "tur",
+      "label": "[SubDL] ✓ Ücretsiz | Fixture.Show.S01E01.WEB _ Fixture.Show.S01E01.HDTV"
+    },
+    {
+      "id": "[AniSub] ✓ Ücretsiz | Fixture Show 01",
+      "url": "https://anisub.example/stremio/subtitle/5001",
+      "lang": "tur",
+      "label": "[AniSub] ✓ Ücretsiz | Fixture Show 01"
+    }
+  ]
+}
