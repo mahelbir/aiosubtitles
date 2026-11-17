@@ -1,12 +1,9 @@
 import {expectSignedInAs, getSignOutItem, getUserMenu} from '../lib/auth.js';
 import {ADMIN_ACCOUNT} from '../lib/backend.js';
-import {getMonitorLevelSelect} from '../lib/locators.js';
 import {clickButton, expectPageTitle} from '../lib/page.js';
 import {expect, test} from '../lib/test.js';
 
 const PANEL_HREF = '/admin';
-
-const GROUP_LABEL = 'Monitör';
 
 const NAV_ITEMS = Object.freeze([
   {
@@ -18,19 +15,7 @@ const NAV_ITEMS = Object.freeze([
   {label: 'Roller', href: '/admin/roles'},
 ]);
 
-const GROUP_ITEMS = Object.freeze([
-  {
-    label: 'Heartbeat',
-    href: '/admin/monitor?scope=heartbeat&title=Heartbeat',
-    getAnchor: getMonitorLevelSelect,
-  },
-]);
-
-const ALL_ITEMS = Object.freeze([...NAV_ITEMS, ...GROUP_ITEMS]);
-
 const PROBE_LABEL = 'Ayarlar';
-
-const [HEARTBEAT_ITEM] = GROUP_ITEMS;
 
 function getBrandLink(page) {
   return page.getByRole('link').and(page.locator(`[href="${PANEL_HREF}"]`));
@@ -54,21 +39,6 @@ function getSidebarLabel(page, label) {
   return getSidebarNav(page).getByText(label, {exact: true});
 }
 
-function getGroupButton(page) {
-  return getSidebarNav(page).getByRole('button', {
-    name: GROUP_LABEL,
-    exact: true,
-  });
-}
-
-function getGroupMenu(page) {
-  return page.getByRole('menu', {name: GROUP_LABEL});
-}
-
-function isGroupItem(label) {
-  return GROUP_ITEMS.some(item => item.label === label);
-}
-
 async function expectLinks(page, items) {
   const links = getSidebarNav(page).getByRole('link');
 
@@ -81,9 +51,8 @@ async function expectLinks(page, items) {
 }
 
 function expectCurrentItem(page, current) {
-  const items = isGroupItem(current) ? ALL_ITEMS : NAV_ITEMS;
-  return Promise.all([
-    ...items.map(({label}) =>
+  return Promise.all(
+    NAV_ITEMS.map(({label}) =>
       label === current
         ? expect(getSidebarLink(page, label)).toHaveAttribute(
             'aria-current',
@@ -93,8 +62,7 @@ function expectCurrentItem(page, current) {
             'aria-current',
           ),
     ),
-    expect(getGroupButton(page)).not.toHaveAttribute('aria-current'),
-  ]);
+  );
 }
 
 async function expectItemOpens(
@@ -117,23 +85,13 @@ async function openDashboard(page) {
 }
 
 test.describe('the admin sidebar', () => {
-  test('lists the settings, users and roles items, then the Monitör group holding Heartbeat', async ({
-    page,
-  }) => {
+  test('lists the settings, users and roles items', async ({page}) => {
     await openDashboard(page);
-    const group = getGroupButton(page);
 
-    await expect(getSidebarNav(page).getByRole('listitem')).toHaveText([
-      ...NAV_ITEMS.map(({label}) => label),
-      GROUP_LABEL,
-    ]);
+    await expect(getSidebarNav(page).getByRole('listitem')).toHaveText(
+      NAV_ITEMS.map(({label}) => label),
+    );
     await expectLinks(page, NAV_ITEMS);
-    await expect(group).toHaveAttribute('aria-expanded', 'false');
-
-    await group.click();
-
-    await expect(group).toHaveAttribute('aria-expanded', 'true');
-    await expectLinks(page, ALL_ITEMS);
   });
 
   test('each item opens its screen under its own title and alone marks itself current, while the dashboard marks none', async ({
@@ -145,19 +103,6 @@ test.describe('the admin sidebar', () => {
     for (const item of NAV_ITEMS) {
       await expectItemOpens(page, item);
     }
-
-    await getGroupButton(page).click();
-
-    for (const item of GROUP_ITEMS) {
-      await expectItemOpens(page, item);
-    }
-  });
-
-  test('a Monitör screen opens its group by itself', async ({page}) => {
-    await page.goto(HEARTBEAT_ITEM.href);
-
-    await expect(getGroupButton(page)).toHaveAttribute('aria-expanded', 'true');
-    await expectCurrentItem(page, HEARTBEAT_ITEM.label);
   });
 
   test('the profile screen has no item and marks none current', async ({
@@ -202,33 +147,6 @@ test.describe('the admin sidebar', () => {
     await clickButton(page, 'Menü');
 
     await expect(label).toBeVisible();
-  });
-
-  test('collapsed to icons, the Monitör group opens a menu named after it, whose item leads to its screen and is marked current there', async ({
-    page,
-  }) => {
-    await openDashboard(page);
-    await clickButton(page, 'Menü');
-    await expect(getSidebarLabel(page, PROBE_LABEL)).toBeHidden();
-    const menu = getGroupMenu(page);
-
-    await getGroupButton(page).click();
-
-    await expect(menu.getByRole('menuitem')).toHaveText(
-      GROUP_ITEMS.map(({label}) => label),
-    );
-
-    await menu.getByRole('menuitem', {name: HEARTBEAT_ITEM.label}).click();
-
-    await expect(page).toHaveURL(HEARTBEAT_ITEM.href);
-    await expect(HEARTBEAT_ITEM.getAnchor(page)).toBeVisible();
-    await expect(menu).toHaveCount(0);
-
-    await getGroupButton(page).click();
-
-    await expect(
-      menu.getByRole('menuitem', {name: HEARTBEAT_ITEM.label}),
-    ).toHaveAttribute('aria-current', 'page');
   });
 
   test('Ctrl or Cmd with B toggles the sidebar', async ({page}) => {

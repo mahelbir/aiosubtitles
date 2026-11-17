@@ -31,7 +31,6 @@ export default async function (fastify) {
         await user.destroy({transaction});
       });
 
-      await fastify.revalidateUserSockets([request.params.id]);
       return reply.success();
     },
   );

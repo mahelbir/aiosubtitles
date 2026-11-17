@@ -82,7 +82,6 @@ export default async function (fastify) {
         }
       });
 
-      await fastify.revalidateUserSockets();
       return reply.success(null, 'Rol güncellendi.');
     },
   );

@@ -1,5 +1,4 @@
 import {z} from 'zod';
-import {Permission} from '@repo/shared/constants/permission.js';
 import {uuidSchema} from '@repo/shared/schemas/common.js';
 import {
   getMultiFilterField,
@@ -11,9 +10,6 @@ import {dbUtils} from '../../src/db/utils.js';
 import guardAdminSubtree from '../../src/routes/(admin)/autohooks.js';
 import getSettingsRoute from '../../src/routes/(admin)/settings/get.js';
 import updateSettingsRoute from '../../src/routes/(admin)/settings/update.js';
-import {requireAnySocketGuard, socketGuard} from '../../src/sockets/guards.js';
-import {LocalNamespace} from '../../src/sockets/local-namespace.js';
-import {toHandshakeError} from '../../src/sockets/response.js';
 import {fixtureSettings, fixtureSettingsDefinition} from './settings.js';
 
 export const SECURITY_KEY_FIXTURE_URL = '/__fixtures__/security-key';
@@ -22,7 +18,6 @@ export const HTTP_FIXTURE_URL = '/__fixtures__/http';
 export const HTTP_FIXTURE_RECORDS_URL = `${HTTP_FIXTURE_URL}/records`;
 export const HTTP_FIXTURE_MESSAGE = 'Fixture yanıtı.';
 export const PAGINATION_FIXTURE_URL = '/__fixtures__/pagination';
-export const SOCKET_FIXTURE_KEY = 'fixture';
 
 export const fixtureSource = {read: async () => null};
 
@@ -47,46 +42,6 @@ const paginationFixtureSchema = getOffsetPaginationSchema({
     'Geçersiz rol',
   ).optional(),
 });
-
-class SocketFixture extends LocalNamespace {
-  static namespace = '/__fixture__';
-  static middlewares = [
-    requireAnySocketGuard([
-      socketGuard.requireSecurityKey,
-      socketGuard.requirePermission(Permission.ADMIN),
-    ]),
-  ];
-}
-
-export const SOCKET_FIXTURE_NAMESPACE = SocketFixture.namespace;
-
-export const socketFixture = new SocketFixture();
-
-export const THROTTLED_SOCKET_FIXTURE_KEY = 'throttledFixture';
-export const THROTTLED_SOCKET_FIXTURE_WINDOW = {max: 2, timeWindow: 60000};
-
-class ThrottledSocketFixture extends SocketFixture {
-  static namespace = '/__throttled_fixture__';
-  static rateLimits = [THROTTLED_SOCKET_FIXTURE_WINDOW];
-}
-
-export const THROTTLED_SOCKET_FIXTURE_NAMESPACE =
-  ThrottledSocketFixture.namespace;
-
-export const throttledSocketFixture = new ThrottledSocketFixture();
-
-export const FAULTY_SOCKET_FIXTURE_KEY = 'faultyFixture';
-
-class FaultySocketFixture extends LocalNamespace {
-  static namespace = '/__faulty_fixture__';
-  static middlewares = [
-    (socket, next) => next(toHandshakeError(new Error('Fixture fault.'))),
-  ];
-}
-
-export const FAULTY_SOCKET_FIXTURE_NAMESPACE = FaultySocketFixture.namespace;
-
-export const faultySocketFixture = new FaultySocketFixture();
 
 async function prepareAdminFixture(fastify) {
   await guardAdminSubtree(fastify);

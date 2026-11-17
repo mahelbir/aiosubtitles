@@ -2,19 +2,12 @@ import {buildApp} from '../../src/build.js';
 import {config} from '../../src/config/index.js';
 import {basePathField} from '../../src/config/schema.js';
 import {SECURITY_KEY_HEADER} from '../../src/plugins/security-key.js';
-import {socket} from '../../src/sockets/index.js';
 import {
-  FAULTY_SOCKET_FIXTURE_KEY,
   SECURITY_KEY_FIXTURE_URL,
-  SOCKET_FIXTURE_KEY,
-  THROTTLED_SOCKET_FIXTURE_KEY,
-  faultySocketFixture,
   httpFixture,
   paginationFixture,
   securityKeyFixture,
   settingsFixture,
-  socketFixture,
-  throttledSocketFixture,
 } from './fixtures.js';
 
 let instance = null;
@@ -35,9 +28,6 @@ export function getTestAppBasePath() {
 
 export async function getTestApp() {
   if (!instance) {
-    socket[SOCKET_FIXTURE_KEY] = socketFixture;
-    socket[THROTTLED_SOCKET_FIXTURE_KEY] = throttledSocketFixture;
-    socket[FAULTY_SOCKET_FIXTURE_KEY] = faultySocketFixture;
     instance = buildApp({
       logger: false,
       basePath,

@@ -56,8 +56,6 @@ declare module 'fastify' {
     settings: typeof import('../src/lib/settings.js').settings;
 
     settingsDefinition: typeof import('@repo/shared/schemas/setting.js').settingsDefinition;
-
-    revalidateUserSockets(userIds?: string[] | null): Promise<void>;
   }
 
   interface FastifyRequest {

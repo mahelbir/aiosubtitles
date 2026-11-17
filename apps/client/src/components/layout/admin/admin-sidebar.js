@@ -3,7 +3,6 @@
 import {useMemo} from 'react';
 import {usePathname, useSearchParams} from 'next/navigation';
 import {
-  ActivityIcon,
   LayoutDashboardIcon,
   SettingsIcon,
   ShieldIcon,
@@ -32,21 +31,10 @@ import {AdminNavLink} from './admin-nav-link';
 import {AdminUserMenu} from './admin-user-menu';
 import {ThemeModeToggle} from './theme-mode-toggle';
 
-const MONITOR_SCOPES = [{scope: 'heartbeat', label: 'Heartbeat'}];
-
 const NAV_ITEMS = [
   {href: '/admin/settings', label: 'Ayarlar', icon: SettingsIcon},
   {href: '/admin/users', label: 'Kullanıcılar', icon: UsersIcon},
   {href: '/admin/roles', label: 'Roller', icon: ShieldIcon},
-  {
-    href: '/admin/monitor',
-    label: 'Monitör',
-    icon: ActivityIcon,
-    items: MONITOR_SCOPES.map(({scope, label}) => ({
-      href: `/admin/monitor?${new URLSearchParams({scope, title: label})}`,
-      label,
-    })),
-  },
 ];
 
 export function AdminSidebar() {

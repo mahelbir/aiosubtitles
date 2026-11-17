@@ -592,34 +592,6 @@ exports[`OpenAPI document > matches the recorded contract 1`] = `
         ],
       },
     },
-    "/sockets/sources/{source}": {
-      "get": {
-        "parameters": [
-          {
-            "in": "path",
-            "name": "source",
-            "required": true,
-            "schema": {
-              "minLength": 1,
-              "type": "string",
-            },
-          },
-        ],
-        "responses": {
-          "200": {
-            "description": "Default Response",
-          },
-        },
-        "security": [
-          {
-            "bearerAuth": [],
-          },
-        ],
-        "tags": [
-          "sockets",
-        ],
-      },
-    },
     "/users": {
       "get": {
         "parameters": [

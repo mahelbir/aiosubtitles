@@ -65,7 +65,6 @@ export default async function (fastify) {
         }
       });
 
-      await fastify.revalidateUserSockets([request.params.id]);
       return reply.success(null, 'Kullanıcı güncellendi.');
     },
   );

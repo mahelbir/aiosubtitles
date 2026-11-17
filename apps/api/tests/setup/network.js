@@ -21,7 +21,7 @@ beforeAll(() => {
   });
   mockNetwork.listen({
     /* The guard exists to keep a test away from a real provider. A request to a
-       server this suite started itself — the socket slice needs one — is not
+       server this suite started itself is not
        that, so loopback passes through and everything else fails the test.
        msw 3 reads only this option, and a predefined strategy would let common
        asset URLs (.json, .xml, …) through, so the callback is ours. Its

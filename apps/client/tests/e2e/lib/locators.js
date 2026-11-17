@@ -55,12 +55,6 @@ export function getFormField(page, form, label) {
   return getField(getForm(page, form), label);
 }
 
-export function getMonitorLevelSelect(page) {
-  return page.getByRole('combobox', {
-    name: 'Gösterilecek en düşük log seviyesi',
-  });
-}
-
 export function getTableRows(scope) {
   return scope.getByRole('table').getByRole('rowgroup').last().getByRole('row');
 }

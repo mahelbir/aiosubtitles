@@ -71,7 +71,7 @@ export default defineConfig({
          here would report a number that is wrong in the pessimistic direction. */
       exclude: [
         'apps/api/src/{app,build,server}.js',
-        'apps/api/src/{plugins,routes,sockets,workers,redis}/**',
+        'apps/api/src/{plugins,routes,workers,redis}/**',
         'apps/api/src/db/{models,migrations,seeders,cli,hooks}/**',
         'apps/api/src/db/{index,init}.js',
         'apps/api/src/lib/settings.js',

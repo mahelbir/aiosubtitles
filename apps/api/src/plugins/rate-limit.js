@@ -171,13 +171,6 @@ const STORE = {
 
 const ALLOWED = {isAllowed: true};
 
-const ROUTELESS = Object.freeze({config: Object.freeze({})});
-
-export const toRateLimitSubject = clientIp => ({
-  clientIp,
-  routeOptions: ROUTELESS,
-});
-
 const isExclusive = request => {
   const {rateLimits, exclusiveRateLimits} = request.routeOptions.config ?? {};
   return exclusiveRateLimits === true && rateLimits?.length > 0;

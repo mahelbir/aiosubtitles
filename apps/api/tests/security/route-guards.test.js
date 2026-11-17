@@ -93,8 +93,7 @@ describe('subtree guards', () => {
       route =>
         route.url.startsWith('/users') ||
         route.url.startsWith('/roles') ||
-        route.url.startsWith('/settings') ||
-        route.url.startsWith('/sockets'),
+        route.url.startsWith('/settings'),
     );
     expect(managed.length).toBeGreaterThan(0);
     for (const route of managed) {
