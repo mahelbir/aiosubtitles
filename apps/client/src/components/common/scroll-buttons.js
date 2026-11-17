@@ -38,7 +38,7 @@ export function ScrollToTopButton({mode = 'hide', className}) {
   return (
     <ScrollButton
       icon={ArrowUpIcon}
-      label="En yukarı"
+      label="Scroll to top"
       isInactive={isAtTop}
       mode={mode}
       onClick={scrollToTop}
@@ -55,7 +55,7 @@ export function ScrollToBottomButton({mode = 'hide', className}) {
   return (
     <ScrollButton
       icon={ArrowDownIcon}
-      label="En aşağı"
+      label="Scroll to bottom"
       isInactive={isAtBottom}
       mode={mode}
       onClick={scrollToBottom}

@@ -52,7 +52,7 @@ const USER_TOTAL = 150;
 
 const COUNTER_PATTERN = /^\d+ \/ \d+$/;
 
-const CLEAR_SELECTION = 'Seçimi temizle';
+const CLEAR_SELECTION = 'Clear selection';
 
 const CLEARABLE_SELECTS = [
   {label: 'Şehir', name: 'city', option: 'Ankara'},
@@ -209,7 +209,7 @@ test.describe('form controls', () => {
 
     await page.keyboard.press('ArrowDown');
 
-    const search = page.getByRole('combobox', {name: 'Ara', exact: true});
+    const search = page.getByRole('combobox', {name: 'Search', exact: true});
     await expect(search).toBeFocused();
     await expect(page.getByRole('option')).toHaveCount(12);
 
@@ -239,7 +239,7 @@ test.describe('form controls', () => {
     const date = getControl(page, 'Doğum tarihi');
     await date.focus();
 
-    await date.pressSequentially('15032024');
+    await date.pressSequentially('03152024');
 
     await expect(date).toHaveValue('2024-03-15');
     await expectFixtureState(page).toMatchObject({
@@ -250,7 +250,7 @@ test.describe('form controls', () => {
   test('an emptied date stores undefined', async ({page}) => {
     const date = getControl(page, 'Doğum tarihi');
     await date.focus();
-    await date.pressSequentially('15032024');
+    await date.pressSequentially('03152024');
     await expectFixtureState(page).toMatchObject({
       fields: {birthDate: {value: '2024-03-15'}},
     });
@@ -263,7 +263,7 @@ test.describe('form controls', () => {
     });
   });
 
-  for (const typed of ['31022024', '29022023']) {
+  for (const typed of ['02312024', '02292023']) {
     test(`refuses the impossible date ${typed}`, async ({page}) => {
       const date = getControl(page, 'Doğum tarihi');
       await date.focus();
@@ -375,7 +375,7 @@ test.describe('form controls over an option source', () => {
     await page.keyboard.press('ArrowDown');
 
     await Promise.all([
-      expect(page.getByText('Yükleniyor…')).toBeVisible(),
+      expect(page.getByText('Loading…')).toBeVisible(),
       expect(page.getByRole('option')).toHaveCount(0),
     ]);
   });
@@ -390,8 +390,8 @@ test.describe('form controls over an option source', () => {
 
     await getSelect(page, 'Etiketler').press('ArrowDown');
 
-    await expect(page.getByText('Yükleniyor…')).toBeVisible();
-    await expect(page.getByText('Aranıyor…')).toBeHidden();
+    await expect(page.getByText('Loading…')).toBeVisible();
+    await expect(page.getByText('Searching…')).toBeHidden();
   });
 
   test('the trigger keeps focus when a preloaded list lands past the threshold', async ({
@@ -475,12 +475,12 @@ test.describe('form controls over an option source', () => {
 
     await page.keyboard.type('ada.yilmaz');
 
-    await expect(page.getByText('Aranıyor…')).toBeVisible();
+    await expect(page.getByText('Searching…')).toBeVisible();
     await expect(page.getByRole('option')).toHaveText([
       'Ada Yılmaz',
       'Ada Yılmaz 2',
     ]);
-    await expect(page.getByText('Aranıyor…')).toBeHidden();
+    await expect(page.getByText('Searching…')).toBeHidden();
 
     await page.keyboard.press('Enter');
 
@@ -546,7 +546,7 @@ test.describe('form controls over a multi-select', () => {
 
     await page.getByRole('option', {name: 'Barış Yılmaz', exact: true}).click();
 
-    await expect(page.getByText('En fazla 2 seçilebilir.')).toBeVisible();
+    await expect(page.getByText('You can select up to 2.')).toBeVisible();
     await expect(page.getByRole('option')).toHaveCount(OPTION_PAGE_SIZE);
     await expect(page.getByRole('option', {disabled: true})).toHaveCount(
       OPTION_PAGE_SIZE - 2,
@@ -636,7 +636,7 @@ test.describe('form controls over free and creatable tags', () => {
 
     await expect(getChip(page, 'Etiketler', 'Acil')).toBeVisible();
     await expect(
-      page.getByRole('button', {name: 'Kaldır: Acil', exact: true}),
+      page.getByRole('button', {name: 'Remove: Acil', exact: true}),
     ).toBeVisible();
     await expect(tags).toHaveValue('');
     await expectFixtureState(page).toMatchObject({
@@ -678,14 +678,14 @@ test.describe('form controls over free and creatable tags', () => {
     await records.pressSequentially('Yeni');
 
     await expect(
-      page.getByRole('option', {name: 'Oluştur: "Yeni"', exact: true}),
+      page.getByRole('option', {name: 'Create: "Yeni"', exact: true}),
     ).toBeVisible();
 
     await clear(records);
     await records.pressSequentially('Dest');
 
     await expect(
-      page.getByRole('option', {name: 'Oluştur: "Dest"', exact: true}),
+      page.getByRole('option', {name: 'Create: "Dest"', exact: true}),
     ).toBeVisible();
 
     for (const text of ['Destek', 'destek']) {
@@ -695,7 +695,7 @@ test.describe('form controls over free and creatable tags', () => {
       await expect(
         page.getByRole('option', {name: 'Destek', exact: true}),
       ).toBeVisible();
-      await expect(page.getByRole('option', {name: /^Oluştur/})).toHaveCount(0);
+      await expect(page.getByRole('option', {name: /^Create/})).toHaveCount(0);
     }
   });
 
@@ -710,7 +710,7 @@ test.describe('form controls over free and creatable tags', () => {
     await records.pressSequentially('Yeni');
 
     await page
-      .getByRole('option', {name: 'Oluştur: "Yeni"', exact: true})
+      .getByRole('option', {name: 'Create: "Yeni"', exact: true})
       .click();
 
     await expect(getChip(page, 'Kayıtlar', 'Yeni')).toBeVisible();
@@ -733,11 +733,11 @@ test.describe('form controls over free and creatable tags', () => {
     await expect(getChip(page, 'Kayıtlar', 'Destek')).toBeVisible();
     await records.pressSequentially('Yeni');
     await page
-      .getByRole('option', {name: 'Oluştur: "Yeni"', exact: true})
+      .getByRole('option', {name: 'Create: "Yeni"', exact: true})
       .click();
 
     await page
-      .getByRole('button', {name: 'Kaldır: Destek', exact: true})
+      .getByRole('button', {name: 'Remove: Destek', exact: true})
       .click();
 
     await expect(getChip(page, 'Kayıtlar', 'Yeni')).toBeVisible();
@@ -756,13 +756,13 @@ test.describe('form controls over free and creatable tags', () => {
       source: 'remote',
     });
     const records = getSelect(page, 'Kayıtlar');
-    const createOption = page.getByRole('option', {name: /^Oluştur/});
+    const createOption = page.getByRole('option', {name: /^Create/});
     await records.click();
     await expect(page.getByRole('option')).toHaveCount(OPTION_PAGE_SIZE);
 
     await records.pressSequentially('Z');
 
-    await expect(page.getByText('Aranıyor…')).toBeHidden();
+    await expect(page.getByText('Searching…')).toBeHidden();
     await expect(createOption).toHaveCount(0);
 
     await clear(records);
@@ -771,14 +771,14 @@ test.describe('form controls over free and creatable tags', () => {
     await expect(
       page.getByRole('option', {name: 'Ada Yılmaz', exact: true}),
     ).toBeVisible();
-    await expect(page.getByText('Aranıyor…')).toBeHidden();
+    await expect(page.getByText('Searching…')).toBeHidden();
     await expect(createOption).toHaveCount(0);
 
     await clear(records);
     await records.pressSequentially('Zzzz Yok');
 
     await expect(
-      page.getByRole('option', {name: 'Oluştur: "Zzzz Yok"', exact: true}),
+      page.getByRole('option', {name: 'Create: "Zzzz Yok"', exact: true}),
     ).toBeVisible();
   });
 
@@ -793,7 +793,7 @@ test.describe('form controls over free and creatable tags', () => {
     await records.pressSequentially('Yeni');
 
     await page
-      .getByRole('option', {name: 'Oluştur: "Yeni"', exact: true})
+      .getByRole('option', {name: 'Create: "Yeni"', exact: true})
       .click();
 
     await expectFixtureState(page).toMatchObject({

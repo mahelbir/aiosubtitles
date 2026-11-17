@@ -22,7 +22,7 @@ test.describe('public root layout', () => {
     const dialog = page.getByRole('alertdialog', {
       name: 'İşleme devam edilsin mi?',
     });
-    await dialog.getByRole('button', {name: 'Onayla'}).click();
+    await dialog.getByRole('button', {name: 'Confirm'}).click();
 
     await expect(dialog).toBeHidden();
     await expectFixtureState(page).toMatchObject({

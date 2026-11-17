@@ -1219,7 +1219,7 @@ describe('a limiter a handler drives itself', () => {
             }
             if (request.query.fail === 'yes') {
               await rate(request);
-              return reply.error(null, 'Olmadı.', StatusCodes.UNAUTHORIZED);
+              return reply.error(null, 'Denied.', StatusCodes.UNAUTHORIZED);
             }
             return reply.success();
           };
@@ -1272,9 +1272,7 @@ describe('the refusal', () => {
     expect(refused.statusCode).toBe(LIMITED);
     const envelope = readEnvelope(refused);
     expect(envelope.success).toBe(false);
-    expect(envelope.message).toBe(
-      'Çok fazla istek gönderildi. Daha sonra tekrar deneyin.',
-    );
+    expect(envelope.message).toBe('Too many requests. Try again later.');
     expect(envelope.data).toBeNull();
   });
 });

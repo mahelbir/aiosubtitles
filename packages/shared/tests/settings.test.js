@@ -15,7 +15,7 @@ const definition = defineSettings({
     getSettingsRule(
       ['isEnabled', 'limit'],
       settings => !settings.isEnabled || settings.limit > 0,
-      {message: 'Etkinken sınır sıfırdan büyük olmalıdır', path: ['limit']},
+      {message: 'Limit must be above zero when enabled', path: ['limit']},
     ),
   ],
 });

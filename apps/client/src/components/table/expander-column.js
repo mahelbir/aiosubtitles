@@ -18,7 +18,7 @@ export const expanderColumn = {
       {isExpanded => (
         <IconButton
           variant="ghost"
-          title="Satır detayı"
+          title="Row details"
           aria-expanded={isExpanded}
           onClick={() => row.toggleExpanded()}
           className={cn('transition-transform', isExpanded && 'rotate-90')}

@@ -554,13 +554,13 @@ test.describe('form policies', () => {
     const quantity = getFormField(page, COMPUTED_FORM, 'Adet');
     const total = getFormField(page, COMPUTED_FORM, 'Toplam');
 
-    await price.pressSequentially('12,5');
+    await price.pressSequentially('12.5');
 
-    await expect(total).toHaveValue('12,5');
+    await expect(total).toHaveValue('12.5');
 
     await retype(quantity, '3');
 
-    await expect(total).toHaveValue('37,5');
+    await expect(total).toHaveValue('37.5');
     await expectFixtureState(page).toMatchObject({
       computed: {fields: {total: {value: 37.5, type: 'number'}}},
     });
@@ -569,7 +569,7 @@ test.describe('form policies', () => {
   test('a source keeps the value typed into it, the computed field never writing it back', async ({
     page,
   }) => {
-    await getFormField(page, COMPUTED_FORM, 'Fiyat').pressSequentially('0,1');
+    await getFormField(page, COMPUTED_FORM, 'Fiyat').pressSequentially('0.1');
     await retype(getFormField(page, COMPUTED_FORM, 'Adet'), '3');
 
     await expectFixtureState(page).toMatchObject({

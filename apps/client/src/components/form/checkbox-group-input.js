@@ -151,7 +151,7 @@ export function CheckboxGroupInput({
           <div className="flex items-center gap-2">
             <Checkbox
               parent
-              aria-label={`${section.key} tümünü seç`}
+              aria-label={`Select all ${section.key}`}
               disabled={section.items.every(option => option.disabled)}
               readOnly={readOnly}
             />
@@ -191,9 +191,9 @@ export function CheckboxGroupInput({
             <InputGroupInput
               type="search"
               {...getInputTypeProps('search')}
-              aria-label="Ara"
+              aria-label="Search"
               value={query}
-              placeholder="Ara…"
+              placeholder="Search…"
               onChange={event => setQuery(event.target.value)}
             />
           </InputGroup>

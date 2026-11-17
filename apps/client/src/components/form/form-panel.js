@@ -105,9 +105,9 @@ function confirmDiscard(form) {
   if (!form || !hasUnsavedChanges(form.state)) {
     return true;
   }
-  return appAlert.confirmDangerous('Kaydedilmemiş değişiklikler var.', {
-    description: 'Kapatırsanız yaptığınız değişiklikler kaybolacak.',
-    confirmButtonText: 'Kapat',
+  return appAlert.confirmDangerous('You have unsaved changes.', {
+    description: 'If you close, your changes will be lost.',
+    confirmButtonText: 'Close',
   });
 }
 
@@ -223,7 +223,7 @@ export function FormPanelContent({
               variant="outline"
               onClick={() => runAfterDiscard(onCancel)}
             >
-              İptal
+              Cancel
             </Button>
             {actions}
           </>

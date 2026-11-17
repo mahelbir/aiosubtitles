@@ -11,7 +11,7 @@ export function QueryErrorAlert({query}) {
     <ErrorAlert
       actions={
         <Button variant="outline" size="sm" onClick={() => query.refetch()}>
-          Yeniden dene
+          Retry
         </Button>
       }
     >

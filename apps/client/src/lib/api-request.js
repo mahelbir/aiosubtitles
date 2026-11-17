@@ -37,7 +37,7 @@ export async function requestApi(
       body: body !== undefined ? JSON.stringify(body) : undefined,
     });
   } catch (cause) {
-    throw new ApiError('Sunucuya ulaşılamadı.', {data: cause});
+    throw new ApiError('Could not reach the server.', {data: cause});
   }
   let payload;
   try {
@@ -46,7 +46,7 @@ export async function requestApi(
     payload = null;
   }
   if (!payload || typeof payload.success !== 'boolean') {
-    throw new ApiError('Geçersiz sunucu yanıtı.', {status: response.status});
+    throw new ApiError('Invalid server response.', {status: response.status});
   }
   if (!payload.success) {
     throw new ApiError(payload.message, {

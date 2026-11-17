@@ -15,7 +15,7 @@ export function TableToolbar({className, children}) {
   return (
     <div
       role="search"
-      aria-label="Tablo filtreleri"
+      aria-label="Table filters"
       className={cn('flex w-full flex-wrap items-center gap-2', className)}
     >
       {children}
@@ -29,7 +29,7 @@ export function TableToolbar({className, children}) {
           onClick={list.resetFilters}
         >
           <XIcon data-icon="inline-start" />
-          Temizle
+          Clear
         </Button>
       )}
     </div>

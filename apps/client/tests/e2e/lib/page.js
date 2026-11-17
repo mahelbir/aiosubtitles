@@ -134,7 +134,7 @@ export async function retype(field, text) {
 export function confirmDangerous(page, title) {
   return page
     .getByRole('alertdialog', {name: title})
-    .getByRole('button', {name: 'Devam'})
+    .getByRole('button', {name: 'Continue'})
     .click();
 }
 

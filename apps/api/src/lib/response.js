@@ -3,9 +3,9 @@ import {ZodError} from 'zod';
 import {ErrorCode} from '@repo/shared/constants/error-code.js';
 import {config} from '../config/index.js';
 
-const DEFAULT_SUCCESS_MESSAGE = 'İşlem başarılı.';
-const DEFAULT_ERROR_MESSAGE = 'İşlem başarısız.';
-const INTERNAL_ERROR_MESSAGE = 'Sunucu hatası.';
+const DEFAULT_SUCCESS_MESSAGE = 'Done.';
+const DEFAULT_ERROR_MESSAGE = 'The action failed.';
+const INTERNAL_ERROR_MESSAGE = 'Server error.';
 
 export function successEnvelope(data = null, message = null) {
   return {

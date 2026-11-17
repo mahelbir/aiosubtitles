@@ -13,41 +13,35 @@ import {getUuidField} from './common.js';
 
 const offsetPaginationSchema = z.object({
   pageNumber: z.coerce
-    .number('Sayfa numarası sayı olmalıdır')
-    .int('Sayfa numarası tam sayı olmalıdır')
-    .min(1, 'Sayfa numarası en az 1 olmalıdır')
+    .number('Page number must be a number')
+    .int('Page number must be an integer')
+    .min(1, 'Page number must be at least 1')
     .default(DEFAULT_PAGE_NUMBER),
   pageSize: z.coerce
-    .number('Sayfa başına kayıt sayısı sayı olmalıdır')
-    .int('Sayfa başına kayıt sayısı tam sayı olmalıdır')
-    .min(1, 'Sayfa başına en az 1 kayıt gösterilmelidir')
-    .max(
-      MAX_PAGE_SIZE,
-      `Sayfa başına en fazla ${MAX_PAGE_SIZE} kayıt gösterilebilir`,
-    )
+    .number('Page size must be a number')
+    .int('Page size must be an integer')
+    .min(1, 'Page size must be at least 1')
+    .max(MAX_PAGE_SIZE, `Page size must be at most ${MAX_PAGE_SIZE}`)
     .default(DEFAULT_PAGE_SIZE),
   windowSize: z.coerce
-    .number('Sayfa penceresi sayı olmalıdır')
-    .int('Sayfa penceresi tam sayı olmalıdır')
-    .min(1, 'Sayfa penceresi en az 1 olmalıdır')
-    .max(
-      MAX_WINDOW_SIZE,
-      `Sayfa penceresi en fazla ${MAX_WINDOW_SIZE} olabilir`,
-    )
+    .number('Page window must be a number')
+    .int('Page window must be an integer')
+    .min(1, 'Page window must be at least 1')
+    .max(MAX_WINDOW_SIZE, `Page window must be at most ${MAX_WINDOW_SIZE}`)
     .optional(),
   search: z
-    .string('Arama metni geçersiz')
+    .string('Invalid search text')
     .trim()
     .min(
       SEARCH_MIN_LENGTH,
-      `Arama en az ${SEARCH_MIN_LENGTH} karakter olmalıdır`,
+      `Search must be at least ${SEARCH_MIN_LENGTH} characters`,
     )
     .max(
       SEARCH_MAX_LENGTH,
-      `Arama en fazla ${SEARCH_MAX_LENGTH} karakter olabilir`,
+      `Search must be at most ${SEARCH_MAX_LENGTH} characters`,
     )
     .optional(),
-  id: getMultiFilterField(getUuidField('Geçersiz ID')).optional(),
+  id: getMultiFilterField(getUuidField('Invalid ID')).optional(),
 });
 
 export function getMultiFilterField(schema, options = {}) {
@@ -62,7 +56,7 @@ export function getSortField(fields) {
   const values = fields.flatMap(field => [field, `-${field}`]);
   return getMultiFilterField(z.enum(values), {
     max: fields.length,
-    message: 'Sıralama alanı geçersiz',
+    message: 'Invalid sort field',
   }).optional();
 }
 

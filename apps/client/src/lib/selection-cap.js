@@ -5,7 +5,7 @@ export function getSelectionCap(value, max) {
   const chosenKeys = new Set(isFull ? value.map(String) : []);
   return {
     isFull,
-    message: isFull ? `En fazla ${formatNumber(max)} seçilebilir.` : '',
+    message: isFull ? `You can select up to ${formatNumber(max)}.` : '',
     isLocked: key => isFull && !chosenKeys.has(key),
   };
 }

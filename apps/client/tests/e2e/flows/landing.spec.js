@@ -30,14 +30,14 @@ test.describe('landing', () => {
       const response = await page.goto(MISSING_PAGE_PATH);
 
       expect(response.status()).toBe(StatusCodes.NOT_FOUND);
-      await expect(page).toHaveTitle('Sayfa bulunamadı');
-      await expect(page.getByRole('heading', {name: 'Üzgünüz!'})).toBeVisible();
+      await expect(page).toHaveTitle('Page not found');
+      await expect(page.getByRole('heading', {name: 'Sorry!'})).toBeVisible();
       await expect(
-        page.getByText('Aradığınız sayfa bulunamadı.'),
+        page.getByText('The page you are looking for was not found.'),
       ).toBeVisible();
       await expect(page.getByText(String(StatusCodes.NOT_FOUND))).toBeVisible();
 
-      await page.getByRole('link', {name: 'Ana sayfaya dön'}).click();
+      await page.getByRole('link', {name: 'Go to the home page'}).click();
 
       await expect(page).toHaveURL(/\/$/);
       await expect(page.getByRole('heading')).toHaveCount(0);

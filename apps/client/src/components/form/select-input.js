@@ -24,12 +24,12 @@ import {Label} from '@/components/ui/label';
 import {SelectTrigger, SelectValue} from '@/components/ui/select';
 
 const NO_SELECTION = [];
-const CLEAR_LABEL = 'Seçimi temizle';
+const CLEAR_LABEL = 'Clear selection';
 
 export function SelectInput({
   label,
   source,
-  placeholder = 'Seç…',
+  placeholder = 'Select…',
   help,
   isSearchable,
   className,

@@ -29,7 +29,7 @@ const PAGE_ENTITY_NAME = getEntityName(PAGE_ENTITY_ID);
 const RECORD = {id: 1, name: 'Ada Yılmaz'};
 const RENAMED_RECORD = {...RECORD, name: 'Ada Kaya'};
 const LOAD_FAILURE = 'Kayıt yüklenemedi.';
-const MISSING_MESSAGE = 'Kayıt bulunamadı.';
+const MISSING_MESSAGE = 'Record not found.';
 const SETTLED_SUCCESS = {status: 'success', fetchStatus: 'idle'};
 const UNAVAILABLE_FAILURE = getApiFailure(
   StatusCodes.SERVICE_UNAVAILABLE,
@@ -171,7 +171,7 @@ test.describe('boundaries', () => {
           expect(hits).toHaveLength(2);
 
           isFailing = false;
-          await alert.getByRole('button', {name: 'Yeniden dene'}).click();
+          await alert.getByRole('button', {name: 'Retry'}).click();
 
           await Promise.all([
             expect(getRecordSection(page).getByText(RECORD.name)).toBeVisible(),
@@ -248,9 +248,7 @@ test.describe('boundaries', () => {
           const alert = getRecordSection(page).getByRole('alert');
           await Promise.all([
             expect(alert).toContainText(LOAD_FAILURE),
-            expect(
-              alert.getByRole('button', {name: 'Yeniden dene'}),
-            ).toBeVisible(),
+            expect(alert.getByRole('button', {name: 'Retry'})).toBeVisible(),
             expectFixtureState(page).toMatchObject({record: SETTLED_ERROR}),
             expect(getRecordSection(page).getByText(RECORD.name)).toHaveCount(
               0,
@@ -419,7 +417,7 @@ test.describe('boundaries', () => {
           const section = getPageEntitySection(page);
           await expectNotFound(section);
           await expect(
-            section.getByRole('link', {name: 'Geri dön'}),
+            section.getByRole('link', {name: 'Go back'}),
           ).toHaveAttribute('href', '/fixtures');
           await expectFixtureState(page).toMatchObject({
             entity: {status: 'error'},

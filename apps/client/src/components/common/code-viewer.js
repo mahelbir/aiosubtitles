@@ -40,7 +40,9 @@ export function CodeExpandButton({value, language, title}) {
   return (
     <Dialog>
       <DialogTrigger
-        render={<IconButton variant="ghost" size="icon-xs" title="Tam ekran" />}
+        render={
+          <IconButton variant="ghost" size="icon-xs" title="Full screen" />
+        }
       >
         <Maximize2Icon />
       </DialogTrigger>

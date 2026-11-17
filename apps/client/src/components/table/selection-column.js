@@ -26,7 +26,7 @@ export const selectionColumn = {
           indeterminate={isSome && !isAll}
           disabled={isNoneSelectable}
           onCheckedChange={checked => table.toggleAllPageRowsSelected(checked)}
-          aria-label="Tümünü seç"
+          aria-label="Select all"
         />
       )}
     </Subscribe>
@@ -42,7 +42,7 @@ export const selectionColumn = {
           checked={isSelected}
           disabled={!row.getCanSelect()}
           onCheckedChange={checked => row.toggleSelected(checked)}
-          aria-label="Satırı seç"
+          aria-label="Select row"
         />
       )}
     </Subscribe>

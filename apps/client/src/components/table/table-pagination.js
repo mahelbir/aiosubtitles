@@ -54,7 +54,7 @@ export function TablePagination() {
           value={String(pageSize)}
           onValueChange={value => onPageSizeChange(Number(value))}
         >
-          <SelectTrigger size="sm" aria-label="Sayfa başına kayıt">
+          <SelectTrigger size="sm" aria-label="Rows per page">
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
@@ -76,17 +76,17 @@ export function TablePagination() {
         </span>
       </div>
       {totalPageCount > 1 && (
-        <Pagination aria-label="Sayfalama" className="mx-0 w-auto">
+        <Pagination aria-label="Pagination" className="mx-0 w-auto">
           <PaginationContent className="flex-wrap gap-1">
             <PageLink
               page={pageNumber === links.first ? null : links.first}
-              label="İlk sayfa"
+              label="First page"
             >
               <ChevronsLeftIcon />
             </PageLink>
             <PageLink
               page={links.previous}
-              label="Önceki sayfa"
+              label="Previous page"
               className="hidden sm:flex"
             >
               <ChevronLeftIcon />
@@ -98,14 +98,14 @@ export function TablePagination() {
             ))}
             <PageLink
               page={links.next}
-              label="Sonraki sayfa"
+              label="Next page"
               className="hidden sm:flex"
             >
               <ChevronRightIcon />
             </PageLink>
             <PageLink
               page={pageNumber === links.last ? null : links.last}
-              label="Son sayfa"
+              label="Last page"
             >
               <ChevronsRightIcon />
             </PageLink>

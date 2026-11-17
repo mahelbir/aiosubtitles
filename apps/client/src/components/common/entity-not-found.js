@@ -3,8 +3,8 @@ import {ErrorPage} from '@/components/common/error-page';
 import {LinkButton} from '@/components/common/link-button';
 
 export function EntityNotFound({
-  title = 'Bulunamadı!',
-  message = 'Aradığınız kayıt bulunamadı.',
+  title = 'Not found!',
+  message = 'The record you are looking for was not found.',
   back = '/',
 }) {
   return (
@@ -14,7 +14,7 @@ export function EntityNotFound({
       message={message}
       actions={
         <LinkButton variant="secondary" href={back}>
-          Geri dön
+          Go back
         </LinkButton>
       }
     />

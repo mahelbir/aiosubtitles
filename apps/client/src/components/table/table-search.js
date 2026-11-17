@@ -28,7 +28,11 @@ export function TableSearchLabel({className, ...props}) {
   return <Label htmlFor={id} className={className} {...props} />;
 }
 
-export function TableSearchInput({className, placeholder = 'Ara…', ...props}) {
+export function TableSearchInput({
+  className,
+  placeholder = 'Search…',
+  ...props
+}) {
   const id = use(tableSearchContext);
   const {list} = useTableContext();
   return (

@@ -83,13 +83,13 @@ describe('toPatchSchema', () => {
         count: z
           .number()
           .default(0)
-          .meta({id: 'patchCount', description: 'Sayı'}),
-        group: group.prefault({}).describe('Grup'),
+          .meta({id: 'patchCount', description: 'Count'}),
+        group: group.prefault({}).describe('Group'),
       }),
     );
     const {properties} = z.toJSONSchema(described);
-    expect(properties.count.description).toBe('Sayı');
-    expect(properties.group.description).toBe('Grup');
+    expect(properties.count.description).toBe('Count');
+    expect(properties.group.description).toBe('Group');
     expect(
       z.globalRegistry.get(described.shape.count.unwrap()).id,
     ).toBeUndefined();

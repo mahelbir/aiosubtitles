@@ -18,9 +18,9 @@ const MISSING_ID = '018f3a2b-6c4d-7e8f-9a0b-1c2d3e4f5061';
 
 describe('failure vocabulary', () => {
   it('gives each model its own wording, inherited where none is declared', () => {
-    expect(FixtureRecord.notFoundMessage).toBe('Fixture kaydı bulunamadı.');
+    expect(FixtureRecord.notFoundMessage).toBe('Fixture record not found.');
     expect(FixtureTag.notFoundMessage).toBe(BaseModel.notFoundMessage);
-    expect(BaseModel.notFoundMessage).toBe('Kayıt bulunamadı.');
+    expect(BaseModel.notFoundMessage).toBe('Record not found.');
   });
 
   it('builds a fresh error per read, since a stack belongs to one throw', () => {

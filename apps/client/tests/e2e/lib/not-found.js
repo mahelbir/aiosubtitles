@@ -18,6 +18,8 @@ export function getMissingRecordPattern(collectionPath) {
 }
 
 export async function expectNotFound(scope) {
-  await expect(scope.getByRole('heading', {name: 'Bulunamadı!'})).toBeVisible();
-  await expect(scope.getByText('Aradığınız kayıt bulunamadı.')).toBeVisible();
+  await expect(scope.getByRole('heading', {name: 'Not found!'})).toBeVisible();
+  await expect(
+    scope.getByText('The record you are looking for was not found.'),
+  ).toBeVisible();
 }

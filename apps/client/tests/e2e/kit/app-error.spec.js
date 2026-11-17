@@ -27,9 +27,9 @@ test.describe('the app error page', () => {
       ),
     );
     await page.goto('/fixtures/app-error');
-    await expect(page.getByRole('heading', {name: 'Hay aksi!'})).toBeVisible();
+    await expect(page.getByRole('heading', {name: 'Oops!'})).toBeVisible();
 
-    await clickButton(page, 'Tekrar dene');
+    await clickButton(page, 'Try again');
 
     await expectFixtureState(page).toEqual({name: 'Ada Yılmaz'});
     expect(hits).toHaveLength(2);

@@ -105,8 +105,8 @@ describe('getSlugField', () => {
 
   it('reports the bound a slug misses', () => {
     expect(firstMessages(field, ['ab', 'abcdefg'])).toEqual([
-      'Anahtar en az 3 karakter olmalıdır',
-      'Anahtar en fazla 6 karakter olabilir',
+      'Key must be at least 3 characters',
+      'Key must be at most 6 characters',
     ]);
   });
 
@@ -114,12 +114,12 @@ describe('getSlugField', () => {
     expect(
       firstMessages(field, ['Admin', 'a_b', 'a b', ' abc', 'çay']),
     ).toEqual(
-      Array(5).fill('Anahtar yalnızca küçük harf, rakam ve - içerebilir'),
+      Array(5).fill('Key may contain only lowercase letters, digits and -'),
     );
   });
 
   it('requires a string', () => {
-    expect(firstMessages(field, [undefined])).toEqual(['Anahtar gereklidir']);
+    expect(firstMessages(field, [undefined])).toEqual(['Key is required']);
   });
 });
 
@@ -156,7 +156,7 @@ describe('httpUrlField', () => {
   it('refuses another scheme, a bare word and a host with no domain', () => {
     const {success, error} = httpUrlField.safeParse('ftp://example.com');
     expect(success).toBe(false);
-    expect(error.issues[0].message).toBe('URL geçersiz');
+    expect(error.issues[0].message).toBe('Invalid URL');
     expect(httpUrlField.safeParse('example').success).toBe(false);
     expect(httpUrlField.safeParse('javascript:alert(1)').success).toBe(false);
     expect(httpUrlField.safeParse('http://localhost:3000').success).toBe(false);
@@ -170,7 +170,7 @@ describe('httpUrlField', () => {
     const {success, error} = httpUrlField.safeParse(`${atCap}a`);
     expect(success).toBe(false);
     expect(error.issues[0].message).toBe(
-      `URL en fazla ${URL_MAX_LENGTH} karakter olabilir`,
+      `URL must be at most ${URL_MAX_LENGTH} characters`,
     );
   });
 
@@ -194,7 +194,7 @@ describe('baseUrlField', () => {
         'https://example.com/?x',
         'http://user@api:8080',
       ]),
-    ).toEqual(['URL geçersiz', 'URL geçersiz', 'URL geçersiz', 'URL geçersiz']);
+    ).toEqual(['Invalid URL', 'Invalid URL', 'Invalid URL', 'Invalid URL']);
   });
 
   it('accepts a host with no top-level domain, as a service on the same network has', () => {
@@ -216,13 +216,13 @@ describe('baseUrlField', () => {
         'ftp://example.com',
         'javascript:alert(1)',
       ]),
-    ).toEqual(['URL geçersiz', 'URL geçersiz', 'URL geçersiz']);
+    ).toEqual(['Invalid URL', 'Invalid URL', 'Invalid URL']);
   });
 
   it('refuses an address missing its slashes, however the browser would mend it', () => {
     expect(
       firstMessages(baseUrlField, ['http:example.com', 'https:/example.com']),
-    ).toEqual(['URL geçersiz', 'URL geçersiz']);
+    ).toEqual(['Invalid URL', 'Invalid URL']);
   });
 
   it('refuses credentials in the address, which a request built on it cannot carry', () => {
@@ -231,12 +231,12 @@ describe('baseUrlField', () => {
         'http://user:secret@api:8080',
         'http://user@api:8080',
       ]),
-    ).toEqual(['URL geçersiz', 'URL geçersiz']);
+    ).toEqual(['Invalid URL', 'Invalid URL']);
   });
 
   it('reports a bad address once, however many of its checks it fails', () => {
     expect(baseUrlField.safeParse('ftp://example.com/?x').error.issues).toEqual(
-      [expect.objectContaining({message: 'URL geçersiz'})],
+      [expect.objectContaining({message: 'Invalid URL'})],
     );
   });
 
@@ -248,7 +248,7 @@ describe('baseUrlField', () => {
         'https://example.com/?',
         'https://example.com#',
       ]),
-    ).toEqual(['URL geçersiz', 'URL geçersiz', 'URL geçersiz', 'URL geçersiz']);
+    ).toEqual(['Invalid URL', 'Invalid URL', 'Invalid URL', 'Invalid URL']);
   });
 
   it('trims the address and the trailing slashes a joined path would double', () => {
@@ -265,7 +265,7 @@ describe('baseUrlField', () => {
 
     expect(baseUrlField.safeParse(atCap).success).toBe(true);
     expect(firstMessages(baseUrlField, [`${atCap}a`])).toEqual([
-      `URL en fazla ${URL_MAX_LENGTH} karakter olabilir`,
+      `URL must be at most ${URL_MAX_LENGTH} characters`,
     ]);
   });
 
@@ -296,7 +296,7 @@ describe('getBaseUrlField', () => {
         'https:example.com',
         'https:/example.com',
       ]),
-    ).toEqual(['URL geçersiz', 'URL geçersiz']);
+    ).toEqual(['Invalid URL', 'Invalid URL']);
   });
 
   it('keeps every other base URL rule', () => {
@@ -305,7 +305,7 @@ describe('getBaseUrlField', () => {
         'https://example.com/?region=eu',
         'https://user:secret@example.com',
       ]),
-    ).toEqual(['URL geçersiz', 'URL geçersiz']);
+    ).toEqual(['Invalid URL', 'Invalid URL']);
     expect(httpsBaseUrlField.parse(' https://example.com/v1/ ')).toBe(
       'https://example.com/v1',
     );
@@ -335,8 +335,8 @@ describe('getBaseUrlField', () => {
     const field = getBaseUrlField({protocols: ['git+ssh']});
 
     expect(firstMessages(field, ['git+ssh://', 'git+ssh:///repo'])).toEqual([
-      'URL geçersiz',
-      'URL geçersiz',
+      'Invalid URL',
+      'Invalid URL',
     ]);
   });
 

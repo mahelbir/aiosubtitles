@@ -11,7 +11,7 @@ export function FilterClear({title, onReset}) {
     <span
       aria-hidden="true"
       data-icon="inline-start"
-      title={`${title} filtresini temizle`}
+      title={`Clear ${title} filter`}
       className="rounded-sm opacity-70 transition-opacity hover:opacity-100"
       onPointerDown={stopPropagation}
       onMouseDown={stopPropagation}

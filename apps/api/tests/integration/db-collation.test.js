@@ -54,30 +54,27 @@ describe('the locale collation', () => {
 
   it('sorts text by the alphabet of the app locale', async () => {
     await Phrase.bulkCreate(
-      ['Zeynep', 'Şule', 'Ömer', 'İsmail', 'ılık', 'Çağrı', 'Ali'].map(
-        text => ({text}),
-      ),
+      ['Zeynep', 'Çağrı', 'Cem', 'ılık', 'Irmak', 'Ali', 'Hasan'].map(text => ({
+        text,
+      })),
     );
 
     expect(await phrasesMatching('')).toEqual([
       'Ali',
       'Çağrı',
+      'Cem',
+      'Hasan',
+      'Irmak',
       'ılık',
-      'İsmail',
-      'Ömer',
-      'Şule',
       'Zeynep',
     ]);
   });
 
   it('folds case by the rules of the app locale in a loose match', async () => {
-    await Phrase.bulkCreate(
-      ['ISPARTA', 'İSTANBUL', 'Şirket Yönetimi'].map(text => ({text})),
-    );
+    await Phrase.bulkCreate(['ISPARTA', 'ÉCOLE NORMALE'].map(text => ({text})));
 
-    expect(await phrasesMatching('ısparta')).toEqual(['ISPARTA']);
-    expect(await phrasesMatching('istanbul')).toEqual(['İSTANBUL']);
-    expect(await phrasesMatching('ŞİRKET')).toEqual(['Şirket Yönetimi']);
-    expect(await phrasesMatching('isparta')).toEqual([]);
+    expect(await phrasesMatching('isparta')).toEqual(['ISPARTA']);
+    expect(await phrasesMatching('école')).toEqual(['ÉCOLE NORMALE']);
+    expect(await phrasesMatching('ısparta')).toEqual([]);
   });
 });

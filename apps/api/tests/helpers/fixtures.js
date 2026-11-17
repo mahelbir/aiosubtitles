@@ -10,7 +10,7 @@ import {FixtureRecord, FixtureRecordTag, FixtureTag} from './fixture-models.js';
 
 export const HTTP_FIXTURE_URL = '/__fixtures__/http';
 export const HTTP_FIXTURE_RECORDS_URL = `${HTTP_FIXTURE_URL}/records`;
-export const HTTP_FIXTURE_MESSAGE = 'Fixture yanıtı.';
+export const HTTP_FIXTURE_MESSAGE = 'Fixture response.';
 export const PAGINATION_FIXTURE_URL = '/__fixtures__/pagination';
 export const PAGINATION_FIXTURE_TAGS_URL = `${PAGINATION_FIXTURE_URL}/tags`;
 
@@ -18,29 +18,26 @@ export const fixtureSource = {read: async () => null};
 
 const httpFixtureBodySchema = z.object({
   code: z
-    .string('Kod geçersiz')
-    .regex(/^[a-z]+$/, 'Kod yalnızca küçük harf içermelidir')
-    .max(4, 'Kod en fazla 4 karakter olabilir'),
+    .string('Invalid code')
+    .regex(/^[a-z]+$/, 'Code may contain only lowercase letters')
+    .max(4, 'Code must be at most 4 characters'),
   count: z
-    .number('Sayı geçersiz')
-    .int('Sayı tam sayı olmalıdır')
-    .positive('Sayı sıfırdan büyük olmalıdır'),
+    .number('Invalid count')
+    .int('Count must be an integer')
+    .positive('Count must be above zero'),
 });
 
-const httpFixtureRecordSchema = z.object({name: z.string('Ad geçersiz')});
+const httpFixtureRecordSchema = z.object({name: z.string('Invalid name')});
 
 const httpFixtureRecordUpdateSchema = z.object({
-  name: z.string('Ad geçersiz').optional(),
-  tagIds: z.array(z.uuid('Geçersiz etiket')).optional(),
+  name: z.string('Invalid name').optional(),
+  tagIds: z.array(z.uuid('Invalid tag')).optional(),
 });
 
 const paginationFixtureSchema = getOffsetPaginationSchema({
   sort: ['id', 'name', 'disabledAt'],
-  disabled: getMultiFilterField(z.stringbool(), 'Durum geçersiz').optional(),
-  tagId: getMultiFilterField(
-    z.uuid('Geçersiz etiket'),
-    'Geçersiz etiket',
-  ).optional(),
+  disabled: getMultiFilterField(z.stringbool(), 'Invalid status').optional(),
+  tagId: getMultiFilterField(z.uuid('Invalid tag'), 'Invalid tag').optional(),
 });
 
 const paginationFixtureTagsSchema = getOffsetPaginationSchema({

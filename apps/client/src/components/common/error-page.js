@@ -2,8 +2,8 @@ import {StatusCodes} from 'http-status-codes';
 
 export function ErrorPage({
   code,
-  title = 'Hata!',
-  message = 'Bir şeyler ters gitti.',
+  title = 'Error!',
+  message = 'Something went wrong.',
   actions = null,
 }) {
   return (

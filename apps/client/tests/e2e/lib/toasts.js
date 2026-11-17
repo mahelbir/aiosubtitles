@@ -1,6 +1,6 @@
 import {expect} from './test.js';
 
-export const REFETCH_FAILURE_TOAST = 'Veriler güncellenemedi.';
+export const REFETCH_FAILURE_TOAST = 'Data could not be refreshed.';
 
 export function getToasts(page) {
   return page.getByRole('region', {name: /^Notifications/}).getByRole('alert');

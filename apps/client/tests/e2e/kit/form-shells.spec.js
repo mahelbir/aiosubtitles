@@ -22,7 +22,7 @@ const SIZE_WIDTHS = {sm: 320, default: 384, lg: 576, xl: 768, full: 1216};
 
 const PANEL_CLOSE_PATHS = {
   'the cancel button': (_page, dialog) =>
-    dialog.getByRole('button', {name: 'İptal'}).click(),
+    dialog.getByRole('button', {name: 'Cancel'}).click(),
   'the close button': (_page, dialog) => getCloseButton(dialog).click(),
   Escape: page => page.keyboard.press('Escape'),
   'an outside click': page => page.mouse.click(8, 8),
@@ -30,7 +30,7 @@ const PANEL_CLOSE_PATHS = {
 
 function getDiscardQuestion(page) {
   return page.getByRole('alertdialog', {
-    name: 'Kaydedilmemiş değişiklikler var.',
+    name: 'You have unsaved changes.',
   });
 }
 
@@ -50,7 +50,7 @@ function getRecordAction(page, name) {
 
 async function getFooterLayout(dialog) {
   const [cancel, save] = await Promise.all(
-    ['İptal', 'Kaydet'].map(name =>
+    ['Cancel', 'Save'].map(name =>
       dialog.getByRole('button', {name}).boundingBox(),
     ),
   );
@@ -141,7 +141,7 @@ test.describe('form panel', () => {
     await openFormShells(page, {tab: 'bildirim', action: 'edit', id: 2});
 
     await getDialog(page, 'Kayıt Düzenle')
-      .getByRole('button', {name: 'İptal'})
+      .getByRole('button', {name: 'Cancel'})
       .click();
 
     await expect(page.getByRole('dialog')).toHaveCount(0);
@@ -268,13 +268,13 @@ test.describe('form panel', () => {
     const dialog = getDialog(page, 'Kayıt Ekle');
     await dialog.getByLabel('Ad').pressSequentially('Taslak');
 
-    await dialog.getByRole('button', {name: 'İptal'}).click();
+    await dialog.getByRole('button', {name: 'Cancel'}).click();
 
     await expect(getDiscardQuestion(page)).toBeVisible();
     await expect(getDialogBehindQuestion(page, 'Kayıt Ekle')).toBeVisible();
     await expectSearchParams(page).toEqual({action: 'create'});
 
-    await getDiscardQuestion(page).getByRole('button', {name: 'Kapat'}).click();
+    await getDiscardQuestion(page).getByRole('button', {name: 'Close'}).click();
 
     await expect(page.getByRole('dialog')).toHaveCount(0);
     await expect(page.getByRole('alertdialog')).toHaveCount(0);
@@ -302,7 +302,7 @@ test.describe('form panel', () => {
       await expect(page.getByRole('alertdialog')).toHaveCount(1);
 
       await getDiscardQuestion(page)
-        .getByRole('button', {name: 'Vazgeç'})
+        .getByRole('button', {name: 'Cancel'})
         .click();
 
       await expect(page.getByRole('alertdialog')).toHaveCount(0);
@@ -320,7 +320,7 @@ test.describe('form panel', () => {
     await dialog.getByLabel('Ad').pressSequentially('Taslak');
     await page.keyboard.press('Escape');
     await expect(
-      getDiscardQuestion(page).getByRole('button', {name: 'Vazgeç'}),
+      getDiscardQuestion(page).getByRole('button', {name: 'Cancel'}),
     ).toBeFocused();
 
     await page.keyboard.press('Escape');
@@ -337,7 +337,7 @@ test.describe('form panel', () => {
     const dialog = getDialog(page, 'Kayıt Düzenle');
     await dialog.getByLabel('Ad').click();
 
-    await dialog.getByRole('button', {name: 'İptal'}).click();
+    await dialog.getByRole('button', {name: 'Cancel'}).click();
 
     await expect(page.getByRole('dialog')).toHaveCount(0);
     await expect(page.getByRole('alertdialog')).toHaveCount(0);
@@ -412,12 +412,12 @@ test.describe('form panel', () => {
       const dialog = getDialog(page, 'Kayıt Ekle');
       await dialog.getByLabel('Ad').pressSequentially('Taslak');
 
-      await dialog.getByRole('button', {name: 'İptal'}).click();
+      await dialog.getByRole('button', {name: 'Cancel'}).click();
 
       await expect(getDiscardQuestion(page)).toBeVisible();
 
       await getDiscardQuestion(page)
-        .getByRole('button', {name: 'Vazgeç'})
+        .getByRole('button', {name: 'Cancel'})
         .click();
 
       await expect(dialog.getByLabel('Ad')).toHaveValue('Taslak');
@@ -479,7 +479,7 @@ test.describe('form dialog', () => {
     await expect(getDiscardQuestion(page)).toBeVisible();
     await expect(getDialogBehindQuestion(page, 'Davet Et')).toBeVisible();
 
-    await getDiscardQuestion(page).getByRole('button', {name: 'Kapat'}).click();
+    await getDiscardQuestion(page).getByRole('button', {name: 'Close'}).click();
 
     await expect(page.getByRole('dialog')).toHaveCount(0);
     await expectSearchParams(page).toEqual({});
@@ -743,19 +743,19 @@ test.describe('page card form', () => {
 
     await expect(profile.getByText('Profil kartı')).toBeVisible();
     await expect(getSaveButton(profile)).toBeVisible();
-    await expect(profile.getByRole('link', {name: 'Geri dön'})).toHaveAttribute(
+    await expect(profile.getByRole('link', {name: 'Go back'})).toHaveAttribute(
       'href',
       '/fixtures',
     );
     await expect(address.getByText('Adres kartı')).toBeVisible();
     await expect(getSaveButton(address)).toBeVisible();
-    await expect(address.getByRole('link', {name: 'Geri dön'})).toHaveCount(0);
+    await expect(address.getByRole('link', {name: 'Go back'})).toHaveCount(0);
   });
 
   test('the back link leads to its target', async ({page}) => {
     await openFormShells(page);
 
-    await getCard(page, 'Profil').getByRole('link', {name: 'Geri dön'}).click();
+    await getCard(page, 'Profil').getByRole('link', {name: 'Go back'}).click();
 
     await expect(page).toHaveURL(/\/fixtures$/);
     await expect(

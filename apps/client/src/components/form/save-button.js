@@ -23,7 +23,7 @@ export function SaveButton({
       {...props}
     >
       <SaveIcon data-icon="inline-start" />
-      {children ?? 'Kaydet'}
+      {children ?? 'Save'}
     </SubmitButton>
   );
 }

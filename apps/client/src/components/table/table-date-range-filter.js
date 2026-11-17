@@ -49,7 +49,7 @@ function RangeFilterControl({title, from, to, isActive, onRange}) {
         <DateRangeFields from={from} to={to} onRange={onRange} />
         {isActive && (
           <Button variant="ghost" size="sm" onClick={reset}>
-            Temizle
+            Clear
           </Button>
         )}
       </PopoverContent>

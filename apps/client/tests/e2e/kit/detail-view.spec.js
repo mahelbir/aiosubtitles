@@ -109,9 +109,7 @@ test.describe('page header skeleton', () => {
       loaded.getByRole('heading', {level: 1, name: 'Ada Yılmaz'}),
     ).toBeVisible();
     await expect(loading.getByRole('heading')).toHaveCount(0);
-    await expect(
-      loading.getByRole('status', {name: 'Yükleniyor'}),
-    ).toBeAttached();
+    await expect(loading.getByRole('status', {name: 'Loading'})).toBeAttached();
     await expect(loading).toContainText('Kullanıcı ayrıntısı');
     expect(
       await loading

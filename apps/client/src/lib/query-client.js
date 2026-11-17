@@ -58,7 +58,9 @@ function makeQueryClient() {
       ) {
         return;
       }
-      toast.error('Veriler güncellenemedi.', {toastId: 'query-refetch-error'});
+      toast.error('Data could not be refreshed.', {
+        toastId: 'query-refetch-error',
+      });
     },
   });
   const client = new QueryClient({

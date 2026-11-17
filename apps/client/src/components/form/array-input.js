@@ -30,7 +30,7 @@ export function ArrayInput({
   help,
   className,
   max = Infinity,
-  addLabel = 'Ekle',
+  addLabel = 'Add',
   disabled,
   readOnly,
   createItem,
@@ -146,7 +146,7 @@ export function ArrayItemActions({className}) {
     >
       <TooltipIconButton
         variant="ghost"
-        title="Yukarı taşı"
+        title="Move up"
         data-array-action="up"
         disabled={readOnly || index === 0}
         onClick={() => moveItem(index, index - 1)}
@@ -155,7 +155,7 @@ export function ArrayItemActions({className}) {
       </TooltipIconButton>
       <TooltipIconButton
         variant="ghost"
-        title="Aşağı taşı"
+        title="Move down"
         data-array-action="down"
         disabled={readOnly || index === count - 1}
         onClick={() => moveItem(index, index + 1)}
@@ -164,7 +164,7 @@ export function ArrayItemActions({className}) {
       </TooltipIconButton>
       <TooltipIconButton
         variant="ghost"
-        title="Kaldır"
+        title="Remove"
         data-array-action="remove"
         disabled={readOnly}
         onClick={() => removeItem(index)}

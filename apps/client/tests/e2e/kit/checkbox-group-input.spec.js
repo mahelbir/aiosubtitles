@@ -15,6 +15,7 @@ import {expect, test} from '../lib/test.js';
 const WHOLE_LIST_ERROR =
   'This control needs a source that loads the whole list.';
 const CHANNEL_MESSAGE = 'En az bir kanal seçin';
+const FIXTURE_SUBMIT_LABEL = 'Kaydet';
 const CHANNEL_LABELS = ['E-posta', 'SMS', 'Anlık bildirim'];
 
 function getOption(page, label) {
@@ -26,7 +27,7 @@ function getSection(page, name) {
 }
 
 function getParent(page, section) {
-  return page.getByRole('checkbox', {name: `${section} tümünü seç`});
+  return page.getByRole('checkbox', {name: `Select all ${section}`});
 }
 
 function getSectionHeader(page, section) {
@@ -36,7 +37,7 @@ function getSectionHeader(page, section) {
 }
 
 function getSearch(page) {
-  return page.getByRole('searchbox', {name: 'Ara'});
+  return page.getByRole('searchbox', {name: 'Search'});
 }
 
 function expectChecked(page, field = 'permissions') {
@@ -63,7 +64,7 @@ test.describe('checkbox group input', () => {
       await expect(getSection(page, section)).toBeVisible();
       await expect(
         getSection(page, section).getByRole('checkbox', {
-          name: `${section} tümünü seç`,
+          name: `Select all ${section}`,
         }),
       ).toBeVisible();
     }
@@ -200,11 +201,11 @@ test.describe('checkbox group input', () => {
   });
 
   test('search ignores case in the app locale', async ({page}) => {
-    await getSearch(page).pressSequentially('KULLANICI EKLE');
+    await getSearch(page).pressSequentially('ROL EKLE');
 
-    await expect(page.getByText('Kullanıcı ekle', {exact: true})).toBeVisible();
+    await expect(page.getByText('Rol ekle', {exact: true})).toBeVisible();
     await expect(
-      page.getByText('Kullanıcıları görüntüle', {exact: true}),
+      page.getByText('Rolleri görüntüle', {exact: true}),
     ).toHaveCount(0);
   });
 
@@ -252,7 +253,7 @@ test.describe('checkbox group input', () => {
 
     await expect(channels.getByRole('searchbox')).toHaveCount(0);
     await expect(
-      channels.getByRole('checkbox', {name: /tümünü seç/}),
+      channels.getByRole('checkbox', {name: /^Select all /}),
     ).toHaveCount(0);
 
     await page.getByText('SMS', {exact: true}).click();
@@ -322,7 +323,7 @@ test.describe('a disabled checkbox group', () => {
   }) => {
     await openFixture(page, 'checkbox-group-input', {isDisabled: true});
 
-    await getSaveButton(page).click();
+    await getSaveButton(page, FIXTURE_SUBMIT_LABEL).click();
 
     await expectFixtureState(page, 'submitted').toEqual({});
     await expect(page.getByText(CHANNEL_MESSAGE, {exact: true})).toHaveCount(0);
@@ -360,7 +361,7 @@ test.describe('a read-only checkbox group', () => {
       hasChannel: true,
     });
 
-    await getSaveButton(page).click();
+    await getSaveButton(page, FIXTURE_SUBMIT_LABEL).click();
 
     await expectFixtureState(page, 'submitted').toEqual({
       permissions: ['users.delete'],
@@ -373,7 +374,7 @@ test.describe('a read-only checkbox group', () => {
   }) => {
     await openFixture(page, 'checkbox-group-input', {isReadOnly: true});
 
-    await getSaveButton(page).click();
+    await getSaveButton(page, FIXTURE_SUBMIT_LABEL).click();
 
     await Promise.all([
       expect(page.getByText(CHANNEL_MESSAGE, {exact: true})).toBeVisible(),

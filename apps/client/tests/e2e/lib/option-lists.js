@@ -10,7 +10,7 @@ import {
   stubApi,
 } from './api.js';
 
-export const OPTIONS_LOAD_FAILURE = 'Seçenekler yüklenemedi.';
+export const OPTIONS_LOAD_FAILURE = 'Options could not be loaded.';
 
 const DEPARTMENTS_PATH = '/fixtures/departments';
 

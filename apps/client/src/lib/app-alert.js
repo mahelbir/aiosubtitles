@@ -32,7 +32,7 @@ function alertConfig(type, title, options = {}) {
     description: options.description,
     type: options.type ?? type,
     showCancel: false,
-    confirmText: options.confirmButtonText ?? 'Tamam',
+    confirmText: options.confirmButtonText ?? 'OK',
   };
 }
 
@@ -55,7 +55,7 @@ function confirmConfig(type, title, options, defaults) {
     errorAlert: cause =>
       resultConfig('error', options.error, {data: cause, cause}),
     confirmText: options.confirmButtonText ?? defaults.confirmText,
-    cancelText: options.cancelButtonText ?? 'Vazgeç',
+    cancelText: options.cancelButtonText ?? 'Cancel',
   };
 }
 
@@ -64,13 +64,13 @@ export function appAlert(title, options) {
 }
 
 appAlert.confirm = (title, options = {}) =>
-  open(confirmConfig('confirm', title, options, {confirmText: 'Onayla'}));
+  open(confirmConfig('confirm', title, options, {confirmText: 'Confirm'}));
 
 appAlert.confirmDangerous = (title, options = {}) =>
   open(
     confirmConfig('dangerous', title, options, {
-      description: 'Bu işlem geri alınamaz.',
-      confirmText: 'Devam',
+      description: 'This action cannot be undone.',
+      confirmText: 'Continue',
     }),
   );
 

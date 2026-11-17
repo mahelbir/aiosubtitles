@@ -2,6 +2,8 @@ import {expectFixtureState, openFixture} from '../lib/fixture-page.js';
 import {getSaveButton} from '../lib/locators.js';
 import {expect, test} from '../lib/test.js';
 
+const FIXTURE_SUBMIT_LABEL = 'Kaydet';
+
 const PASSIVE_MESSAGE = 'Pasif kayıt kaydedilemez.';
 
 function getOption(page, group, name) {
@@ -194,7 +196,7 @@ test.describe('a toggle group with a field validator', () => {
   }) => {
     await openFixture(page, 'toggle-group-input', {isPassive: true});
 
-    await getSaveButton(page).click();
+    await getSaveButton(page, FIXTURE_SUBMIT_LABEL).click();
 
     await expect(page.getByText(PASSIVE_MESSAGE, {exact: true})).toBeVisible();
     await expectFixtureState(page, 'fields').toMatchObject({
@@ -224,7 +226,7 @@ test.describe('a disabled toggle group', () => {
       isPassive: true,
     });
 
-    await getSaveButton(page).click();
+    await getSaveButton(page, FIXTURE_SUBMIT_LABEL).click();
 
     await expectFixtureState(page, 'submitted').toEqual({placement: 'above'});
     await expect(page.getByText(PASSIVE_MESSAGE, {exact: true})).toHaveCount(0);
@@ -249,7 +251,7 @@ test.describe('a read-only toggle group', () => {
   test('a submit sends its value', async ({page}) => {
     await openFixture(page, 'toggle-group-input', {isReadOnly: true});
 
-    await getSaveButton(page).click();
+    await getSaveButton(page, FIXTURE_SUBMIT_LABEL).click();
 
     await expectFixtureState(page, 'submitted').toEqual({
       isActive: true,
@@ -265,7 +267,7 @@ test.describe('a read-only toggle group', () => {
       isPassive: true,
     });
 
-    await getSaveButton(page).click();
+    await getSaveButton(page, FIXTURE_SUBMIT_LABEL).click();
 
     await expect(page.getByText(PASSIVE_MESSAGE, {exact: true})).toBeVisible();
     await expectFixtureState(page, 'submitted').toBeNull();

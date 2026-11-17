@@ -1,6 +1,6 @@
 import {Spinner} from '@/components/ui/spinner';
 
-export const LOADING_LABEL = 'Yükleniyor';
+export const LOADING_LABEL = 'Loading';
 
 export function LoadingStatus() {
   return (

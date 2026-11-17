@@ -48,12 +48,12 @@ test.describe('app alert', () => {
 
     const dialog = getAlertDialog(page, 'İşleme devam edilsin mi?');
     await expect(dialog).toBeVisible();
-    await expect(dialog.getByRole('button')).toHaveText(['Vazgeç', 'Onayla']);
+    await expect(dialog.getByRole('button')).toHaveText(['Cancel', 'Confirm']);
     await expectFixtureState(page).toMatchObject({
       outcomes: {confirm: {status: 'pending'}},
     });
 
-    await dialog.getByRole('button', {name: 'Onayla'}).click();
+    await dialog.getByRole('button', {name: 'Confirm'}).click();
 
     await expect(dialog).toBeHidden();
     await expectFixtureState(page).toMatchObject({
@@ -66,7 +66,7 @@ test.describe('app alert', () => {
   }) => {
     const dialog = getAlertDialog(page, 'İşleme devam edilsin mi?');
     await clickButton(page, 'Onay iste');
-    await dialog.getByRole('button', {name: 'Vazgeç'}).click();
+    await dialog.getByRole('button', {name: 'Cancel'}).click();
 
     await expect(dialog).toBeHidden();
     await expectFixtureState(page).toMatchObject({
@@ -85,16 +85,18 @@ test.describe('app alert', () => {
     });
   });
 
-  test('confirmDangerous carries the irreversibility warning and a “Devam” confirm', async ({
+  test('confirmDangerous carries the irreversibility warning and a “Continue” confirm', async ({
     page,
   }) => {
     await clickButton(page, 'Tehlikeli onay iste');
 
     const dialog = getAlertDialog(page, 'Kayıt kalıcı olarak silinsin mi?');
-    await expect(dialog).toHaveAccessibleDescription('Bu işlem geri alınamaz.');
-    await expect(dialog.getByRole('button')).toHaveText(['Vazgeç', 'Devam']);
+    await expect(dialog).toHaveAccessibleDescription(
+      'This action cannot be undone.',
+    );
+    await expect(dialog.getByRole('button')).toHaveText(['Cancel', 'Continue']);
 
-    await dialog.getByRole('button', {name: 'Devam'}).click();
+    await dialog.getByRole('button', {name: 'Continue'}).click();
 
     await expectFixtureState(page).toMatchObject({
       outcomes: {dangerous: {status: 'fulfilled', value: true}},
@@ -110,12 +112,12 @@ test.describe('app alert', () => {
     await expect(dialog).toHaveAccessibleDescription(
       'Rapor e-posta adresinize gönderildi.',
     );
-    await expect(dialog.getByRole('button')).toHaveText(['Tamam']);
+    await expect(dialog.getByRole('button')).toHaveText(['OK']);
     await expectFixtureState(page).toMatchObject({
       outcomes: {info: {status: 'pending'}},
     });
 
-    await dialog.getByRole('button', {name: 'Tamam'}).click();
+    await dialog.getByRole('button', {name: 'OK'}).click();
 
     await expect(dialog).toBeHidden();
     await expectFixtureState(page).toMatchObject({
@@ -131,12 +133,12 @@ test.describe('app alert', () => {
     const dialog = getAlertDialog(page, 'Kayıt silinsin mi?');
     await clickButton(page, 'Kaydı sil');
 
-    await dialog.getByRole('button', {name: 'Devam'}).click();
+    await dialog.getByRole('button', {name: 'Continue'}).click();
 
     const pendingButton = dialog.getByRole('button', {name: 'Siliniyor…'});
     await expect(pendingButton).toBeDisabled();
     await expect(getLoadingStatus(pendingButton)).toBeVisible();
-    await expect(dialog.getByRole('button', {name: 'Vazgeç'})).toBeDisabled();
+    await expect(dialog.getByRole('button', {name: 'Cancel'})).toBeDisabled();
     await expect.poll(() => hits).toHaveLength(1);
     await page.keyboard.press('Escape');
     await expect(dialog).toBeVisible();
@@ -148,14 +150,14 @@ test.describe('app alert', () => {
 
     await expect(dialog).toBeHidden();
     const success = getAlertDialog(page, 'Kayıt silindi.');
-    await expect(success.getByRole('button')).toHaveText(['Tamam']);
+    await expect(success.getByRole('button')).toHaveText(['OK']);
     await expectFixtureState(page).toMatchObject({
       outcomes: {removal: {status: 'fulfilled', value: true}},
       mutations: {removal: 'success'},
     });
     await expectToasts(page, []);
 
-    await success.getByRole('button', {name: 'Tamam'}).click();
+    await success.getByRole('button', {name: 'OK'}).click();
 
     await expect(success).toBeHidden();
   });
@@ -170,7 +172,7 @@ test.describe('app alert', () => {
       await clickButton(page, 'Kaydı sil');
 
       await getAlertDialog(page, 'Kayıt silinsin mi?')
-        .getByRole('button', {name: 'Devam'})
+        .getByRole('button', {name: 'Continue'})
         .click();
 
       await expect(getAlertDialog(page, FAILURE_MESSAGE)).toBeVisible();

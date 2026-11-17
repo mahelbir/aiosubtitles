@@ -2,7 +2,7 @@ import {partition} from 'es-toolkit';
 
 export class BulkError extends AggregateError {
   constructor(succeeded, reasons) {
-    super(reasons, reasons[0]?.message ?? 'İşlem tamamlanamadı.');
+    super(reasons, reasons[0]?.message ?? 'The action could not be completed.');
     this.name = 'BulkError';
     this.succeeded = succeeded;
     this.failed = reasons.length;

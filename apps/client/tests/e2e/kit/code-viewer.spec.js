@@ -10,7 +10,7 @@ function getViewer(page, section) {
 }
 
 function getCopyButton(scope) {
-  return scope.getByRole('button', {name: 'Kopyala', exact: true});
+  return scope.getByRole('button', {name: 'Copy', exact: true});
 }
 
 function readClipboard(page) {
@@ -35,10 +35,8 @@ test.describe('code viewer', () => {
 
     await getCopyButton(viewer).click();
 
-    await expect(
-      viewer.getByRole('button', {name: 'Kopyalandı'}),
-    ).toBeVisible();
-    await expect(viewer.getByText('Kopyalandı')).toBeAttached();
+    await expect(viewer.getByRole('button', {name: 'Copied'})).toBeVisible();
+    await expect(viewer.getByText('Copied')).toBeAttached();
     expect(await readClipboard(page)).toBe(LOG);
   });
 
@@ -54,7 +52,7 @@ test.describe('code viewer', () => {
     await getCopyButton(viewer).click();
 
     await expect(getCopyButton(viewer)).toBeVisible();
-    await expect(viewer.getByText('Kopyalandı')).toHaveCount(0);
+    await expect(viewer.getByText('Copied')).toHaveCount(0);
   });
 
   test('highlights a known language and leaves plain text as written', async ({
@@ -88,7 +86,7 @@ test.describe('code viewer', () => {
     await openFixture(page, 'code-viewer');
 
     await getViewer(page, 'JSON yanıt')
-      .getByRole('button', {name: 'Tam ekran'})
+      .getByRole('button', {name: 'Full screen'})
       .click();
 
     const dialog = getDialog(page, 'Yanıt');
@@ -100,9 +98,7 @@ test.describe('code viewer', () => {
 
     await getCopyButton(dialog).click();
 
-    await expect(
-      dialog.getByRole('button', {name: 'Kopyalandı'}),
-    ).toBeVisible();
+    await expect(dialog.getByRole('button', {name: 'Copied'})).toBeVisible();
     expect(JSON.parse(await readClipboard(page)).items).toHaveLength(30);
   });
 });

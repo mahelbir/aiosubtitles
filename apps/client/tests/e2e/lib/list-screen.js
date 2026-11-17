@@ -2,12 +2,12 @@ import {getApiUrl} from './api.js';
 import {getTableRow} from './locators.js';
 
 export async function clickRowMenuItem(page, cell, name) {
-  await getTableRow(page, cell).getByRole('button', {name: 'İşlemler'}).click();
+  await getTableRow(page, cell).getByRole('button', {name: 'Actions'}).click();
   await page.getByRole('menuitem', {name}).click();
 }
 
 export function getFilters(scope) {
-  return scope.getByRole('search', {name: 'Tablo filtreleri'});
+  return scope.getByRole('search', {name: 'Table filters'});
 }
 
 export function getSearchBox(scope, name) {
@@ -19,15 +19,15 @@ export function getFacet(scope, name) {
 }
 
 export function getFilterReset(scope) {
-  return getFilters(scope).getByRole('button', {name: 'Temizle', exact: true});
+  return getFilters(scope).getByRole('button', {name: 'Clear', exact: true});
 }
 
 export function getNoRecords(scope) {
-  return scope.getByRole('status').filter({hasText: 'Kayıt bulunamadı.'});
+  return scope.getByRole('status').filter({hasText: 'No records found.'});
 }
 
 export function getBulkBar(page) {
-  return page.getByRole('toolbar', {name: 'Toplu işlemler'});
+  return page.getByRole('toolbar', {name: 'Bulk actions'});
 }
 
 export function getBulkButton(page, name) {
@@ -35,7 +35,7 @@ export function getBulkButton(page, name) {
 }
 
 export function getRowCheckbox(row) {
-  return row.getByRole('checkbox', {name: 'Satırı seç'});
+  return row.getByRole('checkbox', {name: 'Select row'});
 }
 
 export async function selectRows(page, cells) {

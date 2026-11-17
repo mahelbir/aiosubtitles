@@ -32,7 +32,7 @@ function keepLocked(value, next, lockedKeys) {
 }
 
 function withCreateItem(optionList, text) {
-  const label = `Oluştur: "${text}"`;
+  const label = `Create: "${text}"`;
   const createOption = {value: CREATE_ITEM, label};
   const {filter, labelOf} = optionList;
   return {
@@ -160,7 +160,7 @@ export function ChipsCombobox({
           <ComboboxChip
             key={String(item)}
             showRemove={!lockedKeys.has(String(item))}
-            removeLabel={`Kaldır: ${optionList.labelOf(item)}`}
+            removeLabel={`Remove: ${optionList.labelOf(item)}`}
           >
             {optionList.labelOf(item)}
           </ComboboxChip>

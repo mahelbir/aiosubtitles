@@ -7,30 +7,30 @@ describe('tooManyRequests', () => {
     expect(tooManyRequests().statusCode).toBe(StatusCodes.TOO_MANY_REQUESTS);
   });
 
-  it('words the refusal in Turkish, so no transport says it twice', () => {
+  it('words the refusal in English, so no transport says it twice', () => {
     expect(tooManyRequests().message).toBe(
-      'Çok fazla istek gönderildi. Daha sonra tekrar deneyin.',
+      'Too many requests. Try again later.',
     );
   });
 
   it('lets a caller narrow the wording without inventing a status', () => {
-    const denied = tooManyRequests('Çok fazla giriş denemesi.');
-    expect(denied.message).toBe('Çok fazla giriş denemesi.');
+    const denied = tooManyRequests('Too many sign-in attempts.');
+    expect(denied.message).toBe('Too many sign-in attempts.');
     expect(denied.statusCode).toBe(StatusCodes.TOO_MANY_REQUESTS);
   });
 });
 
 describe('unprocessable', () => {
-  it('refuses with the validation status and a Turkish default', () => {
+  it('refuses with the validation status and an English default', () => {
     expect(unprocessable()).toEqual({
-      message: 'İstek işlenemedi.',
+      message: 'The request could not be processed.',
       statusCode: StatusCodes.UNPROCESSABLE_ENTITY,
     });
   });
 
   it('carries the wording a caller names', () => {
-    expect(unprocessable('Ayar gönderilemez.')).toEqual({
-      message: 'Ayar gönderilemez.',
+    expect(unprocessable('This setting cannot be sent.')).toEqual({
+      message: 'This setting cannot be sent.',
       statusCode: StatusCodes.UNPROCESSABLE_ENTITY,
     });
   });

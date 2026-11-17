@@ -89,7 +89,7 @@ function ColumnHeaderMenu({
               onClick={() => column.toggleSorting(false, false)}
             >
               <ChevronUpIcon />
-              Artan
+              Ascending
             </DropdownMenuCheckboxItem>
             <DropdownMenuCheckboxItem
               closeOnClick
@@ -97,7 +97,7 @@ function ColumnHeaderMenu({
               onClick={() => column.toggleSorting(true, false)}
             >
               <ChevronDownIcon />
-              Azalan
+              Descending
             </DropdownMenuCheckboxItem>
           </DropdownMenuGroup>
         )}
@@ -109,13 +109,13 @@ function ColumnHeaderMenu({
                 onClick={() => column.toggleSorting(false, true)}
               >
                 <ListPlusIcon />
-                Artan olarak ekle
+                Add as ascending
               </DropdownMenuItem>
               <DropdownMenuItem
                 onClick={() => column.toggleSorting(true, true)}
               >
                 <ListPlusIcon />
-                Azalan olarak ekle
+                Add as descending
               </DropdownMenuItem>
             </DropdownMenuGroup>
           </>
@@ -126,7 +126,7 @@ function ColumnHeaderMenu({
             <DropdownMenuGroup>
               <DropdownMenuItem onClick={() => column.clearSorting()}>
                 <XIcon />
-                {isMultiSorted ? 'Sıralamadan çıkar' : 'Sıralamayı kaldır'}
+                {isMultiSorted ? 'Remove from sort' : 'Clear sort'}
               </DropdownMenuItem>
             </DropdownMenuGroup>
           </>
@@ -137,13 +137,13 @@ function ColumnHeaderMenu({
             {canHide && (
               <DropdownMenuItem onClick={() => column.toggleVisibility(false)}>
                 <EyeOffIcon />
-                Sütunu gizle
+                Hide column
               </DropdownMenuItem>
             )}
             {hiddenCount > 0 && (
               <DropdownMenuItem onClick={() => table.resetColumnVisibility()}>
                 <EyeIcon />
-                Gizli sütunları göster ({hiddenCount})
+                Show hidden columns ({hiddenCount})
               </DropdownMenuItem>
             )}
           </DropdownMenuGroup>

@@ -156,7 +156,7 @@ function getTableBox(page) {
 }
 
 function getPagination(page) {
-  return getUserTable(page).getByRole('navigation', {name: 'Sayfalama'});
+  return getUserTable(page).getByRole('navigation', {name: 'Pagination'});
 }
 
 function getPageLink(page, name) {
@@ -204,7 +204,7 @@ function readFacetOptionNames(page) {
 }
 
 function getFilterClear(page, title) {
-  return getUserFilters(page).getByTitle(`${title} filtresini temizle`, {
+  return getUserFilters(page).getByTitle(`Clear ${title} filter`, {
     exact: true,
   });
 }
@@ -229,8 +229,8 @@ async function tabTo(page, target) {
 
 async function fillDateRange(page, title, from, to) {
   await getFilterTrigger(page, title).click();
-  await getPopup(page).getByLabel('Başlangıç').fill(from);
-  await getPopup(page).getByLabel('Bitiş').fill(to);
+  await getPopup(page).getByLabel('Start').fill(from);
+  await getPopup(page).getByLabel('End').fill(to);
 }
 
 function getUserColumnHeader(page, name) {
@@ -264,7 +264,7 @@ test.describe('table kit pagination', () => {
       'href',
       '/fixtures/table-kit?search=Kaya&pageNumber=2',
     );
-    await expect(getPageLink(page, 'Son sayfa')).toHaveAttribute(
+    await expect(getPageLink(page, 'Last page')).toHaveAttribute(
       'href',
       '/fixtures/table-kit?search=Kaya&pageNumber=2',
     );
@@ -313,25 +313,25 @@ test.describe('table kit pagination', () => {
   }) => {
     await openTableKit(page);
 
-    for (const label of ['İlk sayfa', 'Önceki sayfa']) {
+    for (const label of ['First page', 'Previous page']) {
       await expect(getPageLink(page, label)).toBeDisabled();
       await expect(getPageLink(page, label)).not.toHaveAttribute('href');
     }
-    for (const label of ['Sonraki sayfa', 'Son sayfa']) {
+    for (const label of ['Next page', 'Last page']) {
       await expect(getPageLink(page, label)).toBeEnabled();
       await expect(getPageLink(page, label)).not.toHaveAttribute(
         'aria-disabled',
       );
     }
 
-    await getPageLink(page, 'Son sayfa').click();
+    await getPageLink(page, 'Last page').click();
 
     await expectSearchParams(page).toEqual({pageNumber: '10'});
-    for (const label of ['Sonraki sayfa', 'Son sayfa']) {
+    for (const label of ['Next page', 'Last page']) {
       await expect(getPageLink(page, label)).toBeDisabled();
       await expect(getPageLink(page, label)).not.toHaveAttribute('href');
     }
-    for (const label of ['İlk sayfa', 'Önceki sayfa']) {
+    for (const label of ['First page', 'Previous page']) {
       await expect(getPageLink(page, label)).toHaveAttribute(
         'href',
         /\/fixtures\/table-kit(\?pageNumber=9)?$/,
@@ -350,7 +350,7 @@ test.describe('table kit pagination', () => {
 
     await expect(getPageNumbers(page)).toHaveText(['3', '4', '5', '6', '7']);
 
-    await getPageLink(page, 'Son sayfa').click();
+    await getPageLink(page, 'Last page').click();
 
     await expect(getPageNumbers(page)).toHaveText(['6', '7', '8', '9', '10']);
     await expect(getPageNumbers(page)).toHaveCount(DEFAULT_WINDOW_SIZE);
@@ -364,7 +364,7 @@ test.describe('table kit pagination', () => {
   }) => {
     await openTableKit(page, {pageNumber: 3});
     const pageSize = getUserTable(page).getByRole('combobox', {
-      name: 'Sayfa başına kayıt',
+      name: 'Rows per page',
     });
 
     await pageSize.click();
@@ -388,7 +388,7 @@ test.describe('table kit pagination', () => {
 
     await expect(getRangeStatus(page)).toHaveText('1-8 / 8');
     await expect(
-      getUserTable(page).getByRole('combobox', {name: 'Sayfa başına kayıt'}),
+      getUserTable(page).getByRole('combobox', {name: 'Rows per page'}),
     ).toBeVisible();
     await expect(getPagination(page)).toHaveCount(0);
   });
@@ -399,12 +399,12 @@ test.describe('table kit pagination', () => {
     await openTableKit(page);
 
     await expect(getPagination(page)).toMatchAriaSnapshot(`
-      - navigation "Sayfalama":
+      - navigation "Pagination":
         - list:
           - listitem:
-            - link "İlk sayfa" [disabled]
+            - link "First page" [disabled]
           - listitem:
-            - link "Önceki sayfa" [disabled]
+            - link "Previous page" [disabled]
           - listitem:
             - link "1"
           - listitem:
@@ -416,9 +416,9 @@ test.describe('table kit pagination', () => {
           - listitem:
             - link "5"
           - listitem:
-            - link "Sonraki sayfa"
+            - link "Next page"
           - listitem:
-            - link "Son sayfa"
+            - link "Last page"
     `);
   });
 
@@ -431,10 +431,10 @@ test.describe('table kit pagination', () => {
       await openTableKit(page, {pageNumber: 5});
       const pagination = getPagination(page);
 
-      await expect(pagination.getByLabel('Önceki sayfa')).toBeHidden();
-      await expect(pagination.getByLabel('Sonraki sayfa')).toBeHidden();
-      await expect(getPageLink(page, 'İlk sayfa')).toBeVisible();
-      await expect(getPageLink(page, 'Son sayfa')).toBeVisible();
+      await expect(pagination.getByLabel('Previous page')).toBeHidden();
+      await expect(pagination.getByLabel('Next page')).toBeHidden();
+      await expect(getPageLink(page, 'First page')).toBeVisible();
+      await expect(getPageLink(page, 'Last page')).toBeVisible();
       await expect(getPageNumbers(page)).toHaveText(['3', '4', '5', '6', '7']);
     });
   });
@@ -503,7 +503,7 @@ test.describe('table kit toolbar', () => {
     await expect(getFacetTrigger(page, 'Durum')).toContainText('Pasif');
     await expect(getFacetTrigger(page, 'Durum')).toContainText('Aktif');
     await expect(getFacetTrigger(page, 'Durum')).toHaveAccessibleName(
-      'Durum, 2 seçili',
+      'Durum, 2 selected',
     );
   });
 
@@ -567,7 +567,7 @@ test.describe('table kit toolbar', () => {
     });
     await expect(getRangeStatus(page)).toHaveText('1-10 / 10');
     await expect(getFilterTrigger(page, 'Kayıt tarihi')).toContainText(
-      '10 Şub 2024',
+      'Feb 1 – 10, 2024',
     );
   });
 
@@ -578,7 +578,7 @@ test.describe('table kit toolbar', () => {
     });
 
     await expect(getFilterTrigger(page, 'Kayıt tarihi')).toContainText(
-      '31 Mar 2024',
+      'Mar 31, 2024',
     );
     await expect(getRangeStatus(page)).toHaveText('1-10 / 91');
   });
@@ -602,12 +602,10 @@ test.describe('table kit toolbar', () => {
       await page.reload();
       await getFilterTrigger(page, 'Son giriş').click();
 
-      await expect(getPopup(page).getByLabel('Başlangıç')).toHaveValue(
+      await expect(getPopup(page).getByLabel('Start')).toHaveValue(
         '2024-06-03',
       );
-      await expect(getPopup(page).getByLabel('Bitiş')).toHaveValue(
-        '2024-06-03',
-      );
+      await expect(getPopup(page).getByLabel('End')).toHaveValue('2024-06-03');
     });
   });
 
@@ -651,14 +649,14 @@ test.describe('table kit toolbar', () => {
       await expect(clear).not.toBeFocused();
     }
     await expect(
-      getUserFilters(page).getByRole('button', {name: /filtresini temizle/}),
+      getUserFilters(page).getByRole('button', {name: /^Clear .* filter$/}),
     ).toHaveCount(0);
 
     await getFacetTrigger(page, 'Durum').focus();
     await page.keyboard.press('Enter');
     await expect(getFacetList(page)).toBeVisible();
     await page.keyboard.press('End');
-    await expect(getFacetOption(page, 'Filtreyi temizle')).toBeFocused();
+    await expect(getFacetOption(page, 'Clear filter')).toBeFocused();
     await page.keyboard.press('Enter');
 
     await expectSearchParams(page).toEqual({
@@ -670,8 +668,8 @@ test.describe('table kit toolbar', () => {
 
     await getFilterTrigger(page, 'Kayıt tarihi').focus();
     await page.keyboard.press('Enter');
-    await expect(getPopup(page).getByLabel('Başlangıç')).toBeFocused();
-    await tabTo(page, getPopup(page).getByRole('button', {name: 'Temizle'}));
+    await expect(getPopup(page).getByLabel('Start')).toBeFocused();
+    await tabTo(page, getPopup(page).getByRole('button', {name: 'Clear'}));
     await page.keyboard.press('Enter');
 
     await expectSearchParams(page).toEqual({});
@@ -740,21 +738,21 @@ test.describe('table kit toolbar', () => {
     await expect(header).not.toHaveAttribute('aria-sort');
 
     await openUserColumnMenu(page, 'Ad');
-    await page.getByRole('menuitemcheckbox', {name: 'Artan'}).click();
+    await page.getByRole('menuitemcheckbox', {name: 'Ascending'}).click();
 
     await expectSearchParams(page).toEqual({sort: 'name'});
     await expect(header).toHaveAttribute('aria-sort', 'ascending');
     await expect(getBodyRows(page).first()).toContainText('Ada Arslan');
 
     await openUserColumnMenu(page, 'Ad');
-    await page.getByRole('menuitemcheckbox', {name: 'Azalan'}).click();
+    await page.getByRole('menuitemcheckbox', {name: 'Descending'}).click();
 
     await expectSearchParams(page).toEqual({sort: '-name'});
     await expect(header).toHaveAttribute('aria-sort', 'descending');
     await expect(getBodyRows(page).first()).toContainText('Jale Yılmaz');
 
     await openUserColumnMenu(page, 'Ad');
-    await page.getByRole('menuitem', {name: 'Sıralamayı kaldır'}).click();
+    await page.getByRole('menuitem', {name: 'Clear sort'}).click();
 
     await expectSearchParams(page).toEqual({});
     await expect(header).not.toHaveAttribute('aria-sort');
@@ -767,7 +765,7 @@ test.describe('table kit toolbar', () => {
     await openTableKit(page, {sort: 'name'});
 
     await openUserColumnMenu(page, 'No');
-    await page.getByRole('menuitem', {name: 'Azalan olarak ekle'}).click();
+    await page.getByRole('menuitem', {name: 'Add as descending'}).click();
 
     await expectSearchParams(page).toEqual({sort: 'name,-id'});
     await expect(getUserColumnHeader(page, 'No')).toHaveAttribute(
@@ -782,7 +780,7 @@ test.describe('table kit toolbar', () => {
     ).toContainText('2');
 
     await openUserColumnMenu(page, 'Ad');
-    await page.getByRole('menuitem', {name: 'Sıralamadan çıkar'}).click();
+    await page.getByRole('menuitem', {name: 'Remove from sort'}).click();
 
     await expectSearchParams(page).toEqual({sort: '-id'});
     await expect(getBodyRows(page).first()).toContainText('Jale Arslan');
@@ -796,7 +794,7 @@ test.describe('table kit toolbar', () => {
 
     await page.keyboard.press('Enter');
     await expect(
-      page.getByRole('menuitemcheckbox', {name: 'Artan'}),
+      page.getByRole('menuitemcheckbox', {name: 'Ascending'}),
     ).toBeFocused();
     await page.keyboard.press('ArrowDown');
     await page.keyboard.press('Enter');
@@ -811,7 +809,7 @@ test.describe('table kit toolbar', () => {
     await openTableKit(page);
 
     await openUserColumnMenu(page, 'E-posta');
-    await page.getByRole('menuitem', {name: 'Sütunu gizle'}).click();
+    await page.getByRole('menuitem', {name: 'Hide column'}).click();
 
     await expect(getUserColumnHeader(page, 'E-posta')).toHaveCount(0);
 
@@ -821,9 +819,7 @@ test.describe('table kit toolbar', () => {
     await expect(getUserColumnHeader(page, 'E-posta')).toHaveCount(0);
 
     await openUserColumnMenu(page, 'Ad');
-    await page
-      .getByRole('menuitem', {name: 'Gizli sütunları göster (1)'})
-      .click();
+    await page.getByRole('menuitem', {name: 'Show hidden columns (1)'}).click();
 
     await expect(getUserColumnHeader(page, 'E-posta')).toBeVisible();
   });
@@ -890,7 +886,7 @@ test.describe('table kit faceted filter', () => {
     await expect(getFacetOptions(page)).toHaveText([
       'Pasif',
       'Aktif',
-      'Filtreyi temizle',
+      'Clear filter',
     ]);
   });
 
@@ -908,7 +904,7 @@ test.describe('table kit faceted filter', () => {
     await expectFixtureState(page).toMatchObject({
       list: {owner: [...deepLinked, 1]},
     });
-    await expect(page.getByText('En fazla 20 seçilebilir.')).toBeVisible();
+    await expect(page.getByText('You can select up to 20.')).toBeVisible();
     await expect(getFacetOption(page, 'Barış Yılmaz')).toHaveAttribute(
       'aria-disabled',
       'true',
@@ -953,7 +949,7 @@ test.describe('table kit selection', () => {
     await getUserRowCheckbox(page, 'Barış Yılmaz').click();
 
     await expect(getBulkBar(page)).toBeVisible();
-    await expect(getBulkBar(page).getByRole('status')).toHaveText('2 seçildi');
+    await expect(getBulkBar(page).getByRole('status')).toHaveText('2 selected');
   });
 
   test('the action bar fades out where it stood once the selection clears', async ({
@@ -965,7 +961,7 @@ test.describe('table kit selection', () => {
     await settleAnimatedPositions(page);
 
     const boxes = await trackBoxDuring(getBulkBar(page), () =>
-      getBulkBar(page).getByRole('button', {name: 'Seçimi temizle'}).click(),
+      getBulkBar(page).getByRole('button', {name: 'Clear selection'}).click(),
     );
 
     expect(boxes).toHaveLength(1);
@@ -976,7 +972,7 @@ test.describe('table kit selection', () => {
     await openTableKit(page);
     await getUserRowCheckbox(page, 'Ada Yılmaz').click();
     const clear = getBulkBar(page).getByRole('button', {
-      name: 'Seçimi temizle',
+      name: 'Clear selection',
     });
     const bulk = getBulkBar(page).getByRole('button', {name: 'Pasifleştir'});
 
@@ -1002,7 +998,7 @@ test.describe('table kit selection', () => {
     await expectFixtureState(page).toMatchObject({bulkIds: [1, 3]});
 
     await getBulkBar(page)
-      .getByRole('button', {name: 'Seçimi temizle'})
+      .getByRole('button', {name: 'Clear selection'})
       .click();
 
     await expect(getBulkBar(page)).toHaveCount(0);
@@ -1015,7 +1011,7 @@ test.describe('table kit selection', () => {
   }) => {
     await openTableKit(page);
     const selectAll = getUserTable(page).getByRole('checkbox', {
-      name: 'Tümünü seç',
+      name: 'Select all',
     });
 
     await getUserRowCheckbox(page, 'Ada Yılmaz').click();
@@ -1025,7 +1021,9 @@ test.describe('table kit selection', () => {
     await selectAll.click();
 
     await expect(selectAll).toBeChecked();
-    await expect(getBulkBar(page).getByRole('status')).toHaveText('10 seçildi');
+    await expect(getBulkBar(page).getByRole('status')).toHaveText(
+      '10 selected',
+    );
 
     await selectAll.click();
 
@@ -1052,7 +1050,7 @@ test.describe('table kit selection', () => {
     await expect(getRow(page, 'Ada Yılmaz')).toContainText('Pasif');
     await expect(getUserRowCheckbox(page, 'Ada Yılmaz')).toBeChecked();
     await expect(getUserRowCheckbox(page, 'Barış Yılmaz')).toBeChecked();
-    await expect(getBulkBar(page).getByRole('status')).toHaveText('2 seçildi');
+    await expect(getBulkBar(page).getByRole('status')).toHaveText('2 selected');
   });
 
   test('the selection collapses once the list query changes', async ({
@@ -1089,7 +1087,7 @@ test.describe('table kit selection', () => {
     }) => {
       await openTableKit(page, {selectable: 'active'});
       const selectAll = getUserTable(page).getByRole('checkbox', {
-        name: 'Tümünü seç',
+        name: 'Select all',
       });
 
       await expect(getUserRowCheckbox(page, 'Çağla Yılmaz')).toBeDisabled();
@@ -1104,7 +1102,7 @@ test.describe('table kit selection', () => {
 
       await expect(selectAll).toBeChecked();
       await expect(getBulkBar(page).getByRole('status')).toHaveText(
-        '8 seçildi',
+        '8 selected',
       );
       await expect(getUserRowCheckbox(page, 'Çağla Yılmaz')).not.toBeChecked();
 
@@ -1122,7 +1120,7 @@ test.describe('table kit selection', () => {
 
       await expect(getRangeStatus(page)).toHaveText('1-10 / 24');
       await expect(
-        getUserTable(page).getByRole('checkbox', {name: 'Tümünü seç'}),
+        getUserTable(page).getByRole('checkbox', {name: 'Select all'}),
       ).toBeDisabled();
     });
   });
@@ -1134,7 +1132,7 @@ test.describe('table kit expanding', () => {
   }) => {
     await openTableKit(page);
     const expander = getRow(page, 'Ada Yılmaz').getByRole('button', {
-      name: 'Satır detayı',
+      name: 'Row details',
     });
     const detail = getUserTable(page).getByRole('group', {
       name: 'Ada Yılmaz ayrıntıları',
@@ -1166,7 +1164,7 @@ test.describe('table kit expanding', () => {
     });
 
     await getRow(page, 'Ada Yılmaz')
-      .getByRole('button', {name: 'Satır detayı'})
+      .getByRole('button', {name: 'Row details'})
       .click();
 
     await expect
@@ -1189,7 +1187,7 @@ test.describe('table kit expanding', () => {
       name: 'Ada Yılmaz ayrıntıları',
     });
     await getRow(page, 'Ada Yılmaz')
-      .getByRole('button', {name: 'Satır detayı'})
+      .getByRole('button', {name: 'Row details'})
       .click();
 
     await page.getByRole('button', {name: 'Yenile'}).click();
@@ -1210,14 +1208,14 @@ test.describe('table kit expanding', () => {
 
     await expect(detail).toHaveCount(0);
     await expect(
-      getRow(page, 'Ada Yılmaz').getByRole('button', {name: 'Satır detayı'}),
+      getRow(page, 'Ada Yılmaz').getByRole('button', {name: 'Row details'}),
     ).toHaveAttribute('aria-expanded', 'false');
   });
 
   test('an expanded row collapses once the search changes', async ({page}) => {
     await openTableKit(page);
     const expander = getRow(page, 'Ada Yılmaz').getByRole('button', {
-      name: 'Satır detayı',
+      name: 'Row details',
     });
     await expander.click();
     await expect(expander).toHaveAttribute('aria-expanded', 'true');
@@ -1240,7 +1238,7 @@ test.describe('table kit expanding', () => {
     }) => {
       await openTableKit(page);
       await getRow(page, 'Ada Yılmaz')
-        .getByRole('button', {name: 'Satır detayı'})
+        .getByRole('button', {name: 'Row details'})
         .click();
       await expect(
         getUserTable(page).getByRole('group', {name: 'Ada Yılmaz ayrıntıları'}),
@@ -1295,7 +1293,7 @@ test.describe('table kit states', () => {
     await openTableKit(page, {total: 0});
 
     await expect(getUserTable(page).getByRole('status')).toHaveText(
-      'Kayıt bulunamadı.',
+      'No records found.',
     );
     await expect(
       getUserTable(page).getByRole('button', {name: 'Kullanıcı ekle'}),
@@ -1308,7 +1306,7 @@ test.describe('table kit states', () => {
     await openTableKit(page, {total: 0, action: 1});
 
     await expect(
-      getUserTable(page).getByText('Kayıt bulunamadı.'),
+      getUserTable(page).getByText('No records found.'),
     ).toBeVisible();
 
     await getUserTable(page)
@@ -1322,7 +1320,7 @@ test.describe('table kit states', () => {
     await openTableKit(page, {search: 'zzz'});
 
     await expect(
-      getUserTable(page).getByText('Kayıt bulunamadı.'),
+      getUserTable(page).getByText('No records found.'),
     ).toBeVisible();
     await expect(getBodyRows(page)).toHaveCount(0);
   });
@@ -1489,7 +1487,7 @@ test.describe('table kit over the API', () => {
       await Promise.all([
         expect(getBodyRows(page)).toHaveText(rows),
         expect(
-          getUserTable(page).getByRole('button', {name: 'Yeniden dene'}),
+          getUserTable(page).getByRole('button', {name: 'Retry'}),
         ).toHaveCount(0),
         expect(getPagination(page)).toBeVisible(),
         expectToasts(page, [REFETCH_FAILURE_TOAST]),
@@ -1514,7 +1512,7 @@ test.describe('table kit over the API', () => {
       const alert = getUserTable(page).getByRole('alert');
       await Promise.all([
         expect(alert).toContainText(LOAD_FAILURE),
-        expect(alert.getByRole('button', {name: 'Yeniden dene'})).toBeVisible(),
+        expect(alert.getByRole('button', {name: 'Retry'})).toBeVisible(),
         expectFixtureState(page).toMatchObject(SETTLED_ERROR),
         expect(getBodyRows(page)).toHaveCount(0),
       ]);
@@ -1575,7 +1573,7 @@ test.describe('table kit over the API', () => {
       ]);
       expect(pageTwoHits).toHaveLength(2);
 
-      await alert.getByRole('button', {name: 'Yeniden dene'}).click();
+      await alert.getByRole('button', {name: 'Retry'}).click();
 
       await Promise.all([
         expect(getBodyRows(page).first()).toContainText('Kullanıcı 11'),
@@ -1660,7 +1658,7 @@ test.describe('table kit filter options over the API', () => {
 
       await Promise.all([
         expect(page.getByText(OPTIONS_LOAD_FAILURE)).toBeVisible(),
-        expect(getFacetOptions(page)).toHaveText(['Filtreyi temizle']),
+        expect(getFacetOptions(page)).toHaveText(['Clear filter']),
         expect(getFacetTrigger(page, 'Departman')).toContainText('Hukuk'),
       ]);
       await expectToasts(page, []);
@@ -1749,7 +1747,7 @@ test.describe('table kit row actions', () => {
     }) => {
       await openTableKit(page);
       const trigger = getRow(page, 'Ada Yılmaz').getByRole('button', {
-        name: 'İşlemler',
+        name: 'Actions',
       });
       await expect(trigger).toBeVisible();
 
@@ -1784,7 +1782,7 @@ test.describe('table kit row actions', () => {
       const hoverColour = await readRowColour(page, 'Barış Yılmaz');
 
       await getRow(page, 'Ada Yılmaz')
-        .getByRole('button', {name: 'İşlemler'})
+        .getByRole('button', {name: 'Actions'})
         .click();
       await expect(page.getByRole('menu')).toBeVisible();
       await page.mouse.move(0, 0);
@@ -1821,14 +1819,14 @@ test.describe('static table', () => {
     await openTableKit(page);
     const rows = getCityRows(page);
 
-    await sortCities(page, 'Şehir', 'Artan');
+    await sortCities(page, 'Şehir', 'Ascending');
 
     await expect(rows).toHaveText([
       /^Ağrı/,
-      /^Cizre/,
       /^Çanakkale/,
-      /^Isparta/,
+      /^Cizre/,
       /^İnegöl/,
+      /^Isparta/,
       /^Zonguldak/,
     ]);
     await expect(getColumnHeader(getCityTable(page), 'Şehir')).toHaveAttribute(
@@ -1837,7 +1835,7 @@ test.describe('static table', () => {
     );
     await expectSearchParams(page).toEqual({});
 
-    await sortCities(page, 'Şehir', 'Azalan');
+    await sortCities(page, 'Şehir', 'Descending');
 
     await expect(rows.first()).toContainText('Zonguldak');
     await expect(rows.last()).toContainText('Ağrı');
@@ -1846,7 +1844,7 @@ test.describe('static table', () => {
   test('compares numbers inside text numerically', async ({page}) => {
     await openTableKit(page);
 
-    await sortCities(page, 'Bölge', 'Artan');
+    await sortCities(page, 'Bölge', 'Ascending');
 
     await expect(getCityRows(page)).toHaveText([
       /Bölge 1$/,

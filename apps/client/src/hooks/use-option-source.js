@@ -19,7 +19,7 @@ import {useOptionsInfiniteQuery, useOptionsQuery} from '@/lib/query';
 import {toSearchTerm} from '@/lib/search';
 import {LOADING_LABEL} from '@/components/common/loading-status';
 
-const SEARCHING_MESSAGE = 'Aranıyor…';
+const SEARCHING_MESSAGE = 'Searching…';
 const LOADING_MESSAGE = `${LOADING_LABEL}…`;
 const EMPTY_LIST = [];
 const IDLE_KEY = ['option-source'];

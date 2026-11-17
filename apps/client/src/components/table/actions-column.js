@@ -36,7 +36,7 @@ function MenuActions({actions}) {
     <DropdownMenu>
       <DropdownMenuTrigger
         render={
-          <Button variant="ghost" size="icon-sm" aria-label="İşlemler">
+          <Button variant="ghost" size="icon-sm" aria-label="Actions">
             <EllipsisIcon />
           </Button>
         }

@@ -3,10 +3,10 @@ import * as pagination from './pagination.js';
 import {dbUtils} from './utils.js';
 
 export class BaseModel extends Model {
-  static notFoundMessage = 'Kayıt bulunamadı.';
-  static duplicateMessage = 'Kayıt zaten mevcut.';
+  static notFoundMessage = 'Record not found.';
+  static duplicateMessage = 'Record already exists.';
   static foreignKeyMessage =
-    'İlişkili kayıtlar olduğu için işlem tamamlanamadı.';
+    'The action could not be completed because related records exist.';
 
   static get notFound() {
     return new EmptyResultError(this.notFoundMessage);

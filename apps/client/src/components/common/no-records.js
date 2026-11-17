@@ -6,7 +6,7 @@ import {
 } from '@/components/ui/empty';
 
 export function NoRecords({
-  description = 'Kayıt bulunamadı.',
+  description = 'No records found.',
   action,
   className,
 }) {

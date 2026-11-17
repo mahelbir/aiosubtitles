@@ -28,7 +28,7 @@ import {useTableContext} from './table-provider';
 
 const MAX_VISIBLE_BADGES = 2;
 const NO_VALUES = [];
-const CLEAR_LABEL = 'Filtreyi temizle';
+const CLEAR_LABEL = 'Clear filter';
 
 function getOptionKey(option) {
   return String(option.value);
@@ -113,7 +113,7 @@ export function TableFacetedFilter({
     variant: 'button',
     className: 'border-dashed',
     'aria-label':
-      selected.length > 0 ? `${title}, ${selected.length} seçili` : title,
+      selected.length > 0 ? `${title}, ${selected.length} selected` : title,
   });
   const contentProps = {
     align: 'start',
@@ -184,7 +184,7 @@ function FacetSummary({title, badges, onReset}) {
           <span className="hidden items-center gap-1 md:flex">
             {count > MAX_VISIBLE_BADGES ? (
               <Badge variant="secondary" className="rounded-sm px-1">
-                {count} seçili
+                {count} selected
               </Badge>
             ) : (
               badges.map(badge => (

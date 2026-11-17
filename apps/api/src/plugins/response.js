@@ -60,7 +60,7 @@ export default fp(
     );
 
     fastify.setNotFoundHandler((request, reply) => {
-      reply.error(null, 'Sayfa bulunamadı.', StatusCodes.NOT_FOUND);
+      reply.error(null, 'Page not found.', StatusCodes.NOT_FOUND);
     });
 
     fastify.setErrorHandler((err, request, reply) => {

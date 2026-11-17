@@ -21,28 +21,30 @@ export function throwIfDenied(denied) {
   }
 }
 
-export const forbidden = (message = 'İzin yok.') => ({
+export const forbidden = (message = 'Permission denied.') => ({
   message,
   statusCode: StatusCodes.FORBIDDEN,
 });
 
-export const unauthorized = (message = 'Geçersiz oturum.') => ({
+export const unauthorized = (message = 'Invalid session.') => ({
   message,
   statusCode: StatusCodes.UNAUTHORIZED,
 });
 
-export const conflict = (message = 'Kayıt çakışması.') => ({
+export const conflict = (message = 'Record conflict.') => ({
   message,
   statusCode: StatusCodes.CONFLICT,
 });
 
-export const unprocessable = (message = 'İstek işlenemedi.') => ({
+export const unprocessable = (
+  message = 'The request could not be processed.',
+) => ({
   message,
   statusCode: StatusCodes.UNPROCESSABLE_ENTITY,
 });
 
 export const tooManyRequests = (
-  message = 'Çok fazla istek gönderildi. Daha sonra tekrar deneyin.',
+  message = 'Too many requests. Try again later.',
 ) => ({
   message,
   statusCode: StatusCodes.TOO_MANY_REQUESTS,

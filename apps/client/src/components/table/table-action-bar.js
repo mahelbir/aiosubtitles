@@ -44,17 +44,17 @@ export function TableActionBar({children}) {
       {rows.length > 0 && (
         <div className="max-w-full">
           <Toolbar
-            aria-label="Toplu işlemler"
+            aria-label="Bulk actions"
             className="pointer-events-auto flex-wrap justify-center rounded-lg border bg-background p-2 shadow-lg"
           >
             <ButtonGroup className="shrink-0">
               <ButtonGroupText role="status" className="whitespace-nowrap">
-                <span className="tabular-nums">{rows.length}</span> seçildi
+                <span className="tabular-nums">{rows.length}</span> selected
               </ButtonGroupText>
               <ToolbarButton
                 variant="outline"
                 size="icon-sm"
-                aria-label="Seçimi temizle"
+                aria-label="Clear selection"
                 onClick={clear}
               >
                 <XIcon />

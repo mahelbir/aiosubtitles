@@ -142,12 +142,12 @@ export function OptionComboboxClear({children}) {
   );
 }
 
-export function OptionComboboxSearch({placeholder = 'Ara…', ...props}) {
+export function OptionComboboxSearch({placeholder = 'Search…', ...props}) {
   return (
     <ComboboxInput
       showTrigger={false}
       placeholder={placeholder}
-      aria-label="Ara"
+      aria-label="Search"
       {...props}
     />
   );

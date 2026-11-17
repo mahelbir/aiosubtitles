@@ -164,7 +164,7 @@ test.describe('page card form skeleton', () => {
 
     await expectSkeleton(card, busy => [
       expect(busy.getByText('Profil kartı')).toBeVisible(),
-      expect(busy.getByRole('link', {name: 'Geri dön'})).toHaveAttribute(
+      expect(busy.getByRole('link', {name: 'Go back'})).toHaveAttribute(
         'href',
         '/fixtures',
       ),
@@ -203,12 +203,12 @@ test.describe('form panel skeleton', () => {
     const panel = await openLoadingEditPanel(page);
 
     await expectSkeleton(panel, () => [
-      expect(panel.getByRole('button', {name: 'İptal'})).toHaveCount(0),
+      expect(panel.getByRole('button', {name: 'Cancel'})).toHaveCount(0),
       expect(panel.locator(':focus')).toHaveCount(1),
     ]);
 
     await expectForm(panel, 'Ada Yılmaz', () => [
-      expect(panel.getByRole('button', {name: 'İptal'})).toBeVisible(),
+      expect(panel.getByRole('button', {name: 'Cancel'})).toBeVisible(),
       expect(panel.locator(':focus')).toHaveCount(1),
     ]);
   });

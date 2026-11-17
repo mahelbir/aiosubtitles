@@ -5,7 +5,7 @@ import {THEME_COLORS} from '@/config/theme';
 import LandingLayout from './(landing)/layout';
 
 export const metadata = {
-  title: 'Sayfa bulunamadı',
+  title: 'Page not found',
 };
 
 export const viewport = {
@@ -17,11 +17,11 @@ export default function GlobalNotFound() {
     <LandingLayout>
       <ErrorPage
         code={StatusCodes.NOT_FOUND}
-        title="Üzgünüz!"
-        message="Aradığınız sayfa bulunamadı."
+        title="Sorry!"
+        message="The page you are looking for was not found."
         actions={
           <LinkButton variant="secondary" href="/">
-            Ana sayfaya dön
+            Go to the home page
           </LinkButton>
         }
       />

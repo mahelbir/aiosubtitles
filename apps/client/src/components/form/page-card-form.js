@@ -75,7 +75,7 @@ function PageCard({title, back, actions, children}) {
             <LinkButton
               variant="outline"
               size="icon-sm"
-              title="Geri dön"
+              title="Go back"
               href={back}
             >
               <ArrowLeftIcon />

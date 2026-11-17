@@ -9,7 +9,7 @@ import {
   EmptyMedia,
 } from '@/components/ui/empty';
 
-const OFFLINE_MESSAGE = 'Bağlantı yok. Çevrimiçi olunca yüklenecek.';
+const OFFLINE_MESSAGE = 'No connection. This will load when you are online.';
 
 export function OfflineNotice({message = OFFLINE_MESSAGE, className}) {
   return (

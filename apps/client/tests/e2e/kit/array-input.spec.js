@@ -14,7 +14,7 @@ const LINK_FORM = 'Bağlantı formu';
 const COM_LINK = 'https://ornek.com';
 const ORG_LINK = 'https://ornek.org';
 const NET_LINK = 'https://ornek.net';
-const LINK_ACTIONS = ['Yukarı taşı', 'Aşağı taşı', 'Kaldır'];
+const LINK_ACTIONS = ['Move up', 'Move down', 'Remove'];
 const HIDE_LINKS = 'Bağlantıları gizle';
 const LOCK_LINKS = 'Bağlantıları kilitle';
 const MARK_ATTRIBUTE = 'data-marked';
@@ -110,7 +110,7 @@ test.describe('array input', () => {
     await add.click();
     await expect(add).toBeDisabled();
 
-    await getAction(page, 1, 'Kaldır').click();
+    await getAction(page, 1, 'Remove').click();
 
     await expect(add).toBeEnabled();
     await expectNames(page, ['Ayşe', 'Can', '']);
@@ -120,12 +120,12 @@ test.describe('array input', () => {
     page,
   }) => {
     await openFixture(page, 'array-input');
-    await getAction(page, 1, 'Aşağı taşı').focus();
+    await getAction(page, 1, 'Move down').focus();
 
     await page.keyboard.press('Enter');
 
     await expect(getName(page, 2)).toHaveValue('Ali');
-    await expect(getAction(page, 2, 'Aşağı taşı')).toBeFocused();
+    await expect(getAction(page, 2, 'Move down')).toBeFocused();
     await expectNames(page, ['Ayşe', 'Ali', 'Can']);
   });
 
@@ -133,13 +133,13 @@ test.describe('array input', () => {
     page,
   }) => {
     await openFixture(page, 'array-input');
-    await getAction(page, 2, 'Aşağı taşı').focus();
+    await getAction(page, 2, 'Move down').focus();
 
     await page.keyboard.press('Enter');
 
     await expect(getName(page, 3)).toHaveValue('Ayşe');
-    await expect(getAction(page, 3, 'Aşağı taşı')).toBeDisabled();
-    await expect(getAction(page, 3, 'Yukarı taşı')).toBeFocused();
+    await expect(getAction(page, 3, 'Move down')).toBeDisabled();
+    await expect(getAction(page, 3, 'Move up')).toBeFocused();
     await expectNames(page, ['Ali', 'Can', 'Ayşe']);
   });
 
@@ -147,18 +147,18 @@ test.describe('array input', () => {
     page,
   }) => {
     await openFixture(page, 'array-input');
-    await getAction(page, 3, 'Yukarı taşı').focus();
+    await getAction(page, 3, 'Move up').focus();
 
     await page.keyboard.press('Enter');
 
     await expect(getName(page, 2)).toHaveValue('Can');
-    await expect(getAction(page, 2, 'Yukarı taşı')).toBeFocused();
+    await expect(getAction(page, 2, 'Move up')).toBeFocused();
 
     await page.keyboard.press('Enter');
 
     await expect(getName(page, 1)).toHaveValue('Can');
-    await expect(getAction(page, 1, 'Yukarı taşı')).toBeDisabled();
-    await expect(getAction(page, 1, 'Aşağı taşı')).toBeFocused();
+    await expect(getAction(page, 1, 'Move up')).toBeDisabled();
+    await expect(getAction(page, 1, 'Move down')).toBeFocused();
     await expectNames(page, ['Can', 'Ali', 'Ayşe']);
   });
 
@@ -168,7 +168,7 @@ test.describe('array input', () => {
     await openFixture(page, 'array-input');
     await markItem(page, 1);
 
-    await getAction(page, 1, 'Aşağı taşı').click();
+    await getAction(page, 1, 'Move down').click();
 
     await expect(getName(page, 2)).toHaveValue('Ali');
     await expect(getItem(page, 2)).toHaveAttribute(MARK_ATTRIBUTE);
@@ -182,7 +182,7 @@ test.describe('array input', () => {
     await page.keyboard.press('Tab');
     await expect(getName(page, 2)).toHaveAttribute('aria-invalid', 'true');
 
-    await getAction(page, 1, 'Aşağı taşı').click();
+    await getAction(page, 1, 'Move down').click();
 
     await expect(getName(page, 1)).toHaveValue('');
     await expect(getName(page, 1)).toHaveAttribute('aria-invalid', 'true');
@@ -196,7 +196,7 @@ test.describe('array input', () => {
     await openFixture(page, 'array-input');
     await markItem(page, 2);
 
-    await getAction(page, 1, 'Kaldır').click();
+    await getAction(page, 1, 'Remove').click();
     await waitForAnimations(page);
 
     await expect(getName(page, 1)).toHaveValue('Ayşe');
@@ -211,7 +211,7 @@ test.describe('array input', () => {
     await page.keyboard.press('Tab');
     await expect(getName(page, 3)).toHaveAttribute('aria-invalid', 'true');
 
-    await getAction(page, 1, 'Kaldır').click();
+    await getAction(page, 1, 'Remove').click();
     await waitForAnimations(page);
 
     await expect(getName(page, 2)).toHaveValue('');
@@ -226,7 +226,7 @@ test.describe('array input', () => {
     await getAddButton(page).click();
     await getName(page, 3).click();
 
-    await getAction(page, 3, 'Kaldır').click();
+    await getAction(page, 3, 'Remove').click();
     await waitForAnimations(page);
 
     await expect(getName(page, 3)).toHaveValue('');
@@ -247,13 +247,13 @@ test.describe('array input', () => {
 
   test('remove focuses the next item’s remove action', async ({page}) => {
     await openFixture(page, 'array-input');
-    await getAction(page, 2, 'Kaldır').focus();
+    await getAction(page, 2, 'Remove').focus();
 
     await page.keyboard.press('Enter');
     await waitForAnimations(page);
 
     await expect(getName(page, 2)).toHaveValue('Can');
-    await expect(getAction(page, 2, 'Kaldır')).toBeFocused();
+    await expect(getAction(page, 2, 'Remove')).toBeFocused();
     await expectNames(page, ['Ali', 'Can']);
   });
 
@@ -261,18 +261,18 @@ test.describe('array input', () => {
     page,
   }) => {
     await openFixture(page, 'array-input');
-    await getAction(page, 3, 'Kaldır').focus();
+    await getAction(page, 3, 'Remove').focus();
 
     await page.keyboard.press('Enter');
 
     await expect(getItem(page, 3)).toHaveCount(0);
-    await expect(getAction(page, 2, 'Kaldır')).toBeFocused();
+    await expect(getAction(page, 2, 'Remove')).toBeFocused();
     await expectNames(page, ['Ali', 'Ayşe']);
   });
 
   test('removing the only item focuses the add button', async ({page}) => {
     await openFixture(page, 'array-input', {count: 1});
-    await getAction(page, 1, 'Kaldır').focus();
+    await getAction(page, 1, 'Remove').focus();
 
     await page.keyboard.press('Enter');
 
@@ -287,7 +287,7 @@ test.describe('array input', () => {
     await openFixture(page, 'array-input', {count: 1});
     const add = getAddButton(page);
     const message = getMinMessage(page);
-    await getAction(page, 1, 'Kaldır').focus();
+    await getAction(page, 1, 'Remove').focus();
 
     await page.keyboard.press('Enter');
 
@@ -344,7 +344,7 @@ test.describe('array input', () => {
 
   test('submits the values in their new order', async ({page}) => {
     await openFixture(page, 'array-input');
-    await getAction(page, 1, 'Aşağı taşı').focus();
+    await getAction(page, 1, 'Move down').focus();
     await page.keyboard.press('Enter');
 
     await getSubmitButton(page).click();
@@ -395,14 +395,14 @@ test.describe('text list input', () => {
     page,
   }) => {
     await openFixture(page, 'array-input');
-    await getLinkAction(page, 1, 'Aşağı taşı').focus();
+    await getLinkAction(page, 1, 'Move down').focus();
 
     await page.keyboard.press('Enter');
 
     await Promise.all([
       expect(getLink(page, 1)).toHaveValue(ORG_LINK),
       expect(getLink(page, 2)).toHaveValue(COM_LINK),
-      expect(getLinkAction(page, 2, 'Yukarı taşı')).toBeFocused(),
+      expect(getLinkAction(page, 2, 'Move up')).toBeFocused(),
       expectFieldValue(page, 'links', [ORG_LINK, COM_LINK]),
     ]);
   });
@@ -418,7 +418,7 @@ test.describe('text list input', () => {
 
     await Promise.all([
       expect(second).toHaveAttribute('aria-invalid', 'true'),
-      expect(second).toHaveAccessibleDescription('URL geçersiz'),
+      expect(second).toHaveAccessibleDescription('Invalid URL'),
     ]);
     await Promise.all([
       expect(getLink(page, 1)).toHaveAttribute('aria-invalid', 'false'),
@@ -446,7 +446,7 @@ test.describe('text list input', () => {
     );
   });
 
-  test('without its own labels a box takes the list label and the add button reads Ekle', async ({
+  test('without its own labels a box takes the list label and the add button reads Add', async ({
     page,
   }) => {
     await openFixture(page, 'array-input');
@@ -457,7 +457,7 @@ test.describe('text list input', () => {
         tagForm.getByRole('textbox', {name: 'Etiket 1', exact: true}),
       ).toHaveValue('yeni'),
       expect(
-        tagForm.getByRole('button', {name: 'Ekle', exact: true}),
+        tagForm.getByRole('button', {name: 'Add', exact: true}),
       ).toBeVisible(),
     ]);
   });
@@ -466,14 +466,14 @@ test.describe('text list input', () => {
     page,
   }) => {
     await openFixture(page, 'array-input');
-    await getLinkAction(page, 2, 'Kaldır').focus();
+    await getLinkAction(page, 2, 'Remove').focus();
 
     await page.keyboard.press('Enter');
 
     await Promise.all([
       expect(getLink(page, 1)).toHaveValue(COM_LINK),
       expect(getLink(page, 2)).toHaveCount(0),
-      expect(getLinkAction(page, 1, 'Kaldır')).toBeFocused(),
+      expect(getLinkAction(page, 1, 'Remove')).toBeFocused(),
       expectFieldValue(page, 'links', [COM_LINK]),
     ]);
   });
@@ -489,7 +489,7 @@ test.describe('a disabled text list', () => {
       ...[1, 2].map(position => expect(getLink(page, position)).toBeDisabled()),
       ...expectLinkActionsDisabled(page),
       expect(getName(page, 1)).toBeEnabled(),
-      expect(getAction(page, 1, 'Kaldır')).toBeEnabled(),
+      expect(getAction(page, 1, 'Remove')).toBeEnabled(),
       expect(getAddButton(page)).toBeEnabled(),
     ]);
   });
@@ -596,7 +596,7 @@ test.describe('a read-only text list', () => {
 
     await Promise.all([
       expect(first).toHaveAttribute('aria-invalid', 'true'),
-      expect(first).toHaveAccessibleDescription('URL geçersiz'),
+      expect(first).toHaveAccessibleDescription('Invalid URL'),
       expect(first).toBeFocused(),
     ]);
     await expectFixtureState(page).toMatchObject({submitted: null});

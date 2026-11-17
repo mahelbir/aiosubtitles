@@ -22,15 +22,15 @@ export function AppError({retry}) {
           ? StatusCodes.INTERNAL_SERVER_ERROR
           : StatusCodes.SERVICE_UNAVAILABLE
       }
-      title={isOnline ? 'Hay aksi!' : 'Bağlantı yok'}
+      title={isOnline ? 'Oops!' : 'No connection'}
       message={
         isOnline
-          ? 'Beklenmeyen bir hata oluştu.'
-          : 'Bu sayfa yüklenemedi. Çevrimiçi olunca tekrar deneyin.'
+          ? 'An unexpected error occurred.'
+          : 'This page could not load. Try again when you are online.'
       }
       actions={
         <Button variant="secondary" onClick={handleRetry}>
-          Tekrar dene
+          Try again
         </Button>
       }
     />

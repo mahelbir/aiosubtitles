@@ -8,7 +8,7 @@ const NAME_MAX_LENGTH = 255;
 const LABEL_MAX_LENGTH = 120;
 
 export class FixtureRecord extends BaseModel {
-  static notFoundMessage = 'Fixture kaydı bulunamadı.';
+  static notFoundMessage = 'Fixture record not found.';
   static sensitiveAttributes = ['secret'];
   static tagsInclude = {
     association: 'tags',
@@ -23,7 +23,7 @@ FixtureRecord.init(
     name: {
       type: DataTypes.STRING(NAME_MAX_LENGTH),
       allowNull: false,
-      unique: {msg: 'Bu ad zaten kullanımda.'},
+      unique: {msg: 'This name is already in use.'},
     },
     secret: {
       type: DataTypes.STRING(NAME_MAX_LENGTH),

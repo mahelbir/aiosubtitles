@@ -2,7 +2,7 @@ import {cn} from 'cn';
 
 export const MAIN_CONTENT_ID = 'main-content';
 
-export function SkipToContent({children = 'Ana içeriğe geç', className}) {
+export function SkipToContent({children = 'Skip to main content', className}) {
   return (
     <a
       href={`#${MAIN_CONTENT_ID}`}

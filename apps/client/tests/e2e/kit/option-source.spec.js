@@ -350,7 +350,7 @@ test.describe('option source', () => {
 
     await expectFixtureState(page, 'listed').toEqual([]);
 
-    await search.fill('istanbul');
+    await search.fill('İSTANBUL');
 
     await expectFixtureState(page, 'listed').toEqual(['İstanbul']);
 

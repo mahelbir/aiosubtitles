@@ -20,7 +20,7 @@ export function OfflineBanner() {
       className="fixed start-6 bottom-safe z-50 rounded-lg border bg-background px-3 py-2 text-sm shadow-lg"
     >
       <OfflineNotice
-        message="Bağlantı yok. Çevrimiçi olunca güncellenecek."
+        message="No connection. This will update when you are online."
         className="text-foreground [&_svg]:text-warning"
       />
     </div>

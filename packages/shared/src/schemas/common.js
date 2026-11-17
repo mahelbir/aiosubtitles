@@ -2,32 +2,32 @@ import {escapeRegExp, isPlainObject, trimEnd, uniq} from 'es-toolkit';
 import {z} from 'zod';
 import {URL_MAX_LENGTH} from '../constants/common.js';
 
-const URL_INVALID_MESSAGE = 'URL geçersiz';
+const URL_INVALID_MESSAGE = 'Invalid URL';
 
-const URL_TOO_LONG_MESSAGE = `URL en fazla ${URL_MAX_LENGTH} karakter olabilir`;
+const URL_TOO_LONG_MESSAGE = `URL must be at most ${URL_MAX_LENGTH} characters`;
 
 export const jwtField = z
-  .string('Token gereklidir')
-  .min(1, 'Token boş olamaz')
+  .string('Token is required')
+  .min(1, 'Token cannot be empty')
   .refine(
     string => {
       const count = string.split('.').length;
       return count === 3 || count === 5;
     },
-    {message: 'Geçersiz token'},
+    {message: 'Invalid token'},
   );
 
 export const portField = z.coerce
-  .number('Bağlantı noktası gereklidir')
-  .int('Bağlantı noktası tam sayı olmalıdır')
-  .min(1, 'Bağlantı noktası 1 ile 65535 arasında olmalıdır')
-  .max(65535, 'Bağlantı noktası 1 ile 65535 arasında olmalıdır');
+  .number('Port is required')
+  .int('Port must be an integer')
+  .min(1, 'Port must be between 1 and 65535')
+  .max(65535, 'Port must be between 1 and 65535');
 
 export function getUuidField(message) {
   return z.uuid(message).toLowerCase();
 }
 
-const idField = getUuidField('Geçersiz ID');
+const idField = getUuidField('Invalid ID');
 
 export const uuidSchema = z.object({
   id: idField,
@@ -35,20 +35,20 @@ export const uuidSchema = z.object({
 
 export function getIdListField({max}) {
   return z
-    .array(idField, 'Seçim geçersiz')
-    .min(1, 'En az bir kayıt seçilmelidir')
-    .max(max, `En fazla ${max} kayıt seçilebilir`)
+    .array(idField, 'Invalid selection')
+    .min(1, 'Select at least one record')
+    .max(max, `Select at most ${max} records`)
     .transform(ids => uniq(ids));
 }
 
 export function getSlugField({min, max}) {
   return z
-    .string('Anahtar gereklidir')
-    .min(min, `Anahtar en az ${min} karakter olmalıdır`)
-    .max(max, `Anahtar en fazla ${max} karakter olabilir`)
+    .string('Key is required')
+    .min(min, `Key must be at least ${min} characters`)
+    .max(max, `Key must be at most ${max} characters`)
     .regex(
       /^[a-z0-9-]+$/,
-      'Anahtar yalnızca küçük harf, rakam ve - içerebilir',
+      'Key may contain only lowercase letters, digits and -',
     );
 }
 
@@ -56,8 +56,8 @@ export function getIdentifierField(message) {
   return z.string(message).trim().toLowerCase();
 }
 
-export const emailField = getIdentifierField('E-posta gereklidir')
-  .regex(z.regexes.email, 'Geçersiz e-posta')
+export const emailField = getIdentifierField('Email is required')
+  .regex(z.regexes.email, 'Invalid email')
   .meta({format: 'email'});
 
 export const httpUrlField = z
@@ -102,9 +102,9 @@ export function getBaseUrlField({protocols = ['http', 'https']} = {}) {
 
 export const baseUrlField = getBaseUrlField();
 
-export const isoDateField = z.iso.date('Tarih geçersiz');
+export const isoDateField = z.iso.date('Invalid date');
 
-export const isoDateTimeField = z.iso.datetime('Tarih geçersiz');
+export const isoDateTimeField = z.iso.datetime('Invalid date');
 
 export function getCrossFieldCheck(keys, isSatisfied, params) {
   return z.refine(isSatisfied, {
@@ -122,11 +122,11 @@ export function getDateRangeCheck(fromKey = 'from', toKey = 'to') {
       !value[fromKey] ||
       !value[toKey] ||
       Date.parse(value[fromKey]) <= Date.parse(value[toKey]),
-    {message: 'Bitiş tarihi başlangıçtan önce olamaz', path: [toKey]},
+    {message: 'End date cannot be before start date', path: [toKey]},
   );
 }
 
-export function getEnumField(enumType, message = 'Geçersiz değer') {
+export function getEnumField(enumType, message = 'Invalid value') {
   const values = enumType.values;
   if (values.every(value => typeof value === 'number')) {
     return z.coerce

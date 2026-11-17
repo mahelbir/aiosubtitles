@@ -20,13 +20,13 @@ export const fixtureSettingsDefinition = defineSettings({
     getSettingsRule(
       ['isEnabled', 'limit'],
       settings => !settings.isEnabled || settings.limit > 0,
-      {message: 'Etkinken sınır sıfırdan büyük olmalıdır', path: ['limit']},
+      {message: 'Limit must be above zero when enabled', path: ['limit']},
     ),
     getSettingsRule(
       ['notice'],
       settings => !settings.notice.isShown || settings.notice.title !== '',
       {
-        message: 'Gösterilen duyurunun başlığı olmalıdır',
+        message: 'A shown announcement needs a title',
         path: ['notice', 'title'],
       },
     ),

@@ -44,7 +44,7 @@ describe('an API mounted under a base path', () => {
     expect(response.statusCode).toBe(StatusCodes.NOT_FOUND);
     expect(response.json()).toMatchObject({
       success: false,
-      message: 'Sayfa bulunamadı.',
+      message: 'Page not found.',
     });
     expect(response.headers['x-frame-options']).toBe('DENY');
   });

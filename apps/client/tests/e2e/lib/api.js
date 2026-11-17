@@ -6,7 +6,7 @@ import {
   getE2eClientOrigin,
 } from '../../../../api/tests/e2e/ports.js';
 
-export const FALLBACK_SUCCESS_MESSAGE = 'İşlem başarılı.';
+export const FALLBACK_SUCCESS_MESSAGE = 'Done.';
 
 export const REFRESH_PATH = '/auth/refresh';
 
@@ -49,7 +49,7 @@ export function getApiFailure(status, message) {
       name: 'a network failure',
       status,
       response: {abort: 'failed'},
-      error: {message: 'Sunucuya ulaşılamadı.', status},
+      error: {message: 'Could not reach the server.', status},
     };
   }
   return {

@@ -22,7 +22,7 @@ export function DateRangeFields({from, to, min, max, onRange}) {
   return (
     <FieldGroup>
       <Field>
-        <FieldLabel htmlFor={fromId}>Başlangıç</FieldLabel>
+        <FieldLabel htmlFor={fromId}>Start</FieldLabel>
         <Input
           id={fromId}
           type="date"
@@ -33,7 +33,7 @@ export function DateRangeFields({from, to, min, max, onRange}) {
         />
       </Field>
       <Field>
-        <FieldLabel htmlFor={toId}>Bitiş</FieldLabel>
+        <FieldLabel htmlFor={toId}>End</FieldLabel>
         <Input
           id={toId}
           type="date"

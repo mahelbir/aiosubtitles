@@ -1,5 +1,5 @@
 export const OFFLINE_BANNER_TEXT =
-  'Bağlantı yok. Çevrimiçi olunca güncellenecek.';
+  'No connection. This will update when you are online.';
 
 export const BUSY_SELECTOR = '[aria-busy="true"]';
 
@@ -8,7 +8,7 @@ export function getBusy(scope) {
 }
 
 export function getLoadingStatus(scope) {
-  return scope.getByRole('status', {name: 'Yükleniyor'});
+  return scope.getByRole('status', {name: 'Loading'});
 }
 
 export function getTopLoader(page) {
@@ -20,7 +20,7 @@ export function getOfflineBanner(page) {
 }
 
 export function getOfflineNotice(scope) {
-  return scope.getByText('Bağlantı yok. Çevrimiçi olunca yüklenecek.');
+  return scope.getByText('No connection. This will load when you are online.');
 }
 
 export function getDialog(page, name) {
@@ -39,8 +39,8 @@ export function getCloseButton(dialog) {
   return dialog.getByRole('button', {name: 'Close', exact: true});
 }
 
-export function getSaveButton(scope) {
-  return scope.getByRole('button', {name: 'Kaydet'});
+export function getSaveButton(scope, name = 'Save') {
+  return scope.getByRole('button', {name});
 }
 
 export function getForm(page, name) {
