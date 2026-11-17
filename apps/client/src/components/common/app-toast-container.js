@@ -1,11 +1,9 @@
 'use client';
 
-import {useTheme} from 'next-themes';
 import {ToastContainer, Zoom} from 'react-toastify';
+import {APP_THEME} from '@/config/theme';
 
 export function AppToastContainer() {
-  const {resolvedTheme} = useTheme();
-
   return (
     <ToastContainer
       position="top-center"
@@ -17,7 +15,7 @@ export function AppToastContainer() {
       pauseOnFocusLoss={false}
       draggable
       pauseOnHover
-      theme={resolvedTheme}
+      theme={APP_THEME}
       transition={Zoom}
     />
   );

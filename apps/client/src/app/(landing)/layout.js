@@ -1,6 +1,7 @@
 import '@/styles/globals.css';
+import {cn} from 'cn';
 import {env} from '@/config/env.js';
-import {THEME_COLORS} from '@/config/theme';
+import {APP_THEME, THEME_COLORS} from '@/config/theme';
 import {fontVariables} from '../fonts';
 import {LandingProvider} from './provider';
 
@@ -13,7 +14,7 @@ export default function LandingLayout({children}) {
     <html
       lang={env.LOCALE}
       data-scroll-behavior="smooth"
-      className={fontVariables}
+      className={cn(APP_THEME, fontVariables)}
       suppressHydrationWarning
     >
       <body className="font-sans antialiased">

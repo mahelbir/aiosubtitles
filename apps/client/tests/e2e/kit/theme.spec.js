@@ -1,147 +1,132 @@
-import {PUBLIC_THEME_KEY, THEME_COLORS} from '../../../src/config/theme.js';
+import {APP_THEME, THEME_COLORS} from '../../../src/config/theme.js';
+import {FIXTURES} from '../fixtures/registry.js';
 import {expectFixtureState, openFixture} from '../lib/fixture-page.js';
 import {expect, test} from '../lib/test.js';
 
-function getToggle(page) {
-  return page.getByRole('button', {name: 'Temayı değiştir'});
-}
+const API_BOUND_FIXTURES = new Set(['app-error', 'boundaries']);
 
 function getRoot(page) {
   return page.locator('html');
 }
 
-function readStoredTheme(page, key = PUBLIC_THEME_KEY) {
-  return page.evaluate(name => localStorage.getItem(name), key);
+async function expectDarkTheme(page) {
+  const root = getRoot(page);
+  await expect(root).toHaveClass(/\bdark\b/);
+  await expect(root).not.toHaveClass(/\blight\b/);
+  await expect(root).toHaveCSS('color-scheme', APP_THEME);
 }
 
-function readBodyColor(page) {
-  return page.evaluate(() => getComputedStyle(document.body).backgroundColor);
-}
-
-function readThemeColorMetas(page) {
-  return page.evaluate(() =>
-    [...document.head.querySelectorAll('meta[name="theme-color"]')].map(
-      meta => meta.content,
-    ),
+function readPaintedColors(page) {
+  return page.evaluate(
+    configColors => {
+      const probe = document.createElement('div');
+      document.body.append(probe);
+      const toRgb = color => {
+        probe.style.backgroundColor = color;
+        return getComputedStyle(probe).backgroundColor;
+      };
+      const colors = {
+        body: getComputedStyle(document.body).backgroundColor,
+        config: configColors.map(toRgb),
+        metas: [
+          ...document.head.querySelectorAll('meta[name="theme-color"]'),
+        ].map(meta => toRgb(meta.content)),
+      };
+      probe.remove();
+      return colors;
+    },
+    THEME_COLORS.map(({color}) => color),
   );
 }
 
-async function expectThemeColorToFollowBody(page) {
-  const color = await readBodyColor(page);
-  await expect
-    .poll(() => readThemeColorMetas(page))
-    .toEqual(THEME_COLORS.map(() => color));
-  return color;
-}
-
-async function expectAppliedTheme(page, theme) {
-  await expect(getRoot(page)).toHaveClass(new RegExp(`\\b${theme}\\b`));
-  await expect(getRoot(page)).toHaveCSS('color-scheme', theme);
-}
-
-function expectThemeIcon(page, shown, hidden) {
-  const toggle = getToggle(page);
-  return Promise.all([
-    expect(toggle.locator(`.lucide-${shown}`)).toBeVisible(),
-    expect(toggle.locator(`.lucide-${hidden}`)).toBeHidden(),
-  ]);
+async function expectLandingDark(page) {
+  await page.goto('/');
+  await expectDarkTheme(page);
 }
 
 test.describe('theme on a light system', () => {
   test.use({colorScheme: 'light'});
 
-  test.beforeEach(async ({page}) => {
-    await openFixture(page, 'theme');
+  test('the landing page renders dark', async ({page}) => {
+    await expectLandingDark(page);
   });
 
-  test('toggling to dark sets the dark class and color scheme on html, persists the choice and survives a reload', async ({
-    page,
-  }) => {
-    await expectAppliedTheme(page, 'light');
-    await expectFixtureState(page).toEqual({
-      theme: 'system',
-      resolvedTheme: 'light',
-      systemTheme: 'light',
+  for (const {slug} of FIXTURES.filter(
+    fixture => !API_BOUND_FIXTURES.has(fixture.slug),
+  )) {
+    test(`the ${slug} fixture renders dark`, async ({page}) => {
+      await openFixture(page, slug);
+
+      await expectDarkTheme(page);
     });
+  }
+});
 
-    await getToggle(page).click();
+test.describe('theme without JavaScript', () => {
+  test.use({colorScheme: 'light', javaScriptEnabled: false});
 
-    await expectAppliedTheme(page, 'dark');
-    await expectFixtureState(page).toMatchObject({
-      theme: 'dark',
-      resolvedTheme: 'dark',
-    });
-    expect(await readStoredTheme(page)).toBe('dark');
-
-    await openFixture(page, 'theme');
-
-    await expectAppliedTheme(page, 'dark');
-    await expectFixtureState(page).toMatchObject({
-      theme: 'dark',
-      resolvedTheme: 'dark',
-      systemTheme: 'light',
-    });
-  });
-
-  test('toggling from dark returns to light', async ({page}) => {
-    await getToggle(page).click();
-    await expectAppliedTheme(page, 'dark');
-
-    await getToggle(page).click();
-
-    await expectAppliedTheme(page, 'light');
-    expect(await readStoredTheme(page)).toBe('light');
-  });
-
-  test('the toggle shows the icon of the other theme and keeps it through a reload', async ({
-    page,
-  }) => {
-    await expectThemeIcon(page, 'moon', 'sun');
-
-    await getToggle(page).click();
-
-    await expectThemeIcon(page, 'sun', 'moon');
-
-    await page.reload();
-
-    await expectThemeIcon(page, 'sun', 'moon');
-  });
-
-  test('the theme-color meta follows the painted background of the active theme', async ({
-    page,
-  }) => {
-    const lightColor = await expectThemeColorToFollowBody(page);
-
-    await getToggle(page).click();
-    await expectAppliedTheme(page, 'dark');
-
-    const darkColor = await expectThemeColorToFollowBody(page);
-    expect(darkColor).not.toBe(lightColor);
+  test('the server HTML already renders dark', async ({page}) => {
+    await expectLandingDark(page);
   });
 });
 
 test.describe('theme on a dark system', () => {
   test.use({colorScheme: 'dark'});
 
-  test('the system theme follows the preferred color scheme live, without storing a choice', async ({
+  test('the landing page renders dark', async ({page}) => {
+    await expectLandingDark(page);
+  });
+});
+
+test.describe('dark only', () => {
+  test.use({colorScheme: 'light'});
+
+  test('the theme is forced to dark and dark is the only theme', async ({
     page,
   }) => {
     await openFixture(page, 'theme');
 
-    await expectAppliedTheme(page, 'dark');
     await expectFixtureState(page).toEqual({
-      theme: 'system',
-      resolvedTheme: 'dark',
-      systemTheme: 'dark',
+      forcedTheme: APP_THEME,
+      themes: [APP_THEME],
     });
+  });
 
+  test('both theme-color values and the painted background equal the dark background', async ({
+    page,
+  }) => {
+    await openFixture(page, 'theme');
+
+    const {body, config} = await readPaintedColors(page);
+    expect(config).toEqual(THEME_COLORS.map(() => body));
+    await expect
+      .poll(async () => (await readPaintedColors(page)).metas)
+      .toEqual(THEME_COLORS.map(() => body));
+  });
+
+  test('a stored light choice is ignored', async ({page}) => {
+    await page.addInitScript(() => localStorage.setItem('theme', 'light'));
+
+    await openFixture(page, 'theme');
+
+    await expectDarkTheme(page);
+  });
+
+  test('a live switch of the system preference keeps dark', async ({page}) => {
+    await openFixture(page, 'theme');
+    await expectDarkTheme(page);
+
+    await page.emulateMedia({colorScheme: 'dark'});
     await page.emulateMedia({colorScheme: 'light'});
 
-    await expectAppliedTheme(page, 'light');
-    await expectFixtureState(page).toMatchObject({
-      theme: 'system',
-      resolvedTheme: 'light',
-    });
-    expect(await readStoredTheme(page)).toBeNull();
+    await expectDarkTheme(page);
+  });
+
+  test('no theme toggle is rendered', async ({page}) => {
+    await openFixture(page, 'theme');
+
+    await expect(page.getByRole('button', {name: /theme|tema/i})).toHaveCount(
+      0,
+    );
   });
 });

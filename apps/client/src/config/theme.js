@@ -1,6 +1,6 @@
-export const PUBLIC_THEME_KEY = 'public-theme';
+export const APP_THEME = 'dark';
 
 export const THEME_COLORS = [
-  {media: '(prefers-color-scheme: light)', color: '#e9e4d8'},
-  {media: '(prefers-color-scheme: dark)', color: '#141414'},
+  {media: '(prefers-color-scheme: light)', color: '#0c0c0e'},
+  {media: '(prefers-color-scheme: dark)', color: '#0c0c0e'},
 ];

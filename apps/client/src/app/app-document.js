@@ -1,8 +1,9 @@
 import '@/styles/globals.css';
+import {cn} from 'cn';
 import {preconnect} from 'react-dom';
 import {API_ORIGIN, APP_NAME, TITLE_SUFFIX} from '@/config/app';
 import {env} from '@/config/env.js';
-import {THEME_COLORS} from '@/config/theme';
+import {APP_THEME, THEME_COLORS} from '@/config/theme';
 import {fontVariables} from './fonts';
 
 export const APP_METADATA = {
@@ -27,7 +28,7 @@ export function AppDocument({children}) {
     <html
       lang={env.LOCALE}
       data-scroll-behavior="smooth"
-      className={fontVariables}
+      className={cn(APP_THEME, fontVariables)}
       suppressHydrationWarning
     >
       <body className="font-sans antialiased">{children}</body>

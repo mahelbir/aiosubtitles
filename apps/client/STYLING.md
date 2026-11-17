@@ -11,17 +11,17 @@ variants, the `@layer base` reset and the reduced-motion block.
   the faces once and publishes each as its own CSS variable; `themes/<name>.css` only points `--font-sans`/`--font-mono`
   at those, so a new face means editing both. Font loader options must stay written literals — Next rejects a named
   constant there. Each root layout's `viewport` export ships the static `theme-color` for first paint —
-  `ThemeColorMeta` then overwrites it with the painted `body` background, so the meta follows a manual theme toggle and
-  survives a palette swap.
+  `ThemeColorMeta` then overwrites it with the painted `body` background, so the meta survives a palette swap.
 - **Status tints are not tokens.** A tinted surface (`bg-success/10 dark:bg-success/20`, the alpha pair `destructive`
   uses) is written in the owning component's `cva` map — no `--*-surface` token, no shared tone module. A tint-carrying
   `variant` must mirror `destructive` in full (focus ring + link-hover), or the tones diverge. The base colours
   (`--success`/`--warning`) are declared once in `semantic.css`, not per-theme. A tint on a surface that must stay
   opaque — anything sticky, which content scrolls beneath — uses `bg-opaque-*`: the same pair, pre-mixed onto the page
   background so it looks identical to the translucent one.
-- **Two independent axes.** The colour theme is fixed in code (no selector); light/dark is live via `next-themes`,
-  class-based. The toggle is `components/common/theme-mode-toggle.js`. Each root layout persists the choice under a
-  storage key of its own, so a choice made in one never reaches another.
+- **Dark only.** The colour theme is fixed in code (no selector), and so is the mode: `AppThemeProvider` forces
+  `next-themes` to `APP_THEME` from `config/theme.js` as its only theme, so no toggle, system preference or stored
+  choice reaches light. The theme file still carries `:root` light values, as every generator export does; the forced
+  `dark` class always overrides them.
 - **`src/components/ui/`** is shadcn CLI output (`.jsx`, excluded from Prettier by the root ignore file, so Prettier
   runs from the repo root). Editing it is expected — shadcn's Open
   Code principle: a new variant extends the component's `cva` map. What shadcn scaffolds there, and into a registry

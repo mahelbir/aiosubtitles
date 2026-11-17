@@ -23,11 +23,11 @@ const AppAlertContainer = dynamic(
 
 configureZodLocale(env.LOCALE);
 
-export function AppProviders({themeStorageKey, children}) {
+export function AppProviders({children}) {
   const shouldReduceMotion = useReducedMotion() ?? false;
 
   return (
-    <AppThemeProvider storageKey={themeStorageKey}>
+    <AppThemeProvider>
       <NuqsAdapter>
         <QueryClientProvider client={getQueryClient()}>
           <TooltipProvider>
