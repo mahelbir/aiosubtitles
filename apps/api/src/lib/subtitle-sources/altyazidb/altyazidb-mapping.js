@@ -9,11 +9,7 @@ import {
   toSiteLanguageCodes,
 } from '../site-language-codes.js';
 import {toHitReleaseNames} from '../subtitle-source-contract.js';
-import {
-  SourceCredentialError,
-  SourceRateLimitError,
-  SourceUnavailableError,
-} from '../subtitle-source-errors.js';
+import {SourceUnavailableError} from '../subtitle-source-errors.js';
 import {
   readSubtitleSourceContentType,
   readSubtitleSourceFileName,
@@ -28,7 +24,6 @@ const SITE_FILE_ID_PATTERN = /^\d+$/;
 const JSON_CONTENT_TYPE_PATTERN = /^application\/(?:[\w.-]+\+)?json\b/i;
 const DURATION_PATTERN =
   /^(\d{1,2})[:.]([0-5]\d)[:.]([0-5]\d)(?:[.,](\d{1,3}))?$/;
-const SEARCH_STOPPING_ERRORS = [SourceRateLimitError, SourceCredentialError];
 const MILLISECONDS_DIGITS = 3;
 const EPISODE_CODE_DIGITS = 2;
 const CREDENTIAL_STATUS_BY_STATUS = new Map([
@@ -219,26 +214,6 @@ function toSearchHits(
     .filter(Boolean);
 }
 
-function readSettledHitLists(settledResults) {
-  const searchErrors = settledResults
-    .filter(({status}) => status === 'rejected')
-    .map(({reason}) => reason);
-  const stoppingError = searchErrors.find(searchError =>
-    SEARCH_STOPPING_ERRORS.some(
-      StoppingError => searchError instanceof StoppingError,
-    ),
-  );
-  if (
-    stoppingError ||
-    (searchErrors.length > 0 && searchErrors.length === settledResults.length)
-  ) {
-    throw stoppingError ?? searchErrors[0];
-  }
-  return settledResults
-    .filter(({status}) => status === 'fulfilled')
-    .map(({value}) => value);
-}
-
 function mergeSearchHits(hitLists) {
   return uniqBy(
     hitLists
@@ -315,7 +290,6 @@ function toCredentialCheck(response) {
 export const altyazidbMapping = {
   buildSearchRequests,
   toSearchHits,
-  readSettledHitLists,
   mergeSearchHits,
   buildDownloadRequest,
   toDownload,

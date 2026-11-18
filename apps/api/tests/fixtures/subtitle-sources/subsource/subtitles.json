@@ -1,0 +1,131 @@
+{
+  "success": true,
+  "data": [
+    {
+      "subtitleId": 9200001,
+      "movieId": 81003,
+      "language": "turkish",
+      "releaseInfo": [
+        "Fixture.Show.S01E01.1080p.WEB-DL-GROUP",
+        "Fixture.Show.S01E01.720p.WEB-DL-GROUP"
+      ],
+      "commentary": "Fixture commentary",
+      "files": 1,
+      "size": 41000,
+      "hearingImpaired": false,
+      "foreignParts": false,
+      "framerate": "23.976",
+      "productionType": "translated",
+      "releaseType": "web",
+      "downloads": 150,
+      "comments": 5,
+      "rating": {
+        "good": 12,
+        "bad": 2,
+        "total": 14
+      },
+      "preview": "Preview text...",
+      "uploaderId": 4001,
+      "createdAt": "2024-01-15T10:30:00Z",
+      "contributors": [
+        {
+          "id": 456,
+          "displayname": "Fixture Contributor"
+        }
+      ]
+    },
+    {
+      "subtitleId": 9200002,
+      "movieId": 81003,
+      "language": "english",
+      "releaseInfo": ["Fixture.Show.S01E01.1080p.BluRay.x264-GROUP"],
+      "commentary": "",
+      "files": 1,
+      "size": 39000,
+      "hearingImpaired": true,
+      "foreignParts": true,
+      "framerate": "25.00",
+      "productionType": "AI / Machine Translated",
+      "releaseType": "bluray",
+      "downloads": 0,
+      "comments": 0,
+      "rating": {
+        "good": 0,
+        "bad": 0,
+        "total": 0
+      },
+      "preview": "Preview text...",
+      "uploaderId": 4002,
+      "createdAt": "2024-01-16T10:30:00Z",
+      "contributors": []
+    },
+    {
+      "subtitleId": 9200003,
+      "movieId": 81003,
+      "language": "english",
+      "releaseInfo": [],
+      "commentary": "",
+      "files": 1,
+      "size": 38000,
+      "hearingImpaired": false,
+      "foreignParts": false,
+      "framerate": "N/A",
+      "productionType": "retail",
+      "releaseType": "web",
+      "downloads": 12,
+      "comments": 1,
+      "rating": {
+        "good": 1,
+        "bad": 0,
+        "total": 1
+      },
+      "preview": "Preview text...",
+      "uploaderId": 4003,
+      "createdAt": "2024-01-17T10:30:00Z",
+      "contributors": []
+    },
+    {
+      "subtitleId": 9200004,
+      "movieId": 81003,
+      "language": "toki_pona",
+      "releaseInfo": ["Fixture.Show.S01E01.1080p.WEB-DL-GROUP"],
+      "commentary": "",
+      "files": 1,
+      "size": 37000,
+      "hearingImpaired": false,
+      "foreignParts": false,
+      "framerate": "23.976",
+      "productionType": "translated",
+      "releaseType": "web",
+      "downloads": 3,
+      "comments": 0,
+      "rating": {
+        "good": 0,
+        "bad": 0,
+        "total": 0
+      },
+      "preview": "Preview text...",
+      "uploaderId": 4004,
+      "createdAt": "2024-01-18T10:30:00Z",
+      "contributors": []
+    }
+  ],
+  "pagination": {
+    "page": 1,
+    "limit": 100,
+    "total": 4,
+    "pages": 1
+  },
+  "filters": {
+    "movieId": 81003,
+    "language": "turkish",
+    "productionType": null,
+    "releaseType": null,
+    "releaseInfo": null,
+    "uploader": null,
+    "hearingImpaired": null,
+    "foreignParts": null,
+    "framerate": null,
+    "sort": "newest"
+  }
+}

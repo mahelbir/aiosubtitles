@@ -1,6 +1,7 @@
 import {CredentialKind} from '@repo/shared/constants/credential.js';
 import {SubtitleSource} from '@repo/shared/constants/subtitle-source.js';
 import {SubtitleSourceBudgetScope} from '../subtitle-source-contract.js';
+import {readSettledHitLists} from '../subtitle-source-hit-lists.js';
 import {requestSubtitleSource} from '../subtitle-source-request.js';
 import {altyazidbMapping} from './altyazidb-mapping.js';
 
@@ -38,7 +39,7 @@ export const altyazidbClient = {
         ),
     );
     return altyazidbMapping.mergeSearchHits(
-      altyazidbMapping.readSettledHitLists(settledResults),
+      readSettledHitLists(settledResults),
     );
   },
   async downloadSubtitle(subtitleRef, credential, {signal} = {}) {

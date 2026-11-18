@@ -1,0 +1,56 @@
+{
+  "success": true,
+  "data": [
+    {
+      "movieId": 81001,
+      "title": "Fixture Show Spin-off",
+      "alternateTitle": "",
+      "type": "tvseries",
+      "releaseYear": 2021,
+      "imdbId": "tt9900002",
+      "tmdbId": "990002",
+      "season": 1,
+      "subtitleCount": 12,
+      "posters": {
+        "small": "https://example.com/posters/81001/poster-small.jpg",
+        "medium": "https://example.com/posters/81001/poster-medium.jpg",
+        "large": "https://example.com/posters/81001/poster-large.jpg",
+        "original": "https://example.com/posters/81001/poster-original.jpg"
+      }
+    },
+    {
+      "movieId": 81002,
+      "title": "Fixture Show",
+      "alternateTitle": "Fixture Show Alt",
+      "type": "tvseries",
+      "releaseYear": 2020,
+      "imdbId": "tt9900001",
+      "tmdbId": "990001",
+      "season": 2,
+      "subtitleCount": 40,
+      "posters": {
+        "small": "https://example.com/posters/81002/poster-small.jpg",
+        "medium": "https://example.com/posters/81002/poster-medium.jpg",
+        "large": "https://example.com/posters/81002/poster-large.jpg",
+        "original": "https://example.com/posters/81002/poster-original.jpg"
+      }
+    },
+    {
+      "movieId": 81003,
+      "title": "Fixture Show",
+      "alternateTitle": "Fixture Show Alt",
+      "type": "tvseries",
+      "releaseYear": 2020,
+      "imdbId": "tt9900001",
+      "tmdbId": "990001",
+      "season": 1,
+      "subtitleCount": 50,
+      "posters": {
+        "small": "https://example.com/posters/81003/poster-small.jpg",
+        "medium": "https://example.com/posters/81003/poster-medium.jpg",
+        "large": "https://example.com/posters/81003/poster-large.jpg",
+        "original": "https://example.com/posters/81003/poster-original.jpg"
+      }
+    }
+  ]
+}

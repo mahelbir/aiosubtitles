@@ -4,11 +4,7 @@ import {CredentialStatus} from '@repo/shared/constants/credential.js';
 import {SubtitleSource} from '@repo/shared/constants/subtitle-source.js';
 import {altyazidbMapping} from '../../../src/lib/subtitle-sources/altyazidb/altyazidb-mapping.js';
 import {subtitleSourceHitSchema} from '../../../src/lib/subtitle-sources/subtitle-source-contract.js';
-import {
-  SourceCredentialError,
-  SourceRateLimitError,
-  SourceUnavailableError,
-} from '../../../src/lib/subtitle-sources/subtitle-source-errors.js';
+import {SourceUnavailableError} from '../../../src/lib/subtitle-sources/subtitle-source-errors.js';
 import {catchError, toErrorText} from '../../helpers/caught-error.js';
 import {readFixture} from '../../helpers/read-fixture.js';
 import {
@@ -475,66 +471,6 @@ describe('altyazidbMapping.toSearchHits', () => {
       {...firstItem, id: '1', duration: '999:00:00'},
     ]);
     expect(hit.siteDurationMs).toBeNull();
-  });
-});
-
-describe('altyazidbMapping.readSettledHitLists', () => {
-  const hitList = [{siteFileId: '1'}];
-  const unavailableError = new SourceUnavailableError({
-    subtitleSource: SubtitleSource.ALTYAZIDB,
-    cause: new Error('Status 400.'),
-  });
-
-  it('keeps the lists of the calls that answered when another failed', () => {
-    expect(
-      altyazidbMapping.readSettledHitLists([
-        {status: 'fulfilled', value: hitList},
-        {status: 'rejected', reason: unavailableError},
-      ]),
-    ).toEqual([hitList]);
-  });
-
-  it('throws when every call failed', () => {
-    expect(
-      catchError(() =>
-        altyazidbMapping.readSettledHitLists([
-          {status: 'rejected', reason: unavailableError},
-          {status: 'rejected', reason: unavailableError},
-        ]),
-      ),
-    ).toBe(unavailableError);
-  });
-
-  it.each([
-    [
-      'a rate limit',
-      new SourceRateLimitError({
-        subtitleSource: SubtitleSource.ALTYAZIDB,
-        retryAfterMs: 60000,
-        credentialId: keyCredential.credentialId,
-      }),
-    ],
-    [
-      'a rejected key',
-      new SourceCredentialError({
-        subtitleSource: SubtitleSource.ALTYAZIDB,
-        credentialId: keyCredential.credentialId,
-      }),
-    ],
-  ])('throws %s even when another call answered', (_, sourceError) => {
-    expect(
-      catchError(() =>
-        altyazidbMapping.readSettledHitLists([
-          {status: 'fulfilled', value: hitList},
-          {status: 'rejected', reason: unavailableError},
-          {status: 'rejected', reason: sourceError},
-        ]),
-      ),
-    ).toBe(sourceError);
-  });
-
-  it('gives no lists when no call was made', () => {
-    expect(altyazidbMapping.readSettledHitLists([])).toEqual([]);
   });
 });
 
