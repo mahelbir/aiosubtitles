@@ -21,8 +21,10 @@ import {
   readCappedBody,
   readSubtitleSourceResponse,
   readSubtitleSourceBodyBytes,
+  readSubtitleSourceFileName,
   shouldReadSubtitleSourceBody,
   toSubtitleSourceError,
+  toSubtitleSourceStatusError,
 } from '../../../src/lib/subtitle-sources/subtitle-source-request.js';
 
 const RESPONSE_BYTES_MAX = 20971520;
@@ -1197,5 +1199,83 @@ describe('toSubtitleSourceError', () => {
     });
     expect(error).toBeInstanceOf(SourceUnavailableError);
     expect(toErrorText(error)).not.toContain(SECRET);
+  });
+});
+
+describe('toSubtitleSourceStatusError', () => {
+  it('reads a missing file as an unavailable source naming only the status', () => {
+    const error = toSubtitleSourceStatusError(
+      {status: 404, headers: {}},
+      {subtitleSource: 'thesubtitledb', credentialId: 'c1'},
+    );
+    expect(error).toBeInstanceOf(SourceUnavailableError);
+    expect(error.cause.message).toBe('Status 404.');
+  });
+
+  it('reads 429 as a rate limit on the named credential', () => {
+    const error = toSubtitleSourceStatusError(
+      {status: 429, headers: {'retry-after': '30'}},
+      {subtitleSource: 'thesubtitledb', credentialId: 'c1'},
+    );
+    expect(error).toBeInstanceOf(SourceRateLimitError);
+    expect(error).toMatchObject({retryAfterMs: 30000, credentialId: 'c1'});
+  });
+
+  it('blames a 401 on the credential only when one was sent', () => {
+    expect(
+      toSubtitleSourceStatusError(
+        {status: 401, headers: {}},
+        {subtitleSource: 'thesubtitledb', credentialId: 'c1'},
+      ),
+    ).toBeInstanceOf(SourceCredentialError);
+    expect(
+      toSubtitleSourceStatusError(
+        {status: 401, headers: {}},
+        {subtitleSource: 'thesubtitledb', credentialId: null},
+      ),
+    ).toBeInstanceOf(SourceUnavailableError);
+  });
+});
+
+describe('readSubtitleSourceFileName', () => {
+  it.each([
+    [
+      'a quoted file name',
+      'attachment; filename="Show.S01E01.srt"',
+      'Show.S01E01.srt',
+    ],
+    [
+      'a bare file name',
+      'attachment; filename=Show.S01E01.srt',
+      'Show.S01E01.srt',
+    ],
+    [
+      'an RFC 8187 file name over the plain one',
+      `attachment; filename="Dizi.srt"; filename*=UTF-8''%C4%B0stanbul.srt`,
+      'İstanbul.srt',
+    ],
+  ])('reads %s', (_, contentDisposition, fileName) => {
+    expect(
+      readSubtitleSourceFileName({'content-disposition': contentDisposition}),
+    ).toBe(fileName);
+  });
+
+  it('reads the first of repeated headers', () => {
+    expect(
+      readSubtitleSourceFileName({
+        'content-disposition': [
+          'attachment; filename="First.srt"',
+          'attachment; filename="Second.srt"',
+        ],
+      }),
+    ).toBe('First.srt');
+  });
+
+  it.each([
+    ['no header', {}],
+    ['a disposition that names no file', {'content-disposition': 'attachment'}],
+    ['a malformed disposition', {'content-disposition': ';;;'}],
+  ])('gives no file name for %s', (_, headers) => {
+    expect(readSubtitleSourceFileName(headers)).toBeNull();
   });
 });

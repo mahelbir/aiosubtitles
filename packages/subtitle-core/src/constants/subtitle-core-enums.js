@@ -64,12 +64,12 @@ export const ReleaseEdition = Enum({
 });
 
 export const SubtitleFileFormat = Enum({
-  SRT: {value: 'srt'},
-  VTT: {value: 'vtt'},
-  ASS: {value: 'ass'},
-  SSA: {value: 'ssa'},
-  MICRODVD: {value: 'microdvd'},
-  OTHER: {value: 'other'},
+  SRT: {value: 'srt', fileExtensions: ['srt']},
+  VTT: {value: 'vtt', fileExtensions: ['vtt']},
+  ASS: {value: 'ass', fileExtensions: ['ass']},
+  SSA: {value: 'ssa', fileExtensions: ['ssa']},
+  MICRODVD: {value: 'microdvd', fileExtensions: ['sub']},
+  OTHER: {value: 'other', fileExtensions: []},
 });
 
 export const SubtitleFileExtension = Enum({
@@ -144,7 +144,19 @@ export const SubtitleMessage = Enum({
 });
 
 export const ArchiveKind = Enum({
-  ZIP: {value: 'zip'},
-  RAR: {value: 'rar'},
-  SEVEN_ZIP: {value: 'seven-zip'},
+  ZIP: {value: 'zip', fileExtensions: ['zip']},
+  RAR: {value: 'rar', fileExtensions: ['rar']},
+  SEVEN_ZIP: {value: 'seven-zip', fileExtensions: ['7z']},
 });
+
+const toFileExtensions = fileKind =>
+  new Set(
+    fileKind
+      .toList({extra: option => ({fileExtensions: option.raw.fileExtensions})})
+      .flatMap(({fileExtensions}) => fileExtensions),
+  );
+
+export const SUBTITLE_FORMAT_FILE_EXTENSIONS =
+  toFileExtensions(SubtitleFileFormat);
+
+export const ARCHIVE_FILE_EXTENSIONS = toFileExtensions(ArchiveKind);

@@ -1,4 +1,5 @@
 import {SubtitleSource} from '@repo/shared/constants/subtitle-source.js';
+import {thesubtitledbClient} from './thesubtitledb/thesubtitledb-client.js';
 
 export function createSubtitleSourceRegistry(clients) {
   const sortedClients = clients.toSorted((leftClient, rightClient) =>
@@ -20,4 +21,4 @@ export function createSubtitleSourceRegistry(clients) {
 }
 
 export const {getSubtitleSourceClient, listSubtitleSourceClients} =
-  createSubtitleSourceRegistry([]);
+  createSubtitleSourceRegistry([thesubtitledbClient]);

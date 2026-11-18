@@ -32,6 +32,7 @@
     "@repo/tooling": "workspace:*",
     "background-job": "^2.0.0",
     "close-with-grace": "^2.5.0",
+    "content-disposition": "^3.0.0",
     "dayjs": "^1.11.23",
     "enum-plus": "^3.4.0",
     "es-toolkit": "^1.53.1",

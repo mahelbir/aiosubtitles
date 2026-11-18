@@ -1,5 +1,6 @@
 import {isIP} from 'node:net';
 import {Maxios} from '@mepkg/maxios';
+import {parse as parseContentDisposition} from 'content-disposition';
 import {pickBy} from 'es-toolkit';
 import {castArray} from 'es-toolkit/compat';
 import {StatusCodes} from 'http-status-codes';
@@ -133,7 +134,17 @@ function findRetryAfterMs(headers) {
   );
 }
 
-function toStatusError({status, headers}, {subtitleSource, credentialId}) {
+export function readSubtitleSourceFileName(headers) {
+  const contentDisposition = readHeader(headers, 'content-disposition');
+  return contentDisposition
+    ? (parseContentDisposition(contentDisposition).parameters.filename ?? null)
+    : null;
+}
+
+export function toSubtitleSourceStatusError(
+  {status, headers},
+  {subtitleSource, credentialId = null},
+) {
   const retryAfterMs = findRetryAfterMs(headers);
   if (
     status === StatusCodes.TOO_MANY_REQUESTS ||
@@ -326,7 +337,10 @@ export function readSubtitleSourceResponse(
     if (status === StatusCodes.NOT_FOUND) {
       return {status, headers, body: null};
     }
-    throw toStatusError(maxiosResponse, {subtitleSource, credentialId});
+    throw toSubtitleSourceStatusError(maxiosResponse, {
+      subtitleSource,
+      credentialId,
+    });
   } catch (error) {
     throw toSubtitleSourceError(error, {subtitleSource});
   }

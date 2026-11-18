@@ -7,7 +7,9 @@ import {
 } from '../../../src/lib/subtitle-sources/subtitle-source-clients.js';
 import {
   SubtitleSourceBudgetScope,
+  isSupportedSubtitleSourceFormat,
   subtitleSourceHitSchema,
+  toHitReleaseNames,
   toSubtitleRowValues,
 } from '../../../src/lib/subtitle-sources/subtitle-source-contract.js';
 import {
@@ -122,6 +124,58 @@ describe('subtitleSourceHitSchema', () => {
           releaseNames: Array.from({length: 20}, () => 'a'.repeat(512)),
         }),
       ).success,
+    ).toBe(true);
+  });
+});
+
+describe('isSupportedSubtitleSourceFormat', () => {
+  it.each(['srt', 'ass', 'ssa', 'vtt', 'sub', 'zip', 'rar', '7z'])(
+    'accepts the %s format',
+    format => {
+      expect(isSupportedSubtitleSourceFormat(format)).toBe(true);
+    },
+  );
+
+  it.each(['SRT', '.srt', ' .Ass ', '.7Z'])(
+    'reads %s regardless of case and a leading dot',
+    format => {
+      expect(isSupportedSubtitleSourceFormat(format)).toBe(true);
+    },
+  );
+
+  it.each(['idx', 'sup', 'smi', 'sami', 'txt', 'mpl', 'usf', 'other'])(
+    'refuses the %s format',
+    format => {
+      expect(isSupportedSubtitleSourceFormat(format)).toBe(false);
+    },
+  );
+
+  it.each([null, undefined, '', '  ', '.'])(
+    'keeps a hit whose format is not stated (%s)',
+    format => {
+      expect(isSupportedSubtitleSourceFormat(format)).toBe(true);
+    },
+  );
+});
+
+describe('toHitReleaseNames', () => {
+  it('trims the names and drops empty and repeated ones', () => {
+    expect(toHitReleaseNames([' A.1080p ', '', '  ', 'A.1080p', 'B'])).toEqual([
+      'A.1080p',
+      'B',
+    ]);
+  });
+
+  it('drops a name over the length limit and keeps the first 20', () => {
+    const releaseNames = toHitReleaseNames([
+      'a'.repeat(513),
+      ...Array.from({length: 25}, (_, nameIndex) => `Name.${nameIndex}`),
+    ]);
+    expect(releaseNames).toHaveLength(20);
+    expect(releaseNames[0]).toBe('Name.0');
+    expect(
+      subtitleSourceHitSchema.safeParse(makeSubtitleSourceHit({releaseNames}))
+        .success,
     ).toBe(true);
   });
 });

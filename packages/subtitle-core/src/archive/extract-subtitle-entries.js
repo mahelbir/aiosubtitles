@@ -1,7 +1,10 @@
 import {once, sumBy} from 'es-toolkit';
 import {Unzip, UnzipInflate} from 'fflate';
 import {libarchiveWasm} from 'libarchive-wasm';
-import {ArchiveKind} from '../constants/subtitle-core-enums.js';
+import {
+  ArchiveKind,
+  SUBTITLE_FORMAT_FILE_EXTENSIONS,
+} from '../constants/subtitle-core-enums.js';
 import {
   detectArchiveKind,
   hasUnknownRarSignature,
@@ -11,13 +14,6 @@ export const ARCHIVE_INFLATED_BYTES_MAX = 52428800;
 
 export const ARCHIVE_ENTRY_COUNT_MAX = 500;
 
-const ARCHIVE_SUBTITLE_EXTENSIONS = new Set([
-  'srt',
-  'ass',
-  'ssa',
-  'vtt',
-  'sub',
-]);
 const MACOS_METADATA_FOLDER = '__MACOSX';
 const ZIP_PUSH_SLICE_BYTES = 1024;
 const LIBARCHIVE_READ_CHUNK_BYTES = 65536;
@@ -48,7 +44,7 @@ const isSubtitleEntryPath = entryPath => {
     !pathParts.includes(MACOS_METADATA_FOLDER) &&
     !fileName.startsWith('.') &&
     extensionStart > 0 &&
-    ARCHIVE_SUBTITLE_EXTENSIONS.has(
+    SUBTITLE_FORMAT_FILE_EXTENSIONS.has(
       fileName.slice(extensionStart + 1).toLowerCase(),
     )
   );

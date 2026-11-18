@@ -1,5 +1,6 @@
 import {describe, expect, it} from 'vitest';
 import {
+  ARCHIVE_FILE_EXTENSIONS,
   ArchiveKind,
   ConfidenceWord,
   DuplicateTier,
@@ -9,6 +10,7 @@ import {
   ScoreTableMode,
   ScoringSignal,
   SignalState,
+  SUBTITLE_FORMAT_FILE_EXTENSIONS,
   SubtitleFileExtension,
   SubtitleFileFormat,
   SubtitleFileInvalidReason,
@@ -196,4 +198,20 @@ describe('subtitle-core enums', () => {
       expect(SubtitleMessage.label(memberName)).toBe(messageText);
     },
   );
+});
+
+describe('file extension sets', () => {
+  it('derives the subtitle format extensions from SubtitleFileFormat', () => {
+    expect([...SUBTITLE_FORMAT_FILE_EXTENSIONS].sort()).toEqual([
+      'ass',
+      'srt',
+      'ssa',
+      'sub',
+      'vtt',
+    ]);
+  });
+
+  it('derives the archive extensions from ArchiveKind', () => {
+    expect([...ARCHIVE_FILE_EXTENSIONS].sort()).toEqual(['7z', 'rar', 'zip']);
+  });
 });

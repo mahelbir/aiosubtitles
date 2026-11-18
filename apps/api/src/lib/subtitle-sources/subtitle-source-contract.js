@@ -1,9 +1,14 @@
 import {Enum} from 'enum-plus';
+import {uniq} from 'es-toolkit';
 import {z} from 'zod';
 import {SubtitleLanguage} from '@repo/shared/constants/subtitle-language.js';
 import {SubtitleSource} from '@repo/shared/constants/subtitle-source.js';
 import {httpUrlField} from '@repo/shared/schemas/common.js';
-import {SubtitleFileExtension} from '@repo/subtitle-core/constants/subtitle-core-enums.js';
+import {
+  ARCHIVE_FILE_EXTENSIONS,
+  SUBTITLE_FORMAT_FILE_EXTENSIONS,
+  SubtitleFileExtension,
+} from '@repo/subtitle-core/constants/subtitle-core-enums.js';
 import {computeUrlCode} from '@repo/subtitle-core/stremio-row/url-code.js';
 import {SubtitleAliasSource} from './subtitle-alias-source.js';
 
@@ -116,6 +121,12 @@ const RELEASE_NAME_LENGTH_MAX = 512;
 const INTEGER_COLUMN_MAX = 2147483647;
 const HASH_MATCH_VIDEO_HASHES_MAX = 20;
 const VIDEO_HASH_PATTERN = /^[\da-f]{16}$/i;
+const LEADING_DOT_PATTERN = /^\./;
+
+const supportedFileExtensions = new Set([
+  ...SUBTITLE_FORMAT_FILE_EXTENSIONS,
+  ...ARCHIVE_FILE_EXTENSIONS,
+]);
 
 export const SubtitleSourceBudgetScope = Enum({
   SUBTITLE_SOURCE: {value: 'subtitle-source'},
@@ -163,6 +174,28 @@ export const subtitleSourceHitSchema = z.object({
     }),
   ),
 });
+
+export function isSupportedSubtitleSourceFormat(format) {
+  if (typeof format !== 'string') {
+    return true;
+  }
+  const fileExtension = format
+    .trim()
+    .toLowerCase()
+    .replace(LEADING_DOT_PATTERN, '');
+  return fileExtension === '' || supportedFileExtensions.has(fileExtension);
+}
+
+export function toHitReleaseNames(releaseNames) {
+  return uniq(
+    releaseNames
+      .map(releaseName => releaseName.trim())
+      .filter(
+        releaseName =>
+          releaseName !== '' && releaseName.length <= RELEASE_NAME_LENGTH_MAX,
+      ),
+  ).slice(0, RELEASE_NAMES_MAX);
+}
 
 /**
  * @param {SubtitleSourceHit} hit
