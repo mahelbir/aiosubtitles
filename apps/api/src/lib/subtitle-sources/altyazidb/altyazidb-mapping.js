@@ -11,7 +11,7 @@ import {
 import {toHitReleaseNames} from '../subtitle-source-contract.js';
 import {SourceUnavailableError} from '../subtitle-source-errors.js';
 import {
-  readSubtitleSourceContentType,
+  isSubtitleSourceJsonResponse,
   readSubtitleSourceFileName,
   toSubtitleSourceStatusError,
 } from '../subtitle-source-request.js';
@@ -21,7 +21,6 @@ const ALTYAZIDB_SITE_LANGUAGE_CODES = new Set(['tr', 'en']);
 const PACK_EPISODE = 'PAKET';
 const SEARCH_RESULTS_MAX = 50;
 const SITE_FILE_ID_PATTERN = /^\d+$/;
-const JSON_CONTENT_TYPE_PATTERN = /^application\/(?:[\w.-]+\+)?json\b/i;
 const DURATION_PATTERN =
   /^(\d{1,2})[:.]([0-5]\d)[:.]([0-5]\d)(?:[.,](\d{1,3}))?$/;
 const MILLISECONDS_DIGITS = 3;
@@ -247,11 +246,7 @@ function toDownload(response, subtitleRef) {
   if (response.status === StatusCodes.NOT_FOUND) {
     throw toStatusError(response);
   }
-  if (
-    JSON_CONTENT_TYPE_PATTERN.test(
-      readSubtitleSourceContentType(response.headers) ?? '',
-    )
-  ) {
+  if (isSubtitleSourceJsonResponse(response.headers)) {
     throw new SourceUnavailableError({
       subtitleSource: SubtitleSource.ALTYAZIDB,
       cause: new Error('JSON error body.'),

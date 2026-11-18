@@ -1,0 +1,10 @@
+{
+  "success": true,
+  "data": {
+    "limit": 1000,
+    "used": 60,
+    "remaining": 940,
+    "percent_used": 6,
+    "resets_at": "2026-11-18T23:59:59+03:00"
+  }
+}

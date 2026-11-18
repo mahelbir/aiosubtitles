@@ -1,0 +1,38 @@
+{
+  "subtitles": [
+    {
+      "id": "sub-71001",
+      "url": "https://anisub.co/stremio/file/sub-71001.srt",
+      "lang": "Turkish",
+      "label": "Bölüm: 01",
+      "releaseInfo": "Çağlayan Fansub"
+    },
+    {
+      "id": "sub-71002",
+      "url": "https://anisub.co/stremio/file/sub-71002.srt",
+      "lang": "tur",
+      "label": "Paket",
+      "releaseInfo": "Şövalye Öğrenciler Iğdır Fansub"
+    },
+    {
+      "id": "sub-71003",
+      "url": "https://anisub.co/stremio/file/sub-71003.srt",
+      "lang": "Turkish",
+      "label": "[GrupX] Sezon 1 Paket"
+    },
+    {
+      "id": "sub-71004",
+      "url": "https://anisub.co/stremio/file/sub-71004.srt",
+      "lang": "Turkish",
+      "label": "Bölüm: 01",
+      "releaseInfo": "Paketler Fansub"
+    },
+    {
+      "id": "sub-71005",
+      "url": "https://anisub.co/stremio/file/sub-71005.srt",
+      "lang": "Klingon",
+      "label": "Bölüm: 01",
+      "releaseInfo": "Uzay Fansub"
+    }
+  ]
+}

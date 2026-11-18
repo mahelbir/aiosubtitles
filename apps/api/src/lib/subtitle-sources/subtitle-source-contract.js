@@ -1,8 +1,9 @@
 import {Enum} from 'enum-plus';
-import {uniq} from 'es-toolkit';
+import {isNil, uniq} from 'es-toolkit';
 import {z} from 'zod';
 import {SubtitleLanguage} from '@repo/shared/constants/subtitle-language.js';
 import {SubtitleSource} from '@repo/shared/constants/subtitle-source.js';
+import {VideoType} from '@repo/shared/constants/video-type.js';
 import {httpUrlField} from '@repo/shared/schemas/common.js';
 import {
   ARCHIVE_FILE_EXTENSIONS,
@@ -123,6 +124,7 @@ const INTEGER_COLUMN_MAX = 2147483647;
 const HASH_MATCH_VIDEO_HASHES_MAX = 20;
 const VIDEO_HASH_PATTERN = /^[\da-f]{16}$/i;
 const LEADING_DOT_PATTERN = /^\./;
+const IMDB_VIDEO_ID_SEPARATOR = ':';
 
 const supportedFileExtensions = new Set([
   ...SUBTITLE_FORMAT_FILE_EXTENSIONS,
@@ -185,6 +187,38 @@ export function isSupportedSubtitleSourceFormat(format) {
     .toLowerCase()
     .replace(LEADING_DOT_PATTERN, '');
   return fileExtension === '' || supportedFileExtensions.has(fileExtension);
+}
+
+export function toHitSiteFileId(siteFileId) {
+  if (typeof siteFileId === 'string') {
+    const trimmedSiteFileId = siteFileId.trim();
+    return trimmedSiteFileId.length <= SITE_FILE_ID_LENGTH_MAX
+      ? trimmedSiteFileId || null
+      : null;
+  }
+  return Number.isSafeInteger(siteFileId) && siteFileId > 0
+    ? String(siteFileId)
+    : null;
+}
+
+export function buildImdbVideoId({
+  videoType,
+  imdbId,
+  catalogSeason,
+  catalogEpisode,
+}) {
+  if (!imdbId) {
+    return null;
+  }
+  if (videoType === VideoType.MOVIE) {
+    return encodeURIComponent(imdbId);
+  }
+  if (isNil(catalogSeason) || isNil(catalogEpisode)) {
+    return null;
+  }
+  return [imdbId, catalogSeason, catalogEpisode]
+    .map(idPart => encodeURIComponent(idPart))
+    .join(IMDB_VIDEO_ID_SEPARATOR);
 }
 
 export function toHitReleaseNames(releaseNames) {

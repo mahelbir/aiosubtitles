@@ -9,6 +9,7 @@ import {
   ADDON_MANIFEST_VERSION,
   ADDON_NAME,
 } from '@repo/shared/constants/app.js';
+import {httpUrlField} from '@repo/shared/schemas/common.js';
 import {
   SourceCredentialError,
   SourceRateLimitError,
@@ -49,6 +50,7 @@ const CREDENTIAL_REJECTED_STATUSES = new Set([
   StatusCodes.FORBIDDEN,
 ]);
 const REDIRECT_PROTOCOLS = new Set(['http:', 'https:']);
+const JSON_CONTENT_TYPE_PATTERN = /^application\/(?:[\w.-]+\+)?json\b/i;
 const BODY_KEEPING_REDIRECT_STATUSES = new Set([
   StatusCodes.TEMPORARY_REDIRECT,
   StatusCodes.PERMANENT_REDIRECT,
@@ -126,6 +128,13 @@ export function isPrivateSubtitleSourceUrl(siteUrl) {
   return !hostAddress.includes('.');
 }
 
+export function isSubtitleSourceFileUrl(siteFileUrl) {
+  return (
+    httpUrlField.safeParse(siteFileUrl).success &&
+    !isPrivateSubtitleSourceUrl(siteFileUrl)
+  );
+}
+
 function findRetryAfterMs(headers) {
   const nowMs = Date.now();
   return (
@@ -143,6 +152,19 @@ export function readSubtitleSourceFileName(headers) {
 
 export function readSubtitleSourceContentType(headers) {
   return readHeader(headers, 'content-type');
+}
+
+export function isSubtitleSourceJsonResponse(headers) {
+  return JSON_CONTENT_TYPE_PATTERN.test(
+    readSubtitleSourceContentType(headers) ?? '',
+  );
+}
+
+export function readSubtitleSourceJson(bodyBytes, headers) {
+  return parseBody(bodyBytes, headers, {
+    responseType: 'json',
+    isEmptyBodyAllowed: false,
+  });
 }
 
 export function toSubtitleSourceStatusError(

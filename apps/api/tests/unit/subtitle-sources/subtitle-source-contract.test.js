@@ -7,9 +7,11 @@ import {
 } from '../../../src/lib/subtitle-sources/subtitle-source-clients.js';
 import {
   SubtitleSourceBudgetScope,
+  buildImdbVideoId,
   isSupportedSubtitleSourceFormat,
   subtitleSourceHitSchema,
   toHitReleaseNames,
+  toHitSiteFileId,
   toSubtitleRowValues,
 } from '../../../src/lib/subtitle-sources/subtitle-source-contract.js';
 import {
@@ -156,6 +158,51 @@ describe('isSupportedSubtitleSourceFormat', () => {
       expect(isSupportedSubtitleSourceFormat(format)).toBe(true);
     },
   );
+});
+
+describe('toHitSiteFileId', () => {
+  it.each([
+    [' sub-7 ', 'sub-7'],
+    ['8'.repeat(512), '8'.repeat(512)],
+    [42, '42'],
+  ])('reads %s as the site file id %s', (siteFileId, hitSiteFileId) => {
+    expect(toHitSiteFileId(siteFileId)).toBe(hitSiteFileId);
+  });
+
+  it.each(['', '  ', '7'.repeat(513), 0, -3, 1.5, null, undefined])(
+    'reads %s as no site file id',
+    siteFileId => {
+      expect(toHitSiteFileId(siteFileId)).toBeNull();
+    },
+  );
+});
+
+describe('buildImdbVideoId', () => {
+  const episode = {
+    videoType: 'series',
+    imdbId: 'tt0877057',
+    catalogSeason: 1,
+    catalogEpisode: 2,
+  };
+
+  it('names a movie by its imdb id alone', () => {
+    expect(
+      buildImdbVideoId({...episode, videoType: 'movie', imdbId: 'tt2576852'}),
+    ).toBe('tt2576852');
+  });
+
+  it('names an episode by its imdb id, season and episode', () => {
+    expect(buildImdbVideoId(episode)).toBe('tt0877057:1:2');
+  });
+
+  it('names nothing without an imdb id', () => {
+    expect(buildImdbVideoId({...episode, imdbId: null})).toBeNull();
+  });
+
+  it('names no series episode without its season or episode', () => {
+    expect(buildImdbVideoId({...episode, catalogSeason: null})).toBeNull();
+    expect(buildImdbVideoId({...episode, catalogEpisode: null})).toBeNull();
+  });
 });
 
 describe('toHitReleaseNames', () => {

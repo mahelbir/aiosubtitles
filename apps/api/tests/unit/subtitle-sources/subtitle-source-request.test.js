@@ -17,12 +17,15 @@ import {
   buildSubtitleSourceRequestOptions,
   findRedirectLocation,
   isPrivateSubtitleSourceUrl,
+  isSubtitleSourceFileUrl,
+  isSubtitleSourceJsonResponse,
   parseRetryAfterMs,
   readCappedBody,
   readSubtitleSourceResponse,
   readSubtitleSourceBodyBytes,
   readSubtitleSourceContentType,
   readSubtitleSourceFileName,
+  readSubtitleSourceJson,
   shouldReadSubtitleSourceBody,
   toSubtitleSourceError,
   toSubtitleSourceStatusError,
@@ -975,6 +978,70 @@ describe('isPrivateSubtitleSourceUrl', () => {
     'https://100.128.0.1/file.zip',
   ])('lets %s through', siteUrl => {
     expect(isPrivateSubtitleSourceUrl(siteUrl)).toBe(false);
+  });
+});
+
+describe('isSubtitleSourceFileUrl', () => {
+  it.each(['https://dl.subdl.test/7781.srt', 'http://dl.subdl.test/7781.srt'])(
+    'takes the public file url %s',
+    siteFileUrl => {
+      expect(isSubtitleSourceFileUrl(siteFileUrl)).toBe(true);
+    },
+  );
+
+  it.each([
+    null,
+    undefined,
+    '',
+    'not a url',
+    'ftp://dl.subdl.test/7781.srt',
+    'http://127.0.0.1/file.srt',
+    'http://localhost/file.srt',
+  ])('refuses %s as a file url', siteFileUrl => {
+    expect(isSubtitleSourceFileUrl(siteFileUrl)).toBe(false);
+  });
+});
+
+describe('isSubtitleSourceJsonResponse', () => {
+  it.each([
+    'application/json',
+    'application/json; charset=utf-8',
+    'Application/Problem+JSON',
+  ])('reads %s as a JSON answer', contentType => {
+    expect(isSubtitleSourceJsonResponse({'content-type': contentType})).toBe(
+      true,
+    );
+  });
+
+  it.each(['application/x-subrip', 'text/html', 'application/octet-stream'])(
+    'reads %s as no JSON answer',
+    contentType => {
+      expect(isSubtitleSourceJsonResponse({'content-type': contentType})).toBe(
+        false,
+      );
+    },
+  );
+
+  it('reads an answer without a content type as no JSON answer', () => {
+    expect(isSubtitleSourceJsonResponse({})).toBe(false);
+  });
+});
+
+describe('readSubtitleSourceJson', () => {
+  it('parses JSON body bytes in the charset the answer names', () => {
+    expect(
+      readSubtitleSourceJson(Buffer.from('{"filename":"Şimdi.srt"}'), {
+        'content-type': 'application/json; charset=utf-8',
+      }),
+    ).toEqual({filename: 'Şimdi.srt'});
+  });
+
+  it('throws on bytes that are not JSON', () => {
+    expect(() =>
+      readSubtitleSourceJson(Buffer.from('1\n00:00:01,000'), {
+        'content-type': 'application/json',
+      }),
+    ).toThrow(SyntaxError);
   });
 });
 

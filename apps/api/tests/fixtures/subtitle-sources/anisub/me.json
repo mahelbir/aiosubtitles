@@ -1,0 +1,12 @@
+{
+  "success": true,
+  "data": {
+    "user_id": 1,
+    "user_name": "kullanici",
+    "display_name": "Kullanıcı",
+    "avatar": "https://anisub.co/assets/avatar.png",
+    "user_rank": "member",
+    "user_status": "verified",
+    "is_admin_or_mod": false
+  }
+}
