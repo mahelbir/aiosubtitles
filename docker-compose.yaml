@@ -34,6 +34,9 @@ x-privilege-drop-hardening: &privilege-drop-hardening
     - DAC_READ_SEARCH
     - SETUID
     - SETGID
+x-datastore-network: &datastore-network
+  networks:
+    - default
 
 services:
   postgres:
@@ -94,7 +97,7 @@ services:
       test: ['CMD', 'redis-cli', '-p', *redis-port, 'ping']
 
   migrate:
-    <<: *privilege-drop-hardening
+    <<: [*privilege-drop-hardening, *datastore-network]
     build:
       context: .
       dockerfile: apps/api/Dockerfile
@@ -112,7 +115,7 @@ services:
         required: false
 
   api:
-    <<: *privilege-drop-hardening
+    <<: [*privilege-drop-hardening, *datastore-network]
     build:
       context: .
       dockerfile: apps/api/Dockerfile
