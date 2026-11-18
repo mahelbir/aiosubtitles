@@ -15,8 +15,8 @@ import {createLogger} from '../logger.js';
 import {recordSubtitleSourceFailure} from '../record-subtitle-source-failure.js';
 import {readSubtitleSourceBreaker} from '../subtitle-search/subtitle-source-breaker.js';
 import {
-  spendSubtitleSourceBudget,
   toBudgetRecoveryWindowMs,
+  trySpendSubtitleSourceBudget,
 } from '../subtitle-search/subtitle-source-budget.js';
 import {readDownloadCredentials} from '../subtitle-source-credentials.js';
 import {SubtitleAliasSource} from '../subtitle-sources/subtitle-alias-source.js';
@@ -42,6 +42,12 @@ const USER_CONFIG_DELETED = Object.freeze({
 });
 
 const PACK_STORED = Object.freeze({isPackStored: true});
+
+const STOPPED_REFUSAL = Object.freeze({
+  isBudgetRefused: true,
+  refusedWindowMs: Infinity,
+  retryAtMs: null,
+});
 
 const UNKNOWN_QUOTA_COUNT = -1;
 
@@ -102,14 +108,18 @@ function leadDownload(downloadOptions) {
 }
 
 async function finishDownload(downloadOptions, fetchedFile) {
-  if (!downloadOptions.subtitle.isSitePack || fetchedFile.subtitleMessage) {
+  if (
+    !downloadOptions.subtitle.isSitePack ||
+    fetchedFile.subtitleMessage ||
+    fetchedFile.isBudgetRefused
+  ) {
     return fetchedFile;
   }
   return (await readStoredSubtitleFile(downloadOptions)) ?? DOWNLOAD_FAILED;
 }
 
 async function joinDownload(downloadOptions, leaderFile) {
-  if (leaderFile.subtitleMessage) {
+  if (leaderFile.subtitleMessage || leaderFile.isBudgetRefused) {
     return null;
   }
   return downloadOptions.subtitle.isSitePack
@@ -135,6 +145,9 @@ async function fetchSubtitleFile(downloadOptions) {
       return DOWNLOAD_FAILED;
     }
     const fileDownload = await downloadFromSources(downloadOptions);
+    if (fileDownload.isBudgetRefused) {
+      return downloadOptions.isBackground ? fileDownload : DOWNLOAD_FAILED;
+    }
     if (fileDownload.subtitleMessage) {
       return fileDownload;
     }
@@ -155,6 +168,7 @@ async function downloadFromSources({
   cachedUserConfig,
   isBackground,
   subtitleSourceRegistry,
+  canSpendCredential,
 }) {
   const {subtitleSource} = subtitle;
   if (subtitleSource === SubtitleSource.OPENSUBTITLES) {
@@ -165,7 +179,11 @@ async function downloadFromSources({
       isBackground,
       subtitleSourceRegistry,
     });
-    if (aliasDownload) {
+    if (aliasDownload?.isBudgetRefused) {
+      if (isBackground) {
+        return aliasDownload;
+      }
+    } else if (aliasDownload) {
       return {
         ...aliasDownload,
         fileOrigin: SubtitleFileOrigin.OPENSUBTITLES_V3,
@@ -185,13 +203,14 @@ async function downloadFromSources({
     return cachedUserConfig ? DOWNLOAD_FAILED : USER_CONFIG_DELETED;
   }
   if (await isBreakerOpen(client)) {
-    return DOWNLOAD_FAILED;
+    return STOPPED_REFUSAL;
   }
   const sourceDownload = await downloadWithCredentials({
     client,
     subtitleRef,
     candidateCredentials: await orderByQuota(client, candidateCredentials),
     isBackground,
+    canSpendCredential,
   });
   return sourceDownload ?? DOWNLOAD_FAILED;
 }
@@ -289,21 +308,36 @@ async function downloadWithCredentials({
   subtitleRef,
   candidateCredentials,
   isBackground,
+  canSpendCredential,
 }) {
+  let budgetRefusal = null;
+  let hasSiteCall = false;
+  const toRefusal = refusal => (hasSiteCall ? null : refusal);
   for (const credential of candidateCredentials) {
     const nowMs = Date.now();
     if (await isBreakerOpen(client, nowMs)) {
-      return null;
+      return toRefusal(STOPPED_REFUSAL);
     }
-    const isSpent = await spendSubtitleSourceBudget({
-      client,
-      credentialId: credential?.credentialId ?? null,
-      isBackground,
-      nowMs,
-    });
+    if (canSpendCredential && !(await canSpendCredential())) {
+      return toRefusal(STOPPED_REFUSAL);
+    }
+    const {isSpent, refusedWindowMs, refusedRequestMax, retryAtMs} =
+      await trySpendSubtitleSourceBudget({
+        client,
+        credentialId: credential?.credentialId ?? null,
+        isBackground,
+        nowMs,
+      });
     if (!isSpent) {
+      budgetRefusal = toWiderRefusal(
+        budgetRefusal,
+        refusedRequestMax === 0
+          ? STOPPED_REFUSAL
+          : {isBudgetRefused: true, refusedWindowMs, retryAtMs},
+      );
       continue;
     }
+    hasSiteCall = true;
     try {
       return {
         sourceDownload: await client.downloadSubtitle(subtitleRef, credential),
@@ -316,7 +350,14 @@ async function downloadWithCredentials({
       await recordSubtitleSourceFailure({client, error, nowMs: Date.now()});
     }
   }
-  return null;
+  return toRefusal(budgetRefusal);
+}
+
+function toWiderRefusal(currentRefusal, nextRefusal) {
+  return currentRefusal &&
+    currentRefusal.refusedWindowMs >= nextRefusal.refusedWindowMs
+    ? currentRefusal
+    : nextRefusal;
 }
 
 function toSubtitleRef(subtitle, {catalogSeason, catalogEpisode}) {

@@ -461,6 +461,38 @@ describe('searchSubtitleSource', () => {
       expect(stored).not.toContain(userConfig.id);
     }
   });
+
+  it('stops waiting for a late search at the shutdown deadline', async () => {
+    let finishSearch;
+    const client = createFixtureSubtitleSourceClient({
+      searchSubtitles: vi.fn(
+        () =>
+          new Promise(resolve => {
+            finishSearch = () => resolve([]);
+          }),
+      ),
+    });
+    const lateSearch = searchSubtitleSource({
+      client,
+      searchQuery: makeTurkishQuery(),
+      ...WITHOUT_CREDENTIALS,
+      nowMs: NOW_MS,
+    });
+    await vi.waitFor(() => {
+      expect(client.searchSubtitles).toHaveBeenCalledTimes(1);
+    });
+
+    const drainState = await Promise.race([
+      drainPendingSearches({signal: AbortSignal.abort()}).then(() => 'drained'),
+      new Promise(resolve => {
+        setTimeout(resolve, 1000, 'waiting');
+      }),
+    ]);
+    finishSearch();
+    await lateSearch;
+
+    expect(drainState).toBe('drained');
+  });
 });
 
 describe('readUsableCredentials', () => {

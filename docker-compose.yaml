@@ -131,6 +131,7 @@ services:
     volumes:
       - ./data/storage:/app/storage
     restart: unless-stopped
+    stop_grace_period: 40s
     healthcheck:
       <<: *http-healthcheck
       test:

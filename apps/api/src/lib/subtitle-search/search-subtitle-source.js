@@ -1,4 +1,5 @@
 import {createLogger} from '../logger.js';
+import {waitForAbort} from '../shutdown-deadline.js';
 import {persistSearchHits} from '../subtitle-store/persist-search-hits.js';
 import {recordSubtitleSourceFailure} from '../record-subtitle-source-failure.js';
 import {toCandidateCredentials} from '../subtitle-source-credentials.js';
@@ -26,9 +27,12 @@ function logSearchFailure(subtitleSource, error, message) {
   logger.warn({subtitleSource, errorName: error?.name}, message);
 }
 
-export async function drainPendingSearches() {
-  while (pendingSearches.size > 0) {
-    await Promise.allSettled([...pendingSearches]);
+export async function drainPendingSearches({signal} = {}) {
+  const drainWindow = signal ? waitForAbort(signal) : null;
+  while (pendingSearches.size > 0 && !signal?.aborted) {
+    await Promise.race(
+      [Promise.allSettled([...pendingSearches]), drainWindow].filter(Boolean),
+    );
   }
 }
 

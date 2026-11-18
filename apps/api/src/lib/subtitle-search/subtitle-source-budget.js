@@ -21,7 +21,7 @@ redis.defineCommand('spendSubtitleSourceBudget', {
     for budgetIndex, budgetKey in ipairs(KEYS) do
       local spentCount = tonumber(redis.call('GET', budgetKey)) or 0
       if spentCount + 1 > tonumber(ARGV[budgetIndex * 2 - 1]) then
-        return 0
+        return -budgetIndex
       end
     end
     for budgetIndex, budgetKey in ipairs(KEYS) do
@@ -54,7 +54,25 @@ export function toBudgetRecoveryWindowMs(downloadBudgets) {
   );
 }
 
-export async function spendSubtitleSourceBudget({
+export function toBudgetRequestMax({requestMax, budgetFactor, isBackground}) {
+  const viewerRequestMax = Math.floor(requestMax * budgetFactor);
+  if (!isBackground || viewerRequestMax < 1) {
+    return viewerRequestMax;
+  }
+  return Math.max(
+    1,
+    Math.floor(
+      requestMax * budgetFactor * config.subtitleSourceBackgroundShare,
+    ),
+  );
+}
+
+export async function spendSubtitleSourceBudget(spendOptions) {
+  const {isSpent} = await trySpendSubtitleSourceBudget(spendOptions);
+  return isSpent;
+}
+
+export async function trySpendSubtitleSourceBudget({
   client,
   credentialId,
   isBackground,
@@ -76,7 +94,6 @@ export async function spendSubtitleSourceBudget({
     nowMs,
     toBudgetRecoveryWindowMs(client.downloadBudgets),
   );
-  const budgetShare = isBackground ? config.subtitleSourceBackgroundShare : 1;
   const budgetKeys = spentBudgets.map(({budgetScope, windowMs}) =>
     toBudgetKey({
       subtitleSource: client.subtitleSource,
@@ -86,13 +103,28 @@ export async function spendSubtitleSourceBudget({
     }),
   );
   const budgetArguments = spentBudgets.flatMap(({windowMs, requestMax}) => [
-    Math.floor(requestMax * budgetFactor * budgetShare),
+    toBudgetRequestMax({requestMax, budgetFactor, isBackground}),
     windowMs,
   ]);
-  const isSpent = await redis.spendSubtitleSourceBudget(
+  const spendAnswer = await redis.spendSubtitleSourceBudget(
     budgetKeys.length,
     ...budgetKeys,
     ...budgetArguments,
   );
-  return isSpent === 1;
+  if (spendAnswer === 1) {
+    return {
+      isSpent: true,
+      refusedWindowMs: null,
+      refusedRequestMax: null,
+      retryAtMs: null,
+    };
+  }
+  const refusedIndex = -spendAnswer - 1;
+  const {windowMs} = spentBudgets[refusedIndex];
+  return {
+    isSpent: false,
+    refusedWindowMs: windowMs,
+    refusedRequestMax: budgetArguments[refusedIndex * 2],
+    retryAtMs: (Math.floor(nowMs / windowMs) + 1) * windowMs,
+  };
 }

@@ -9,9 +9,8 @@ import {
 import {mergeDuplicateGroup} from '@repo/subtitle-core/deduplication/merge-duplicate-group.js';
 import {orderSubtitleRows} from '@repo/subtitle-core/ordering/order-subtitle-rows.js';
 import {parseReleaseName} from '@repo/subtitle-core/release-name/parse-release-name.js';
-import {AIOSUBTITLES_SCORE_TABLE} from '@repo/subtitle-core/scoring/aiosubtitles-score-table.js';
-import {scoreSubtitleCandidate} from '@repo/subtitle-core/scoring/score-candidate.js';
-import {hasFreeDownloadPath} from './collect-candidates.js';
+import {hasFreeDownloadPath} from '../../../lib/subtitle-store/read-video-candidates.js';
+import {scoreVideoCandidate} from '../../../lib/subtitle-store/score-video-candidate.js';
 
 export const NEAR_DUPLICATE_CANDIDATE_MAX = 200;
 
@@ -134,16 +133,11 @@ function scoreGroup({group, videoContext, readCandidateRelease}) {
         ? false
         : mergedCandidate.isQuotaCostly,
   };
-  const {totalScore, hardRejectReason, confidenceWord} = scoreSubtitleCandidate(
-    {
-      candidate,
-      candidateReleases: candidate.releaseNames.map(releaseName =>
-        readCandidateRelease({releaseName, isSitePack: candidate.isSitePack}),
-      ),
-      video: videoContext,
-      scoreTable: AIOSUBTITLES_SCORE_TABLE,
-    },
-  );
+  const {totalScore, hardRejectReason, confidenceWord} = scoreVideoCandidate({
+    candidate,
+    videoContext,
+    readCandidateRelease,
+  });
   return hardRejectReason === null
     ? {...candidate, totalScore, confidenceWord}
     : null;

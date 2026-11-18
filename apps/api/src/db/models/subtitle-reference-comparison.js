@@ -9,6 +9,11 @@ export class SubtitleReferenceComparison extends BaseModel {
     'referenceSubtitleId',
     'isSameTimeFamily',
   ];
+  static methodAttributes = [
+    'candidateSubtitleId',
+    'referenceSubtitleId',
+    'comparisonMethodVersion',
+  ];
 }
 
 SubtitleReferenceComparison.init(

@@ -1,3 +1,4 @@
+import {noop} from 'es-toolkit';
 import {z} from 'zod';
 import {StatusCodes} from 'http-status-codes';
 import {buildNoticeRow} from '@repo/subtitle-core/stremio-row/build-notice-row.js';
@@ -8,7 +9,12 @@ import {
   drainPendingSearches,
   searchSubtitleSource,
 } from '../../lib/subtitle-search/search-subtitle-source.js';
-import {readSearchCredentials} from '../../lib/subtitle-source-credentials.js';
+import {startShutdownDeadline} from '../../lib/shutdown-deadline.js';
+import {scheduleListBackgroundWork} from '../../lib/subtitle-background/background-jobs.js';
+import {
+  readDownloadCredentials,
+  readSearchCredentials,
+} from '../../lib/subtitle-source-credentials.js';
 import {
   readCandidateCues,
   readVideoCandidates,
@@ -93,7 +99,9 @@ export default async function (fastify, opts) {
   const subtitleSourceRegistry = getSubtitleSourceRegistry(opts);
   const videoCatalog = getVideoCatalog(opts);
 
-  fastify.addHook('preClose', drainPendingSearches);
+  fastify.addHook('preClose', () =>
+    drainPendingSearches({signal: startShutdownDeadline()}),
+  );
 
   for (const {listUrl, listParamsSchema: params} of SUBTITLE_LIST_ROUTES) {
     fastify.get(
@@ -144,10 +152,14 @@ export default async function (fastify, opts) {
           ),
           null,
         );
+        const videoCandidates = await readVideoCandidates({
+          videoId,
+          videoContext,
+        });
         const candidates = collectVideoCandidates({
           cachedUserConfig,
           videoContext,
-          candidates: await readVideoCandidates({videoId, videoContext}),
+          candidates: videoCandidates,
           subtitleSourceRegistry,
         });
         const {rankedRows, hiddenSubtitleCount} = rankVideoCandidates({
@@ -180,10 +192,42 @@ export default async function (fastify, opts) {
             }),
           );
         }
+        reply.then(
+          () =>
+            Promise.try(() =>
+              scheduleListBackgroundWork({
+                cachedUserConfig,
+                videoContext,
+                candidates: videoCandidates,
+                credentialsBySource: readCredentialsBySource({
+                  cachedUserConfig,
+                  subtitleSourceRegistry,
+                }),
+                subtitleSourceRegistry,
+              }),
+            ).catch(error => {
+              request.log.warn(
+                {errorName: error?.name},
+                'Background work could not be scheduled.',
+              );
+            }),
+          noop,
+        );
         return {subtitles};
       },
     );
   }
+}
+
+function readCredentialsBySource({cachedUserConfig, subtitleSourceRegistry}) {
+  return Object.fromEntries(
+    subtitleSourceRegistry
+      .listSubtitleSourceClients()
+      .map(client => [
+        client.subtitleSource,
+        readDownloadCredentials({cachedUserConfig, client}),
+      ]),
+  );
 }
 
 function sendEmptySubtitleList(reply) {

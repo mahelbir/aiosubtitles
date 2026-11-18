@@ -350,14 +350,25 @@ function listReferenceIds(candidates, video) {
       .filter(
         candidate =>
           candidate.fileFacts?.isFileValid === true &&
-          candidate.hashMatchVideoHashes.includes(video.videoHash) &&
-          isHashMatchVerified(candidate, video),
+          hasVerifiedHashMatch(candidate, video),
       )
       .map(({fileSubtitleId}) => fileSubtitleId),
   );
 }
 
-function isHashMatchVerified({releaseNames, isSitePack}, video) {
+export function hasVerifiedHashMatch(candidate, video) {
+  return (
+    Boolean(video.videoHash) &&
+    candidate.hashMatchVideoHashes.includes(video.videoHash) &&
+    isHashMatchVerified(candidate, video)
+  );
+}
+
+export function hasFreeDownloadPath({fileFacts, hasOpensubtitlesV3Alias}) {
+  return fileFacts !== null || hasOpensubtitlesV3Alias;
+}
+
+export function isHashMatchVerified({releaseNames, isSitePack}, video) {
   const candidateReleases =
     releaseNames.length === 0
       ? [null]

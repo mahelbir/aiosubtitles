@@ -1,10 +1,11 @@
 import closeWithGrace from 'close-with-grace';
 import {config} from './config/index.js';
 import {buildApp} from './build.js';
+import {SHUTDOWN_GRACE_MS} from './lib/shutdown-deadline.js';
 
 const fastify = buildApp();
 
-closeWithGrace({delay: 500}, async ({signal, err}) => {
+closeWithGrace({delay: SHUTDOWN_GRACE_MS}, async ({signal, err}) => {
   if (err) {
     fastify.log.error(err, 'Server closing with error');
   } else {

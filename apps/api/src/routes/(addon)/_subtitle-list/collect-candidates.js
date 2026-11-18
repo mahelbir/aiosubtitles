@@ -9,6 +9,7 @@ import {
   toCandidateCredentials,
 } from '../../../lib/subtitle-source-credentials.js';
 import {findPackRejectReason} from '../../../lib/subtitle-store/pack-binding.js';
+import {hasFreeDownloadPath} from '../../../lib/subtitle-store/read-video-candidates.js';
 
 export function collectVideoCandidates({
   cachedUserConfig,
@@ -57,10 +58,6 @@ export function readOpensubtitlesNotice({credentials}) {
     !opensubtitlesKinds.includes(CredentialKind.API_KEY)
     ? SubtitleNotice.OPENSUBTITLES_ACCOUNT_FIX
     : SubtitleNotice.OPENSUBTITLES_ACCOUNT;
-}
-
-export function hasFreeDownloadPath({fileFacts, hasOpensubtitlesV3Alias}) {
-  return fileFacts !== null || hasOpensubtitlesV3Alias;
 }
 
 function canSourceListUnstoredRows({cachedUserConfig, client}) {

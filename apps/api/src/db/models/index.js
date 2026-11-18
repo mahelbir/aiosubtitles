@@ -41,6 +41,9 @@ export function applyScopes() {
   SubtitleReferenceComparison.addScope('timeFamily', {
     attributes: SubtitleReferenceComparison.familyAttributes,
   });
+  SubtitleReferenceComparison.addScope('comparisonMethod', {
+    attributes: SubtitleReferenceComparison.methodAttributes,
+  });
   VideoVariant.addScope('play', {attributes: VideoVariant.playAttributes});
 }
 

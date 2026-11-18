@@ -9,6 +9,7 @@ import {buildMessageSrt} from '@repo/subtitle-core/file-format/message-srt.js';
 import {uuidV4} from '../../src/lib/common.js';
 import {RateLimitKey} from '../../src/lib/rate-limit.js';
 import {createSubtitleSourceRegistry} from '../../src/lib/subtitle-sources/subtitle-source-clients.js';
+import {SourceUnavailableError} from '../../src/lib/subtitle-sources/subtitle-source-errors.js';
 import {redis} from '../../src/redis/index.js';
 import {setTestAppOptions} from '../helpers/app.js';
 import {
@@ -51,6 +52,11 @@ beforeEach(() => {
   thesubtitledbClient.searchSubtitles
     .mockReset()
     .mockResolvedValue([makeSubtitleSourceHit()]);
+  thesubtitledbClient.downloadSubtitle.mockReset().mockRejectedValue(
+    new SourceUnavailableError({
+      subtitleSource: SubtitleSource.THESUBTITLEDB,
+    }),
+  );
 });
 
 async function createAddonUserConfig() {

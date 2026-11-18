@@ -692,6 +692,11 @@ describe('the subtitle list route', () => {
 
   it('records a hash variant and uses it for a later size-only request', async () => {
     const {userConfig} = await createListUserConfig();
+    vi.spyOn(thesubtitledbClient, 'downloadSubtitle').mockRejectedValue(
+      new SourceUnavailableError({
+        subtitleSource: SubtitleSource.THESUBTITLEDB,
+      }),
+    );
     const videoFilename = `${MOVIE_RELEASE}.mkv`;
     const [plainUrlCode, hashUrlCode] = await storeHits(MOVIE_ID, [
       makeHit({
