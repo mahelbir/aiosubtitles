@@ -12,6 +12,17 @@ export function expectPageTitle(page, title) {
   return expect(page).toHaveTitle(new RegExp(`^${escapeRegExp(title)}( |$)`));
 }
 
+export function readTokenColor(page, token) {
+  return page.evaluate(name => {
+    const probe = document.createElement('span');
+    probe.style.color = `var(${name})`;
+    document.body.append(probe);
+    const {color} = getComputedStyle(probe);
+    probe.remove();
+    return color;
+  }, token);
+}
+
 export function clickButton(page, name) {
   return page.getByRole('button', {name, exact: true}).click();
 }

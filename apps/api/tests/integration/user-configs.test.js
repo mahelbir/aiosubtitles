@@ -13,6 +13,7 @@ import {
 import {UserConfigCredential} from '../../src/db/models/user-config-credential.js';
 import {UserConfig} from '../../src/db/models/user-config.js';
 import {uuidV4} from '../../src/lib/common.js';
+import {sealCredentialSecret} from '../../src/lib/credential-secret.js';
 import {createSubtitleSourceRegistry} from '../../src/lib/subtitle-sources/subtitle-source-clients.js';
 import {SourceUnavailableError} from '../../src/lib/subtitle-sources/subtitle-source-errors.js';
 import {
@@ -391,6 +392,104 @@ describe('updating a configuration', () => {
     expect(stored.map(row => row.credentialStatus)).toEqual([
       CredentialStatus.UNCHECKED,
     ]);
+  });
+
+  it('changes a stored account password alone and keeps its username', async () => {
+    const {userConfig, userConfigCredentials} = await seedUserConfig([
+      {
+        subtitleSource: SubtitleSource.OPENSUBTITLES,
+        credentialKind: CredentialKind.ACCOUNT,
+        credentialSecret: {
+          username: ACCOUNT_USERNAME,
+          password: ACCOUNT_PASSWORD,
+        },
+      },
+    ]);
+    const [credential] = userConfigCredentials;
+    const sessionToken = await openSession(userConfig.id);
+    const newPassword = 'fixture-new-pass-5555';
+
+    const response = await patchCredentials({
+      userConfigId: userConfig.id,
+      sessionToken,
+      credentials: [
+        {
+          credentialId: credential.id,
+          subtitleSource: SubtitleSource.OPENSUBTITLES,
+          credentialKind: CredentialKind.ACCOUNT,
+          credentialSecret: {username: '', password: newPassword},
+        },
+      ],
+    });
+
+    expect(response.statusCode).toBe(StatusCodes.OK);
+    expect(readEnvelope(response).data.credentials).toEqual([
+      expect.objectContaining({
+        credentialId: credential.id,
+        maskedSecret: ACCOUNT_USERNAME,
+      }),
+    ]);
+    expect(checkOpensubtitlesCredential).toHaveBeenCalledWith(
+      expect.objectContaining({
+        username: ACCOUNT_USERNAME,
+        password: newPassword,
+      }),
+      expect.anything(),
+    );
+  });
+
+  it('refuses a password-only change when the stored account cannot be opened', async () => {
+    const {userConfig, userConfigCredentials} = await seedUserConfig([
+      {
+        subtitleSource: SubtitleSource.OPENSUBTITLES,
+        credentialKind: CredentialKind.ACCOUNT,
+        credentialSecret: {
+          username: ACCOUNT_USERNAME,
+          password: ACCOUNT_PASSWORD,
+        },
+      },
+    ]);
+    const [credential] = userConfigCredentials;
+    const unreadableSecret = sealCredentialSecret({
+      userConfigId: UNKNOWN_UUID_V4,
+      subtitleSource: SubtitleSource.OPENSUBTITLES,
+      credentialSecret: {
+        username: ACCOUNT_USERNAME,
+        password: ACCOUNT_PASSWORD,
+      },
+    });
+    await UserConfigCredential.update(
+      {credentialSecret: unreadableSecret},
+      {where: {id: credential.id}},
+    );
+    const sessionToken = await openSession(userConfig.id);
+
+    const response = await patchCredentials({
+      userConfigId: userConfig.id,
+      sessionToken,
+      credentials: [
+        {
+          credentialId: credential.id,
+          subtitleSource: SubtitleSource.OPENSUBTITLES,
+          credentialKind: CredentialKind.ACCOUNT,
+          credentialSecret: {username: '', password: 'fixture-new-pass-5555'},
+        },
+      ],
+    });
+
+    expect(response.statusCode).toBe(StatusCodes.UNPROCESSABLE_ENTITY);
+    expect(readEnvelope(response).data).toMatchObject({
+      errorCode: ErrorCode.VALIDATION_ERROR,
+      errors: [
+        {
+          field: 'credentials.0.credentialSecret.username',
+          message: 'Enter both the username and the password',
+        },
+      ],
+    });
+    const [stored] = await readStoredCredentials(userConfig.id);
+    expect(stored.credentialSecret).toBe(unreadableSecret);
+    expect(checkOpensubtitlesCredential).not.toHaveBeenCalled();
   });
 
   it('deletes a stored credential the patch leaves out', async () => {

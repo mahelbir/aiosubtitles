@@ -32,11 +32,11 @@ export function getDialog(page, name) {
 }
 
 export function getTab(page, name) {
-  return page.getByRole('tab', {name});
+  return page.getByRole('tab', {name, exact: true});
 }
 
 export function getTabPanel(page, name) {
-  return page.getByRole('tabpanel', {name});
+  return page.getByRole('tabpanel', {name, exact: true});
 }
 
 export function getCloseButton(dialog) {

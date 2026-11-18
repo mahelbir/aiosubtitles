@@ -26,6 +26,8 @@ export const CONFIGURE_SECTIONS = ConfigureSection.toList({
   extra: ({raw}) => ({icon: raw.icon, fieldNames: raw.fieldNames}),
 });
 
+export const SUBTITLE_SOURCE_TAB_URL_KEY = 'subtitleSource';
+
 export function findFieldSection(fieldName) {
   return CONFIGURE_SECTIONS.find(section =>
     section.fieldNames.includes(fieldName),

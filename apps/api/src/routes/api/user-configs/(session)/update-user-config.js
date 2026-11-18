@@ -1,13 +1,19 @@
+import {omitBy, pick} from 'es-toolkit';
 import {StatusCodes} from 'http-status-codes';
+import {ZodError} from 'zod';
 import {CredentialStatus} from '@repo/shared/constants/credential.js';
 import {
+  CHANGED_ACCOUNT_SECRET_MESSAGE,
   updateUserConfigSchema,
   userConfigSchema,
 } from '@repo/shared/schemas/user-config.js';
 import {sequelize} from '../../../../db/index.js';
 import {UserConfigCredential} from '../../../../db/models/user-config-credential.js';
 import {UserConfig} from '../../../../db/models/user-config.js';
-import {sealCredentialSecret} from '../../../../lib/credential-secret.js';
+import {
+  openCredentialSecret,
+  sealCredentialSecret,
+} from '../../../../lib/credential-secret.js';
 import {getSuccessEnvelopeSchema} from '../../../../lib/response.js';
 import {getSubtitleSourceRegistry} from '../../../_subtitle-source-registry.js';
 import {
@@ -77,7 +83,13 @@ export default async function (fastify, opts) {
 
 async function replaceCredentials({userConfigId, credentials, transaction}) {
   const storedCredentials = await UserConfigCredential.findAll({
-    attributes: ['id', 'userConfigId', 'subtitleSource', 'credentialKind'],
+    attributes: [
+      'id',
+      'userConfigId',
+      'subtitleSource',
+      'credentialKind',
+      'credentialSecret',
+    ],
     where: {userConfigId},
     transaction,
   });
@@ -105,7 +117,7 @@ async function replaceCredentials({userConfigId, credentials, transaction}) {
     ) {
       throw UserConfigCredential.notFound;
     }
-    keptWrites.push({stored, credential, credentialPosition});
+    keptWrites.push({stored, credential, credentialPosition, index});
   }
   const removedIds = storedCredentials
     .map(({id}) => id)
@@ -127,11 +139,49 @@ async function replaceCredentials({userConfigId, credentials, transaction}) {
   return [...changedKept.filter(Boolean), ...created];
 }
 
+function mergeStoredCredentialSecret({
+  userConfigId,
+  stored,
+  credentialSecret,
+  index,
+}) {
+  const enteredCredentialSecret = omitBy(
+    credentialSecret,
+    credentialSecretPart => credentialSecretPart === '',
+  );
+  const blankCredentialSecretParts = Object.keys(credentialSecret).filter(
+    credentialSecretPart => !(credentialSecretPart in enteredCredentialSecret),
+  );
+  if (blankCredentialSecretParts.length === 0) {
+    return enteredCredentialSecret;
+  }
+  const storedCredentialSecret = openCredentialSecret({
+    userConfigId,
+    subtitleSource: stored.subtitleSource,
+    sealedSecret: stored.credentialSecret,
+  });
+  if (storedCredentialSecret === null) {
+    throw new ZodError(
+      blankCredentialSecretParts.map(credentialSecretPart => ({
+        code: 'custom',
+        input: credentialSecret,
+        message: CHANGED_ACCOUNT_SECRET_MESSAGE,
+        path: ['credentials', index, 'credentialSecret', credentialSecretPart],
+      })),
+    );
+  }
+  return {
+    ...pick(storedCredentialSecret, blankCredentialSecretParts),
+    ...enteredCredentialSecret,
+  };
+}
+
 async function updateKeptCredential({
   userConfigId,
   stored,
   credential,
   credentialPosition,
+  index,
   transaction,
 }) {
   const isSecretChanged = Object.values(credential.credentialSecret).some(
@@ -145,7 +195,12 @@ async function updateKeptCredential({
         credentialSecret: sealCredentialSecret({
           userConfigId,
           subtitleSource: credential.subtitleSource,
-          credentialSecret: credential.credentialSecret,
+          credentialSecret: mergeStoredCredentialSecret({
+            userConfigId,
+            stored,
+            credentialSecret: credential.credentialSecret,
+            index,
+          }),
         }),
       }),
     },

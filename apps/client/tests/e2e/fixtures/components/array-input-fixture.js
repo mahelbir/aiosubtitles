@@ -4,7 +4,11 @@ import {useState} from 'react';
 import {useSearchParams} from 'next/navigation';
 import {z} from 'zod';
 import {httpUrlField} from '@repo/shared/schemas/common.js';
-import {ArrayInput, ArrayItemActions} from '@/components/form/array-input';
+import {
+  ArrayInput,
+  ArrayItemActions,
+  FilteredArrayInput,
+} from '@/components/form/array-input';
 import {Form} from '@/components/form/form';
 import {FormField} from '@/components/form/form-field';
 import {SubmitButton} from '@/components/form/submit-button';
@@ -25,6 +29,23 @@ const peopleFormSchema = z.object({
 });
 
 const linkFormSchema = z.object({links: z.array(httpUrlField).max(3)});
+
+const PETS = [
+  {kind: 'kedi', name: 'Tekir'},
+  {kind: 'köpek', name: 'Karabaş'},
+  {kind: 'kedi', name: 'Pamuk'},
+];
+
+const PET_LISTS = [
+  {kind: 'kedi', label: 'Kediler', itemLabel: 'Kedi', max: 3},
+  {kind: 'köpek', label: 'Köpekler', itemLabel: 'Köpek', max: 3},
+];
+
+const petFormSchema = z.object({
+  pets: z.array(
+    z.object({kind: z.string(), name: z.string().min(1, 'Ad gerekli')}),
+  ),
+});
 
 export function ArrayInputFixture() {
   const searchParams = useSearchParams();
@@ -52,9 +73,15 @@ export function ArrayInputFixture() {
     onSubmit: submit,
   });
   const tagForm = useAppForm({defaultValues: {tags: ['yeni']}});
+  const petForm = useAppForm({
+    schema: petFormSchema,
+    defaultValues: {pets: PETS},
+    onSubmit: submit,
+  });
   const fields = {
     ...useFieldStates(peopleForm),
     ...useFieldStates(linkForm),
+    ...useFieldStates(petForm),
   };
 
   return (
@@ -104,6 +131,35 @@ export function ArrayInputFixture() {
         <FormField name="tags" mode="array">
           <TextListInput label="Etiket" />
         </FormField>
+      </Form>
+      <Form form={petForm} aria-label="Hayvan formu">
+        {PET_LISTS.map(({kind, label, itemLabel, max}) => (
+          <FormField key={kind} name="pets" mode="array">
+            <FilteredArrayInput
+              label={label}
+              max={max}
+              addLabel={`${itemLabel} ekle`}
+              help="Sıralamayı oklarla değiştirin."
+              filter={pet => pet.kind === kind}
+              createItem={() => ({kind, name: ''})}
+            >
+              {({name, index}) => (
+                <FieldSet>
+                  <FieldLegend variant="label">
+                    {itemLabel} {index + 1}
+                  </FieldLegend>
+                  <div className="flex items-end gap-2">
+                    <FormField name={`${name}.name`} className="flex-1">
+                      <TextInput label="Ad" />
+                    </FormField>
+                    <ArrayItemActions />
+                  </div>
+                </FieldSet>
+              )}
+            </FilteredArrayInput>
+          </FormField>
+        ))}
+        <SubmitButton className="self-start">Hayvanları kaydet</SubmitButton>
       </Form>
       <div className="flex gap-2">
         <Button

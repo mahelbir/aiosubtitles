@@ -709,9 +709,9 @@ describe('credential edge cases', () => {
     ).toEqual([['credentials', 0, 'credentialSecret', 'password']]);
   });
 
-  it('refuses a stored account that keeps one string and replaces the other', () => {
+  it('lets a stored account change its password alone, keeping the stored username', () => {
     expect(
-      getIssueMessages(updateUserConfigSchema, {
+      updateUserConfigSchema.safeParse({
         credentials: [
           {
             credentialId: UUID,
@@ -720,20 +720,26 @@ describe('credential edge cases', () => {
             credentialSecret: {username: '', password: 'fixture-new-pass'},
           },
         ],
-      }),
-    ).toEqual(['Enter the username']);
-    expect(
-      getIssuePaths(updateUserConfigSchema, {
-        credentials: [
-          {
-            credentialId: UUID,
-            subtitleSource: 'opensubtitles',
-            credentialKind: 'account',
-            credentialSecret: {username: 'fixture-user', password: ''},
-          },
-        ],
-      }),
-    ).toEqual([['credentials', 0, 'credentialSecret', 'password']]);
+      }).success,
+    ).toBe(true);
+  });
+
+  it('refuses a new username on a stored account without a new password, naming both fields', () => {
+    const credentials = [
+      {
+        credentialId: UUID,
+        subtitleSource: 'opensubtitles',
+        credentialKind: 'account',
+        credentialSecret: {username: 'fixture-user', password: ''},
+      },
+    ];
+
+    expect(getIssuePaths(updateUserConfigSchema, {credentials})).toEqual([
+      ['credentials', 0, 'credentialSecret', 'password'],
+    ]);
+    expect(getIssueMessages(updateUserConfigSchema, {credentials})).toEqual([
+      'Enter both the username and the password',
+    ]);
   });
 
   it('replaces every string of a stored account', () => {

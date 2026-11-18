@@ -1,0 +1,145 @@
+'use client';
+
+import {useSelector} from '@tanstack/react-form';
+import {get} from 'es-toolkit/compat';
+import {CredentialKind} from '@repo/shared/constants/credential.js';
+import {
+  ArrayItemActions,
+  FilteredArrayInput,
+} from '@/components/form/array-input';
+import {FormField} from '@/components/form/form-field';
+import {TextInput} from '@/components/form/text-input';
+import {FieldLegend, FieldSet} from '@/components/ui/field';
+import {useFormContext} from '@/lib/form-context';
+import {useStoredCredential} from '../../hooks/use-stored-credentials';
+import {toCredentialFormValues} from '../../lib/credential-form-values';
+import {CredentialStatusBadge} from './credential-status-badge';
+import {CredentialQuota, CredentialQuotaTotal} from './opensubtitles-quota';
+
+const CREDENTIAL_LISTS = Object.freeze({
+  [CredentialKind.API_KEY]: {label: 'API keys', addLabel: 'Add API key'},
+  [CredentialKind.ACCOUNT]: {label: 'Accounts', addLabel: 'Add account'},
+  [CredentialKind.ACCESS_TOKEN]: {
+    label: 'Access tokens',
+    addLabel: 'Add access token',
+  },
+});
+
+const KEY_SECRET_INPUT = Object.freeze({
+  type: 'password',
+  autoComplete: 'off',
+  'data-1p-ignore': true,
+  'data-lpignore': 'true',
+});
+
+const CREDENTIAL_SECRET_PART_INPUTS = Object.freeze({
+  apiKey: {
+    ...KEY_SECRET_INPUT,
+    label: CredentialKind.label(CredentialKind.API_KEY),
+  },
+  username: {label: 'Username', type: 'text', autoComplete: 'off'},
+  password: {label: 'Password', type: 'password', autoComplete: 'new-password'},
+  accessToken: {
+    ...KEY_SECRET_INPUT,
+    label: CredentialKind.label(CredentialKind.ACCESS_TOKEN),
+  },
+});
+
+function CredentialItem({name, index, credentialKind}) {
+  const form = useFormContext();
+  const credentialId = useSelector(form.store, state =>
+    get(state.values, `${name}.credentialId`),
+  );
+  const storedCredential = useStoredCredential(credentialId);
+  const [firstSecretPart, ...otherSecretParts] =
+    CredentialKind.item(credentialKind).credentialSecretParts;
+  const placeholders = storedCredential
+    ? {
+        [firstSecretPart]: storedCredential.maskedSecret,
+        ...Object.fromEntries(
+          otherSecretParts.map(secretPart => [secretPart, '••••']),
+        ),
+      }
+    : {};
+
+  return (
+    <FieldSet className="gap-2">
+      <FieldLegend className="sr-only">
+        {`${CredentialKind.label(credentialKind)} ${index + 1}`}
+      </FieldLegend>
+      <div className="flex items-end gap-2">
+        {[firstSecretPart, ...otherSecretParts].map(secretPart => (
+          <FormField
+            key={secretPart}
+            name={`${name}.credentialSecret.${secretPart}`}
+            className="min-w-0 flex-1"
+          >
+            <TextInput
+              {...CREDENTIAL_SECRET_PART_INPUTS[secretPart]}
+              placeholder={placeholders[secretPart]}
+            />
+          </FormField>
+        ))}
+        <ArrayItemActions />
+      </div>
+      {storedCredential && (
+        <div className="flex flex-wrap items-center gap-2">
+          <CredentialStatusBadge
+            credentialStatus={storedCredential.credentialStatus}
+          />
+          <CredentialQuota storedCredential={storedCredential} />
+        </div>
+      )}
+    </FieldSet>
+  );
+}
+
+export function CredentialList({
+  subtitleSource,
+  credentialKind,
+  credentialLimit,
+  label,
+}) {
+  const form = useFormContext();
+  const otherKindCount = useSelector(
+    form.store,
+    state =>
+      state.values.credentials.filter(
+        credential =>
+          credential.subtitleSource === subtitleSource &&
+          credential.credentialKind !== credentialKind,
+      ).length,
+  );
+  const {label: defaultLabel, addLabel} = CREDENTIAL_LISTS[credentialKind];
+
+  return (
+    <>
+      <FormField name="credentials" mode="array">
+        <FilteredArrayInput
+          label={label ?? defaultLabel}
+          max={credentialLimit - otherKindCount}
+          addLabel={addLabel}
+          filter={credential =>
+            credential.subtitleSource === subtitleSource &&
+            credential.credentialKind === credentialKind
+          }
+          createItem={() =>
+            toCredentialFormValues({subtitleSource, credentialKind})
+          }
+        >
+          {({name, index}) => (
+            <CredentialItem
+              name={name}
+              index={index}
+              credentialKind={credentialKind}
+            />
+          )}
+        </FilteredArrayInput>
+      </FormField>
+      <CredentialQuotaTotal
+        subtitleSource={subtitleSource}
+        credentialKind={credentialKind}
+      />
+    </>
+  );
+}

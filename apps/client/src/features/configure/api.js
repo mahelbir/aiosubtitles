@@ -15,6 +15,11 @@ export const userConfigKeys = {
   detail: userConfigId => [...userConfigKeys.details(), userConfigId],
 };
 
+export const subtitleSourceKeys = {
+  all: ['subtitle-sources'],
+  lists: () => [...subtitleSourceKeys.all, 'list'],
+};
+
 function getUserConfigPath(userConfigId) {
   return `${USER_CONFIGS_PATH}/${userConfigId}`;
 }
@@ -115,6 +120,17 @@ export function useUserConfig(userConfigId, options) {
   );
 }
 
+export function useSubtitleSources(options) {
+  return useAppQuery(
+    {
+      queryKey: subtitleSourceKeys.lists(),
+      queryFn: listSubtitleSources,
+      staleTime: Infinity,
+    },
+    options,
+  );
+}
+
 export function useCreateUserConfig(options) {
   return useAppMutation(
     {isFormBound: true, gcTime: 0, mutationFn: createUserConfig},
@@ -154,12 +170,13 @@ export function useUpdateUserConfig(userConfigId, options) {
   );
 }
 
-function useLoadedUserConfigMutation(request, options) {
+const FORM_MUTATION_OPTIONS = {isFormBound: true, gcTime: 0};
+
+function useLoadedUserConfigMutation(request, selfOptions, options) {
   const {userConfigId, requestPassword} = useLoadedUserConfig();
   return useAppMutation(
     {
-      isFormBound: true,
-      gcTime: 0,
+      ...selfOptions,
       mutationFn: variables =>
         mutateWithUserConfigSession(userConfigId, sessionToken =>
           request({...variables, userConfigId, sessionToken}),
@@ -175,9 +192,25 @@ function useLoadedUserConfigMutation(request, options) {
 }
 
 export function useChangeUserConfigPassword(options) {
-  return useLoadedUserConfigMutation(changeUserConfigPassword, options);
+  return useLoadedUserConfigMutation(
+    changeUserConfigPassword,
+    FORM_MUTATION_OPTIONS,
+    options,
+  );
 }
 
 export function useDeleteUserConfig(options) {
-  return useLoadedUserConfigMutation(deleteUserConfig, options);
+  return useLoadedUserConfigMutation(
+    deleteUserConfig,
+    FORM_MUTATION_OPTIONS,
+    options,
+  );
+}
+
+export function useCheckUserConfigCredentials(options) {
+  return useLoadedUserConfigMutation(
+    checkUserConfigCredentials,
+    {invalidates: userConfigKeys.details()},
+    options,
+  );
 }

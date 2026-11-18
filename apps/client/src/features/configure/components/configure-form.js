@@ -4,8 +4,9 @@ import {useId, useState} from 'react';
 import {flushSync} from 'react-dom';
 import {useSelector} from '@tanstack/react-form';
 import {pick} from 'es-toolkit';
-import {CredentialKind} from '@repo/shared/constants/credential.js';
+import {useQueryState} from 'nuqs';
 import {SUBTITLE_LANGUAGE_LIMIT_DEFAULT} from '@repo/shared/constants/user-config.js';
+import {applySubtitleSourceSwitchLocks} from '@repo/shared/lib/subtitle-source-switch.js';
 import {
   createUserConfigSchema,
   updateUserConfigSchema,
@@ -19,16 +20,19 @@ import {useUpdateUserConfig} from '../api';
 import {
   CONFIGURE_SECTIONS,
   ConfigureSection,
+  SUBTITLE_SOURCE_TAB_URL_KEY,
   findFieldSection,
 } from '../config/configure-sections';
 import {useConfigureQuery} from '../hooks/use-configure-query';
 import {LoadedUserConfigContext} from '../hooks/use-loaded-user-config';
+import {StoredCredentialsContext} from '../hooks/use-stored-credentials';
 import {useUserConfigSessionToken} from '../hooks/use-user-config-session';
+import {toCredentialFormValues} from '../lib/credential-form-values';
 import {InstallSection, NewInstallSection} from './install/install-section';
 import {LanguagesSection} from './languages-section';
 import {PasswordDialog} from './password-dialog';
 import {SetPasswordDialog} from './set-password-dialog';
-import {SourcesSection} from './sources-section';
+import {SourcesSection} from './sources/sources-section';
 
 const newUserConfigSchema = createUserConfigSchema.omit({password: true});
 
@@ -39,29 +43,14 @@ const NEW_USER_CONFIG_VALUES = {
   credentials: [],
 };
 
-function toBlankCredentialSecret(credentialKind) {
-  return Object.fromEntries(
-    CredentialKind.item(credentialKind).credentialSecretParts.map(
-      credentialSecretPart => [credentialSecretPart, ''],
-    ),
-  );
-}
-
 function toFormValues(userConfig) {
   return {
-    ...pick(userConfig, [
-      'languageCodes',
-      'subtitleLanguageLimit',
-      'subtitleSourceSwitchStates',
-    ]),
-    credentials: userConfig.credentials.map(
-      ({credentialId, subtitleSource, credentialKind}) => ({
-        credentialId,
-        subtitleSource,
-        credentialKind,
-        credentialSecret: toBlankCredentialSecret(credentialKind),
-      }),
-    ),
+    ...pick(userConfig, ['languageCodes', 'subtitleLanguageLimit']),
+    subtitleSourceSwitchStates: applySubtitleSourceSwitchLocks({
+      switchStates: userConfig.subtitleSourceSwitchStates,
+      credentials: userConfig.credentials,
+    }),
+    credentials: userConfig.credentials.map(toCredentialFormValues),
   };
 }
 
@@ -73,15 +62,45 @@ function ConfigureFormLayout({
   installSection,
 }) {
   const [activeSection, setActiveSection] = useTabQuery(CONFIGURE_SECTIONS);
+  const [, setSubtitleSourceTab] = useQueryState(SUBTITLE_SOURCE_TAB_URL_KEY);
   const isDirty = useSelector(form.store, hasUnsavedChanges);
   const isSaving = useSelector(form.store, state => state.isSubmitting);
+
+  const lockCredentialedSwitches = () => {
+    const {subtitleSourceSwitchStates, credentials} = form.state.values;
+    const lockedSwitchStates = applySubtitleSourceSwitchLocks({
+      switchStates: subtitleSourceSwitchStates,
+      credentials,
+    });
+    if (lockedSwitchStates !== subtitleSourceSwitchStates) {
+      form.setFieldValue('subtitleSourceSwitchStates', lockedSwitchStates);
+    }
+  };
+
+  const prepareSubmit = () => {
+    const hasIssue = revealIssueSection();
+    if (!hasIssue) {
+      lockCredentialedSwitches();
+    }
+  };
 
   const revealIssueSection = () => {
     const [issue] = schema.safeParse(form.state.values).error?.issues ?? [];
     const issueSection = issue && findFieldSection(issue.path[0]);
-    if (issueSection && issueSection.value !== activeSection) {
-      flushSync(() => setActiveSection(issueSection.value));
+    if (!issueSection) {
+      return Boolean(issue);
     }
+    const issueCredential =
+      issue.path[0] === 'credentials'
+        ? form.state.values.credentials[issue.path[1]]
+        : undefined;
+    flushSync(() => {
+      setActiveSection(issueSection.value);
+      if (issueCredential) {
+        setSubtitleSourceTab(issueCredential.subtitleSource);
+      }
+    });
+    return true;
   };
 
   return (
@@ -101,7 +120,7 @@ function ConfigureFormLayout({
         id={formId}
         aria-label="Subtitle settings"
         hidden={activeSection === ConfigureSection.INSTALL}
-        onBeforeSubmit={revealIssueSection}
+        onBeforeSubmit={prepareSubmit}
       >
         <UnsavedChangesGuard />
         {activeSection === ConfigureSection.SOURCES && <SourcesSection />}
@@ -187,19 +206,23 @@ export function LoadedConfigureForm({userConfig}) {
         requestPassword: () => setIsPasswordDialogDismissed(false),
       }}
     >
-      <ConfigureFormLayout
-        form={form}
-        formId={formId}
-        schema={updateUserConfigSchema}
-        installSection={<InstallSection manifestUrl={userConfig.manifestUrl} />}
-      />
-      {!sessionToken && !isPasswordDialogDismissed && (
-        <PasswordDialog
-          userConfigId={userConfigId}
-          onClose={() => setIsPasswordDialogDismissed(true)}
-          onSignedIn={retrySave}
+      <StoredCredentialsContext value={userConfig.credentials}>
+        <ConfigureFormLayout
+          form={form}
+          formId={formId}
+          schema={updateUserConfigSchema}
+          installSection={
+            <InstallSection manifestUrl={userConfig.manifestUrl} />
+          }
         />
-      )}
+        {!sessionToken && !isPasswordDialogDismissed && (
+          <PasswordDialog
+            userConfigId={userConfigId}
+            onClose={() => setIsPasswordDialogDismissed(true)}
+            onSignedIn={retrySave}
+          />
+        )}
+      </StoredCredentialsContext>
     </LoadedUserConfigContext>
   );
 }

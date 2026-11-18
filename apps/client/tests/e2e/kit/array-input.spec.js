@@ -355,6 +355,145 @@ test.describe('array input', () => {
   });
 });
 
+function getPet(page, itemLabel, position) {
+  return page.getByRole('group', {
+    name: `${itemLabel} ${position}`,
+    exact: true,
+  });
+}
+
+function getPetName(page, itemLabel, position) {
+  return getPet(page, itemLabel, position).getByLabel('Ad');
+}
+
+function getPetAction(page, itemLabel, position, name) {
+  return getPet(page, itemLabel, position).getByRole('button', {name});
+}
+
+function expectPets(page, pets) {
+  return expectFieldValue(
+    page,
+    'pets',
+    pets.map(([kind, name]) => ({kind, name})),
+  );
+}
+
+test.describe('filtered array input', () => {
+  test('each list shows only the items its filter keeps, numbered within the list', async ({
+    page,
+  }) => {
+    await openFixture(page, 'array-input');
+
+    await Promise.all([
+      expect(getPetName(page, 'Kedi', 1)).toHaveValue('Tekir'),
+      expect(getPetName(page, 'Kedi', 2)).toHaveValue('Pamuk'),
+      expect(getPet(page, 'Kedi', 3)).toHaveCount(0),
+      expect(getPetName(page, 'Köpek', 1)).toHaveValue('Karabaş'),
+      expect(getPet(page, 'Köpek', 2)).toHaveCount(0),
+      expect(getPetAction(page, 'Kedi', 2, 'Move down')).toBeDisabled(),
+      expect(getPetAction(page, 'Köpek', 1, 'Move up')).toBeDisabled(),
+    ]);
+  });
+
+  test('moving an item swaps it with its list neighbour and leaves the other list in place', async ({
+    page,
+  }) => {
+    await openFixture(page, 'array-input');
+    await getPetAction(page, 'Kedi', 1, 'Move down').focus();
+
+    await page.keyboard.press('Enter');
+
+    await expect(getPetName(page, 'Kedi', 1)).toHaveValue('Pamuk');
+    await expect(getPetName(page, 'Kedi', 2)).toHaveValue('Tekir');
+    await expect(getPetAction(page, 'Kedi', 2, 'Move up')).toBeFocused();
+    await expectPets(page, [
+      ['kedi', 'Pamuk'],
+      ['köpek', 'Karabaş'],
+      ['kedi', 'Tekir'],
+    ]);
+  });
+
+  test('add appends a kept item and the cap counts only the list’s own items', async ({
+    page,
+  }) => {
+    await openFixture(page, 'array-input');
+    const addCat = page.getByRole('button', {name: 'Kedi ekle'});
+
+    await addCat.click();
+
+    await expect(getPetName(page, 'Kedi', 3)).toHaveValue('');
+    await expect(addCat).toBeDisabled();
+    await expect(page.getByRole('button', {name: 'Köpek ekle'})).toBeEnabled();
+    await expectPets(page, [
+      ['kedi', 'Tekir'],
+      ['köpek', 'Karabaş'],
+      ['kedi', 'Pamuk'],
+      ['kedi', ''],
+    ]);
+  });
+
+  test('remove drops the item from the whole list and focus stays in its own list', async ({
+    page,
+  }) => {
+    await openFixture(page, 'array-input');
+    await getPetAction(page, 'Kedi', 1, 'Remove').focus();
+
+    await page.keyboard.press('Enter');
+    await waitForAnimations(page);
+
+    await expect(getPetName(page, 'Kedi', 1)).toHaveValue('Pamuk');
+    await expect(getPetAction(page, 'Kedi', 1, 'Remove')).toBeFocused();
+    await expect(getPetName(page, 'Köpek', 1)).toHaveValue('Karabaş');
+    await expectPets(page, [
+      ['köpek', 'Karabaş'],
+      ['kedi', 'Pamuk'],
+    ]);
+  });
+
+  test('two lists on one field each describe their add button with a message of their own', async ({
+    page,
+  }) => {
+    await openFixture(page, 'array-input');
+    const messageIds = await Promise.all(
+      ['Kedi ekle', 'Köpek ekle'].map(name =>
+        page
+          .getByRole('button', {name, exact: true})
+          .getAttribute('aria-describedby'),
+      ),
+    );
+
+    expect(new Set(messageIds).size).toBe(2);
+    for (const messageId of messageIds) {
+      await expect(page.locator(`[id="${messageId}"]`)).toHaveCount(1);
+    }
+  });
+
+  test('an item’s error follows it through a move', async ({page}) => {
+    await openFixture(page, 'array-input');
+    const tekir = getPetName(page, 'Kedi', 1);
+    await tekir.press('ControlOrMeta+A');
+    await tekir.press('Backspace');
+    await page.keyboard.press('Tab');
+    await expect(tekir).toHaveAttribute('aria-invalid', 'true');
+
+    await getPetAction(page, 'Kedi', 1, 'Move down').click();
+
+    await expect(getPetName(page, 'Kedi', 2)).toHaveValue('');
+    await expect(getPetName(page, 'Kedi', 2)).toHaveAttribute(
+      'aria-invalid',
+      'true',
+    );
+    await expect(getPetName(page, 'Kedi', 1)).toHaveAttribute(
+      'aria-invalid',
+      'false',
+    );
+    await expect(getPetName(page, 'Köpek', 1)).toHaveAttribute(
+      'aria-invalid',
+      'false',
+    );
+  });
+});
+
 test.describe('text list input', () => {
   test('items are url boxes named by position holding a plain string list', async ({
     page,

@@ -11,7 +11,10 @@ import {
 } from '../../src/lib/subtitle-sources/subtitle-source-clients.js';
 import {
   OPENSUBTITLES_FIXTURE_QUOTA,
+  OPENSUBTITLES_PAST_QUOTA_RESET_AT,
+  OPENSUBTITLES_STALE_QUOTA_ACCOUNT,
   OPENSUBTITLES_VALID_ACCOUNT,
+  THESUBTITLEDB_LATE_API_KEY_PREFIX,
   THESUBTITLEDB_VALID_API_KEY,
 } from './fixture-credentials.js';
 
@@ -32,24 +35,50 @@ function toCredentialCheck(isValid, quota = UNCOUNTED_QUOTA) {
     credentialStatus: isValid
       ? CredentialStatus.VALID
       : CredentialStatus.INVALID,
-    ...quota,
     quotaResetAt: null,
+    ...quota,
   };
+}
+
+function checkOpensubtitlesAccount(credential) {
+  if (credential.credentialKind !== CredentialKind.ACCOUNT) {
+    return toCredentialCheck(false);
+  }
+  if (isMatch(credential, OPENSUBTITLES_VALID_ACCOUNT)) {
+    return toCredentialCheck(true, OPENSUBTITLES_FIXTURE_QUOTA);
+  }
+  if (isMatch(credential, OPENSUBTITLES_STALE_QUOTA_ACCOUNT)) {
+    return toCredentialCheck(true, {
+      ...OPENSUBTITLES_FIXTURE_QUOTA,
+      quotaResetAt: OPENSUBTITLES_PAST_QUOTA_RESET_AT,
+    });
+  }
+  return toCredentialCheck(false);
+}
+
+const checkedLateApiKeys = new Set();
+
+function checkLateApiKey(apiKey) {
+  if (!checkedLateApiKeys.has(apiKey)) {
+    checkedLateApiKeys.add(apiKey);
+    throw new Error('E2E fixture source misses its first credential check.');
+  }
+  return toCredentialCheck(true);
 }
 
 const CREDENTIAL_CHECKS = new Map([
   [
     SubtitleSource.THESUBTITLEDB,
-    async ({apiKey}) =>
-      toCredentialCheck(apiKey === THESUBTITLEDB_VALID_API_KEY),
+    async ({apiKey}) => {
+      if (apiKey.startsWith(THESUBTITLEDB_LATE_API_KEY_PREFIX)) {
+        return checkLateApiKey(apiKey);
+      }
+      return toCredentialCheck(apiKey === THESUBTITLEDB_VALID_API_KEY);
+    },
   ],
   [
     SubtitleSource.OPENSUBTITLES,
-    async credential =>
-      credential.credentialKind === CredentialKind.ACCOUNT &&
-      isMatch(credential, OPENSUBTITLES_VALID_ACCOUNT)
-        ? toCredentialCheck(true, OPENSUBTITLES_FIXTURE_QUOTA)
-        : toCredentialCheck(false),
+    async credential => checkOpensubtitlesAccount(credential),
   ],
 ]);
 

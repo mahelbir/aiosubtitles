@@ -4,6 +4,7 @@ import {
   openFixture,
   readDigest,
 } from '../lib/fixture-page.js';
+import {readTokenColor} from '../lib/page.js';
 import {expect, test} from '../lib/test.js';
 
 const PRESETS = [
@@ -13,17 +14,6 @@ const PRESETS = [
 
 function getAlerts(page, section) {
   return page.getByRole('region', {name: section}).getByRole('alert');
-}
-
-function readTokenColor(page, token) {
-  return page.evaluate(name => {
-    const probe = document.createElement('span');
-    probe.style.color = `var(${name})`;
-    document.body.append(probe);
-    const {color} = getComputedStyle(probe);
-    probe.remove();
-    return color;
-  }, token);
 }
 
 function readPlacement(alert) {

@@ -7,6 +7,12 @@ export const CredentialRequirement = Enum({
   NONE: {value: 'none', label: 'None'},
 });
 
+export const GlobalSwitchState = Enum({
+  ON: {value: 'on', label: 'On'},
+  OFF: {value: 'off', label: 'Off'},
+  MIXED: {value: 'mixed', label: 'Mixed'},
+});
+
 export const SubtitleSource = Enum({
   OPENSUBTITLES: {
     value: 'opensubtitles',

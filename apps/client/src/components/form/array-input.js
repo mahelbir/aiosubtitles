@@ -1,6 +1,6 @@
 'use client';
 
-import {createContext, use, useRef, useState} from 'react';
+import {createContext, use, useId, useRef, useState} from 'react';
 import {uniqueId} from 'es-toolkit/compat';
 import {
   ChevronDownIcon,
@@ -25,7 +25,9 @@ const fitItemKeys = (keys, count) =>
     ? keys.slice(0, count)
     : [...keys, ...createItemKeys(count - keys.length)];
 
-export function ArrayInput({
+const keepEveryItem = () => true;
+
+function ArrayListInput({
   label,
   help,
   className,
@@ -33,6 +35,8 @@ export function ArrayInput({
   addLabel = 'Add',
   disabled,
   readOnly,
+  filter,
+  listId,
   createItem,
   children,
 }) {
@@ -40,10 +44,15 @@ export function ArrayInput({
     help,
     props: {disabled},
   });
+  const listMessageId = listId ? `${messageId}-${listId}` : messageId;
+  const listDescribedBy = describedBy && listMessageId;
   const listRef = useAutoAnimate();
   const itemNodes = useRef(new Map());
   const addRef = useRef(null);
-  const count = field.state.value?.length ?? 0;
+  const itemIndexes = (field.state.value ?? []).flatMap((item, index) =>
+    filter(item) ? [index] : [],
+  );
+  const count = itemIndexes.length;
   const [storedKeys, setStoredKeys] = useState(() => createItemKeys(count));
   const itemKeys =
     storedKeys.length === count ? storedKeys : fitItemKeys(storedKeys, count);
@@ -71,9 +80,12 @@ export function ArrayInput({
     );
 
   const moveItem = (from, to) => {
-    field.moveValue(from, to);
+    const step = Math.sign(to - from);
+    for (let position = from; position !== to; position += step) {
+      field.swapValues(itemIndexes[position], itemIndexes[position + step]);
+    }
     setStoredKeys(itemKeys.toSpliced(from, 1).toSpliced(to, 0, itemKeys[from]));
-    revalidateItemsFrom(Math.min(from, to));
+    revalidateItemsFrom(itemIndexes[Math.min(from, to)]);
     focusItemAction(
       itemKeys[from],
       to < from ? ['up', 'down'] : ['down', 'up'],
@@ -82,7 +94,7 @@ export function ArrayInput({
 
   const removeItem = index => {
     const keptKeys = itemKeys.toSpliced(index, 1);
-    field.removeValue(index);
+    field.removeValue(itemIndexes[index]);
     setStoredKeys(keptKeys);
     focusItemAction(keptKeys[Math.min(index, keptKeys.length - 1)], ['remove']);
   };
@@ -109,7 +121,7 @@ export function ArrayInput({
                 removeItem,
               }}
             >
-              {children({name: `${field.name}[${index}]`, index})}
+              {children({name: `${field.name}[${itemIndexes[index]}]`, index})}
             </ArrayItemContext.Provider>
           ))}
           <div>
@@ -122,7 +134,7 @@ export function ArrayInput({
               onClick={() => field.pushValue(createItem())}
               onBlur={handleBlur}
               aria-invalid={Boolean(error)}
-              aria-describedby={describedBy}
+              aria-describedby={listDescribedBy}
             >
               <PlusIcon data-icon="inline-start" />
               {addLabel}
@@ -130,9 +142,18 @@ export function ArrayInput({
           </div>
         </FieldGroup>
       </FieldSet>
-      <FieldMessage id={messageId} error={error} help={help} />
+      <FieldMessage id={listMessageId} error={error} help={help} />
     </Field>
   );
+}
+
+export function ArrayInput(props) {
+  return <ArrayListInput {...props} filter={keepEveryItem} />;
+}
+
+export function FilteredArrayInput(props) {
+  const listId = useId();
+  return <ArrayListInput {...props} listId={listId} />;
 }
 
 export function ArrayItemActions({className}) {

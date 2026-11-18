@@ -35,6 +35,11 @@ const CREDENTIAL_SECRET_PART_MESSAGES = Object.freeze({
   accessToken: 'Enter the access token',
 });
 
+const KEPT_CREDENTIAL_SECRET_PARTS = ['username'];
+
+export const CHANGED_ACCOUNT_SECRET_MESSAGE =
+  'Enter both the username and the password';
+
 const subtitleSourceField = z.enum(SubtitleSource.values);
 
 const credentialKindField = z.enum(CredentialKind.values);
@@ -167,15 +172,35 @@ function getStoredCredentialSecretCheck(credentialKind) {
       const blankCredentialSecretParts = credentialSecretParts.filter(
         credentialSecretPart => credentialSecret[credentialSecretPart] === '',
       );
-      const isKeepingStoredSecret =
-        credentialId !== undefined &&
-        blankCredentialSecretParts.length === credentialSecretParts.length;
-      return isKeepingStoredSecret
-        ? []
-        : blankCredentialSecretParts.map(credentialSecretPart => ({
-            message: CREDENTIAL_SECRET_PART_MESSAGES[credentialSecretPart],
-            path: ['credentialSecret', credentialSecretPart],
-          }));
+      const toIssue = (credentialSecretPart, message) => ({
+        message:
+          message ?? CREDENTIAL_SECRET_PART_MESSAGES[credentialSecretPart],
+        path: ['credentialSecret', credentialSecretPart],
+      });
+      if (credentialId === undefined) {
+        return blankCredentialSecretParts.map(credentialSecretPart =>
+          toIssue(credentialSecretPart),
+        );
+      }
+      if (blankCredentialSecretParts.length === credentialSecretParts.length) {
+        return [];
+      }
+      const isChangingKeptPart = KEPT_CREDENTIAL_SECRET_PARTS.some(
+        credentialSecretPart =>
+          credentialSecretParts.includes(credentialSecretPart) &&
+          credentialSecret[credentialSecretPart] !== '',
+      );
+      return blankCredentialSecretParts
+        .filter(
+          credentialSecretPart =>
+            !KEPT_CREDENTIAL_SECRET_PARTS.includes(credentialSecretPart),
+        )
+        .map(credentialSecretPart =>
+          toIssue(
+            credentialSecretPart,
+            isChangingKeptPart ? CHANGED_ACCOUNT_SECRET_MESSAGE : undefined,
+          ),
+        );
     },
   );
 }
