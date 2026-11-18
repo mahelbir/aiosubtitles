@@ -37,6 +37,7 @@ const EXPECTED_SECRET_NAMES = [
   'BETASERIES_API_KEY',
   'THESUBTITLEDB_API_KEY',
   'ANISUB_ACCESS_TOKEN',
+  'STREMIO_COMMUNITY_SUBTITLES_TOKEN',
 ];
 const FIXTURE_SECRETS = {
   OPENSUBTITLES_API_KEY: 'fake-opensubtitles-api-key',
@@ -49,6 +50,7 @@ const FIXTURE_SECRETS = {
   BETASERIES_API_KEY: 'fake-betaseries-api-key',
   THESUBTITLEDB_API_KEY: 'fake-thesubtitledb-api-key',
   ANISUB_ACCESS_TOKEN: 'fake-anisub-access-token',
+  STREMIO_COMMUNITY_SUBTITLES_TOKEN: 'fake-stremio-community-subtitles-token',
 };
 const FIXTURE_VALUES = [
   ...Object.values(FIXTURE_SECRETS),
@@ -69,7 +71,7 @@ afterEach(() => {
 });
 
 describe('LIVE_SECRET_NAMES', () => {
-  it('lists exactly the ten live secret names', () => {
+  it('lists exactly the live secret names', () => {
     expect(LIVE_SECRET_NAMES.toSorted()).toEqual(
       EXPECTED_SECRET_NAMES.toSorted(),
     );

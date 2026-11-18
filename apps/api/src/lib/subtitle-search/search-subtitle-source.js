@@ -60,6 +60,16 @@ async function runSubtitleSourceSearch({
   const {subtitleSource} = client;
   const startedAtMs = Date.now();
   const readNowMs = () => nowMs + Date.now() - startedAtMs;
+  if (client.isSearchCredentialScoped) {
+    return runUncachedSearch({
+      client,
+      searchQuery,
+      credentials,
+      hasConfiguredCredential,
+      nowMs,
+      readNowMs,
+    });
+  }
   const languageSearches = searchQuery.languageCodes.map(languageCode => ({
     languageCode,
     searchCacheParts: toSearchCacheParts({
@@ -196,6 +206,69 @@ async function waitForLockedSearches(lockedSearches, {signal, nowMs}) {
   );
 }
 
+async function runUncachedSearch({
+  client,
+  searchQuery,
+  credentials,
+  hasConfiguredCredential,
+  nowMs,
+  readNowMs,
+}) {
+  const candidateCredentials = toCandidateCredentials({
+    credentials,
+    hasConfiguredCredential,
+    canUseWithoutCredential: client.canSearchWithoutCredential(),
+  });
+  if (candidateCredentials.length === 0) {
+    return [];
+  }
+  const subtitleSourceBreaker = await readSubtitleSourceBreaker(
+    client.subtitleSource,
+    nowMs,
+  );
+  if (subtitleSourceBreaker.isOpen) {
+    return [];
+  }
+  try {
+    return (
+      (await searchAndStore({
+        client,
+        searchQuery,
+        candidateCredentials,
+        readNowMs,
+      })) ?? []
+    );
+  } catch (error) {
+    logSearchFailure(client.subtitleSource, error, 'Live search failed.');
+    return [];
+  }
+}
+
+async function searchAndStore({
+  client,
+  searchQuery,
+  candidateCredentials,
+  readNowMs,
+}) {
+  const searchHits = await searchWithCredentials({
+    client,
+    searchQuery,
+    candidateCredentials,
+    readNowMs,
+  });
+  if (searchHits === null) {
+    return null;
+  }
+  const languageHits = searchHits.filter(searchHit =>
+    searchQuery.languageCodes.includes(searchHit.languageCode),
+  );
+  await persistSearchHits({
+    videoId: searchQuery.videoId,
+    searchHits: languageHits,
+  });
+  return languageHits;
+}
+
 async function runLiveSearch({
   client,
   searchQuery,
@@ -209,22 +282,15 @@ async function runLiveSearch({
   }
   const languageCodes = lockedSearches.map(({languageCode}) => languageCode);
   try {
-    const searchHits = await searchWithCredentials({
+    const languageHits = await searchAndStore({
       client,
       searchQuery: {...searchQuery, languageCodes},
       candidateCredentials,
       readNowMs,
     });
-    if (searchHits === null) {
+    if (languageHits === null) {
       return [];
     }
-    const languageHits = searchHits.filter(searchHit =>
-      languageCodes.includes(searchHit.languageCode),
-    );
-    await persistSearchHits({
-      videoId: searchQuery.videoId,
-      searchHits: languageHits,
-    });
     await writeSearchCacheEntries(
       lockedSearches.map(({languageCode, searchCacheParts}) => ({
         searchCacheParts,

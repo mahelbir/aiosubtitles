@@ -53,4 +53,9 @@ export const SUBTITLE_SOURCE_DESCRIPTIONS = Object.freeze({
   [SubtitleSource.TVSUBTITLES]: {
     helpText: "No key needed. Requests share the server's limits.",
   },
+  [SubtitleSource.STREMIO_COMMUNITY_SUBTITLES]: {
+    helpText:
+      'Requires your own token. Sign in, copy your install link, and paste it — the page accepts either the whole link or just the token and keeps only the token.',
+    keyPageUrl: 'https://stremio-community-subtitles.top/configure',
+  },
 });

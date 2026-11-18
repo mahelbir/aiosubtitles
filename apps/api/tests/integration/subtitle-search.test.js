@@ -1191,3 +1191,104 @@ describe('the search lock owner', () => {
     await expect(redis.get(lockKey)).resolves.toBeNull();
   });
 });
+
+describe('a credential-scoped search', () => {
+  const ownToken = 'scs-fixture_token-0001-abcdEFGH';
+  const otherToken = 'scs-other_token-0002-ijklMNOP';
+
+  function makeScopedClient(searchSubtitles) {
+    return createFixtureSubtitleSourceClient({
+      subtitleSource: SubtitleSource.STREMIO_COMMUNITY_SUBTITLES,
+      credentialKinds: [CredentialKind.ACCESS_TOKEN],
+      isSearchHashSensitive: true,
+      isSearchCredentialScoped: true,
+      canSearchWithoutCredential: vi.fn(() => false),
+      searchSubtitles,
+    });
+  }
+
+  function makeTokenCredentials(accessToken) {
+    return {
+      credentials: [
+        makeSubtitleSourceCredential({
+          credentialKind: CredentialKind.ACCESS_TOKEN,
+          apiKey: undefined,
+          accessToken,
+        }),
+      ],
+      hasConfiguredCredential: true,
+    };
+  }
+
+  it('searches live for every user and writes nothing to the search cache', async () => {
+    const ownHit = makeSubtitleSourceHit({
+      subtitleSource: SubtitleSource.STREMIO_COMMUNITY_SUBTITLES,
+      languageCode: 'tur',
+    });
+    const otherHit = makeSubtitleSourceHit({
+      subtitleSource: SubtitleSource.STREMIO_COMMUNITY_SUBTITLES,
+      languageCode: 'tur',
+    });
+    const client = makeScopedClient(
+      vi.fn(async (_, {accessToken}) =>
+        accessToken === ownToken ? [ownHit] : [otherHit],
+      ),
+    );
+
+    const ownHits = await searchSubtitleSource({
+      client,
+      searchQuery: makeTurkishQuery(),
+      ...makeTokenCredentials(ownToken),
+      nowMs: NOW_MS,
+    });
+    const otherHits = await searchSubtitleSource({
+      client,
+      searchQuery: makeTurkishQuery(),
+      ...makeTokenCredentials(otherToken),
+      nowMs: NOW_MS + 1000,
+    });
+    const ownAgainHits = await searchSubtitleSource({
+      client,
+      searchQuery: makeTurkishQuery(),
+      ...makeTokenCredentials(ownToken),
+      nowMs: NOW_MS + 2000,
+    });
+    await drainPendingSearches();
+
+    expect(ownHits).toEqual([ownHit]);
+    expect(otherHits).toEqual([otherHit]);
+    expect(ownAgainHits).toEqual([ownHit]);
+    expect(client.searchSubtitles).toHaveBeenCalledTimes(3);
+    expect(await Subtitle.count()).toBe(2);
+    expect(await redis.keys('subtitle-search-cache:v1:*')).toEqual([]);
+    expect(await redis.keys('subtitle-search-lock:v1:*')).toEqual([]);
+  });
+
+  it('searches nothing for a user without a token', async () => {
+    const client = makeScopedClient(
+      vi.fn(async () => [
+        makeSubtitleSourceHit({
+          subtitleSource: SubtitleSource.STREMIO_COMMUNITY_SUBTITLES,
+          languageCode: 'tur',
+        }),
+      ]),
+    );
+
+    await searchSubtitleSource({
+      client,
+      searchQuery: makeTurkishQuery(),
+      ...makeTokenCredentials(ownToken),
+      nowMs: NOW_MS,
+    });
+    const tokenlessHits = await searchSubtitleSource({
+      client,
+      searchQuery: makeTurkishQuery(),
+      ...WITHOUT_CREDENTIALS,
+      nowMs: NOW_MS + 1000,
+    });
+    await drainPendingSearches();
+
+    expect(tokenlessHits).toEqual([]);
+    expect(client.searchSubtitles).toHaveBeenCalledTimes(1);
+  });
+});

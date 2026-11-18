@@ -1,3 +1,4 @@
+import {isNil} from 'es-toolkit';
 import {z} from 'zod';
 import {CredentialKind, CredentialStatus} from '../constants/credential.js';
 import {
@@ -15,6 +16,7 @@ import {
   USER_CONFIG_PASSWORD_LENGTH_MAX,
   USER_CONFIG_PASSWORD_LENGTH_MIN,
 } from '../constants/user-config.js';
+import {readAccessToken} from '../lib/access-token.js';
 import {toPatchSchema} from '../lib/schema.js';
 import {
   baseUrlField,
@@ -39,6 +41,8 @@ const KEPT_CREDENTIAL_SECRET_PARTS = ['username'];
 
 export const CHANGED_ACCOUNT_SECRET_MESSAGE =
   'Enter both the username and the password';
+
+const UNREAD_ACCESS_TOKEN_MESSAGE = 'Paste your install link or its token';
 
 const subtitleSourceField = z.enum(SubtitleSource.values);
 
@@ -164,6 +168,40 @@ export function getCredentialLimitCheck() {
   });
 }
 
+function readEnteredAccessToken({subtitleSource, credentialSecret}) {
+  const accessTokenInput = credentialSecret?.accessToken;
+  return typeof accessTokenInput === 'string' && accessTokenInput !== ''
+    ? readAccessToken(subtitleSource, accessTokenInput)
+    : undefined;
+}
+
+function getAccessTokenCheck() {
+  return getCrossFieldIssueCheck(
+    ['subtitleSource', 'credentialSecret'],
+    credential =>
+      readEnteredAccessToken(credential) === null
+        ? [
+            {
+              message: UNREAD_ACCESS_TOKEN_MESSAGE,
+              path: ['credentialSecret', 'accessToken'],
+            },
+          ]
+        : [],
+  );
+}
+
+function getAccessTokenOverwrite() {
+  return z.overwrite(credential => {
+    const accessToken = readEnteredAccessToken(credential);
+    return isNil(accessToken)
+      ? credential
+      : {
+          ...credential,
+          credentialSecret: {...credential.credentialSecret, accessToken},
+        };
+  });
+}
+
 function getStoredCredentialSecretCheck(credentialKind) {
   const credentialSecretParts = getCredentialSecretParts(credentialKind);
   return getCrossFieldIssueCheck(
@@ -244,7 +282,11 @@ const createCredentialListField = getCredentialListField(credentialKind =>
       credentialKind: z.literal(credentialKind),
       credentialSecret: getCredentialSecretField(credentialKind),
     })
-    .check(getCredentialKindCheck()),
+    .check(
+      getCredentialKindCheck(),
+      getAccessTokenCheck(),
+      getAccessTokenOverwrite(),
+    ),
 );
 
 const updateCredentialListField = getCredentialListField(credentialKind =>
@@ -258,6 +300,8 @@ const updateCredentialListField = getCredentialListField(credentialKind =>
     .check(
       getCredentialKindCheck(),
       getStoredCredentialSecretCheck(credentialKind),
+      getAccessTokenCheck(),
+      getAccessTokenOverwrite(),
     ),
 );
 

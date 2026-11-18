@@ -972,3 +972,109 @@ describe('response schemas', () => {
     }
   });
 });
+
+describe('Community Subtitles token field', () => {
+  const communityToken = 'scs-fixture_token-0001-abcdEFGH';
+  const communityTokenPath = [
+    'credentials',
+    0,
+    'credentialSecret',
+    'accessToken',
+  ];
+  const tokenInputs = [
+    communityToken,
+    `https://stremio-community-subtitles.top/${communityToken}/manifest.json`,
+    `stremio://stremio-community-subtitles.top/${communityToken}/manifest.json`,
+    `http://stremio-community-subtitles.top/${communityToken}/manifest.json`,
+    `  https://stremio-community-subtitles.top/${communityToken}/manifest.json  `,
+  ];
+  const noTokenInputs = [
+    'https://stremio-community-subtitles.top/configure',
+    'https://stremio-community-subtitles.top/manifest.json',
+    'not a token',
+    'short',
+    `stremio-community-subtitles.top/${communityToken}/manifest.json/extra`,
+  ];
+
+  function readAccessToken(schema, input) {
+    return schema.parse(input).credentials[0].credentialSecret.accessToken;
+  }
+
+  it('keeps only the token from a link or a bare token on create', () => {
+    for (const tokenInput of tokenInputs) {
+      expect(
+        readAccessToken(
+          createUserConfigSchema,
+          getNewConfig({
+            credentials: [
+              getAccessTokenCredential(
+                'stremio-community-subtitles',
+                tokenInput,
+              ),
+            ],
+          }),
+        ),
+      ).toBe(communityToken);
+    }
+  });
+
+  it('keeps only the token from a link or a bare token on update', () => {
+    for (const tokenInput of tokenInputs) {
+      expect(
+        readAccessToken(updateUserConfigSchema, {
+          credentials: [
+            {
+              credentialId: UUID,
+              ...getAccessTokenCredential(
+                'stremio-community-subtitles',
+                tokenInput,
+              ),
+            },
+          ],
+        }),
+      ).toBe(communityToken);
+    }
+  });
+
+  it('flags the token field for a value that holds no token', () => {
+    for (const noTokenInput of noTokenInputs) {
+      expect(
+        getIssuePaths(
+          createUserConfigSchema,
+          getNewConfig({
+            credentials: [
+              getAccessTokenCredential(
+                'stremio-community-subtitles',
+                noTokenInput,
+              ),
+            ],
+          }),
+        ),
+      ).toEqual([communityTokenPath]);
+    }
+  });
+
+  it('keeps a blank token on a stored credential', () => {
+    expect(
+      readAccessToken(updateUserConfigSchema, {
+        credentials: [
+          {
+            credentialId: UUID,
+            ...getAccessTokenCredential('stremio-community-subtitles', ''),
+          },
+        ],
+      }),
+    ).toBe('');
+  });
+
+  it('leaves another source access token as entered', () => {
+    expect(
+      readAccessToken(
+        createUserConfigSchema,
+        getNewConfig({
+          credentials: [getAccessTokenCredential('anisub', '7|anisub token')],
+        }),
+      ),
+    ).toBe('7|anisub token');
+  });
+});

@@ -32,6 +32,7 @@ import {
   readDownloadCredentials,
   readUsableCredentials,
 } from '../../src/lib/subtitle-source-credentials.js';
+import {stremioCommunitySubtitlesMapping} from '../../src/lib/subtitle-sources/stremio-community-subtitles/stremio-community-subtitles-mapping.js';
 import {SubtitleAliasSource} from '../../src/lib/subtitle-sources/subtitle-alias-source.js';
 import {createSubtitleSourceRegistry} from '../../src/lib/subtitle-sources/subtitle-source-clients.js';
 import {SubtitleSourceBudgetScope} from '../../src/lib/subtitle-sources/subtitle-source-contract.js';
@@ -137,8 +138,24 @@ const opensubtitlesV3Client = createFixtureSubtitleSourceClient({
   downloadSubtitle: vi.fn(),
 });
 
+const communityClient = createFixtureSubtitleSourceClient({
+  subtitleSource: SubtitleSource.STREMIO_COMMUNITY_SUBTITLES,
+  credentialKinds: [CredentialKind.ACCESS_TOKEN],
+  downloadBudgets: [
+    {
+      budgetScope: SubtitleSourceBudgetScope.CREDENTIAL,
+      windowMs: 60000,
+      requestMax: 10,
+    },
+  ],
+  canSearchWithoutCredential: vi.fn(() => false),
+  canDownloadWithoutCredential: vi.fn(() => false),
+  downloadSubtitle: vi.fn(),
+});
+
 const fixtureClients = [
   yifyClient,
+  communityClient,
   altyazidbClient,
   opensubtitlesClient,
   opensubtitlesV3Client,
@@ -660,6 +677,52 @@ describe('free background downloads', () => {
     }
 
     expect(altyazidbClient.downloadSubtitle).not.toHaveBeenCalled();
+  });
+
+  it('never downloads a Community Subtitles row in the background for a user with a token', async () => {
+    const accessToken = 'scs-fixture_token-0001-abcdEFGH';
+    const {cachedUserConfig} = await readJobUser({
+      credentials: [
+        {
+          subtitleSource: SubtitleSource.STREMIO_COMMUNITY_SUBTITLES,
+          credentialKind: CredentialKind.ACCESS_TOKEN,
+          credentialSecret: {accessToken},
+        },
+      ],
+    });
+    const communityHits = stremioCommunitySubtitlesMapping.toSearchHits(
+      {
+        status: StatusCodes.OK,
+        headers: {},
+        body: {
+          subtitles: [
+            {
+              id: STRONG_NAME,
+              url: `https://stremio-community-subtitles.top/${accessToken}/download/eyJhIjoxfQ.vtt`,
+              lang: 'eng',
+            },
+          ],
+        },
+      },
+      {languageCodes: ['eng']},
+    );
+    expect(communityHits).toHaveLength(1);
+    const candidates = await storeCandidates(communityHits);
+    expect(
+      candidatesOf(candidates, SubtitleSource.STREMIO_COMMUNITY_SUBTITLES),
+    ).toEqual([expect.objectContaining({isQuotaCostly: true})]);
+
+    const downloadedIds = await runFreeDownloads({
+      client: communityClient,
+      candidates,
+      cachedUserConfig,
+    });
+
+    expect(
+      readDownloadCredentials({cachedUserConfig, client: communityClient}),
+    ).toHaveLength(1);
+    expect(downloadedIds).toEqual([]);
+    expect(communityClient.downloadSubtitle).not.toHaveBeenCalled();
   });
 });
 

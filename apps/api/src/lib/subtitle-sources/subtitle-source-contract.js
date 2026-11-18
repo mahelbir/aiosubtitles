@@ -110,6 +110,7 @@ import {SubtitleAliasSource} from './subtitle-alias-source.js';
  * @property {string} subtitleSource
  * @property {string[]} credentialKinds
  * @property {boolean} isSearchHashSensitive
+ * @property {boolean} [isSearchCredentialScoped]
  * @property {DownloadBudget[]} downloadBudgets
  * @property {() => boolean} canSearchWithoutCredential
  * @property {() => boolean} canDownloadWithoutCredential

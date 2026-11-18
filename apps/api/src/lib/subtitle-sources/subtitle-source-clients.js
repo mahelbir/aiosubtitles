@@ -5,6 +5,7 @@ import {betaseriesClient} from './betaseries/betaseries-client.js';
 import {gestdownClient} from './gestdown/gestdown-client.js';
 import {opensubtitlesClient} from './opensubtitles/opensubtitles-client.js';
 import {opensubtitlesV3Client} from './opensubtitles-v3/opensubtitles-v3-client.js';
+import {stremioCommunitySubtitlesClient} from './stremio-community-subtitles/stremio-community-subtitles-client.js';
 import {subdlClient} from './subdl/subdl-client.js';
 import {subsourceClient} from './subsource/subsource-client.js';
 import {thesubtitledbClient} from './thesubtitledb/thesubtitledb-client.js';
@@ -39,6 +40,7 @@ export const {getSubtitleSourceClient, listSubtitleSourceClients} =
     gestdownClient,
     opensubtitlesClient,
     opensubtitlesV3Client,
+    stremioCommunitySubtitlesClient,
     subdlClient,
     subsourceClient,
     thesubtitledbClient,

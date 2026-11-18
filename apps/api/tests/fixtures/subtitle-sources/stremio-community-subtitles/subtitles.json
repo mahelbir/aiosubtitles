@@ -1,0 +1,24 @@
+{
+  "subtitles": [
+    {
+      "id": "Fixture.Movie.1994.1080p.BluRay.x264-GROUP_eng",
+      "url": "https://stremio-community-subtitles.top/scs-fixture_token-0001-abcdEFGH/download/eyJjb250ZW50X3R5cGUiOiJtb3ZpZSIsImNvbnRlbnRfaWQiOiJ0dDAxMTExNjEiLCJsYW5nIjoiZW5nIiwidl9oYXNoIjpudWxsLCJ2X3NpemUiOm51bGwsInZfZm5hbWUiOm51bGx9.vtt",
+      "lang": "eng"
+    },
+    {
+      "id": "Fixture.Movie.1994.1080p.BluRay.x264-GROUP_eng_ass",
+      "url": "https://stremio-community-subtitles.top/scs-fixture_token-0001-abcdEFGH/download/eyJjb250ZW50X3R5cGUiOiJtb3ZpZSIsImNvbnRlbnRfaWQiOiJ0dDAxMTExNjEiLCJsYW5nIjoiZW5nIiwidl9oYXNoIjpudWxsLCJ2X3NpemUiOm51bGwsInZfZm5hbWUiOm51bGx9.ass",
+      "lang": "eng"
+    },
+    {
+      "id": "tt0111161_eyJjb250_fra",
+      "url": "https://stremio-community-subtitles.top/scs-fixture_token-0001-abcdEFGH/download/eyJjb250ZW50X3R5cGUiOiJtb3ZpZSIsImNvbnRlbnRfaWQiOiJ0dDAxMTExNjEiLCJsYW5nIjoiZnJhIiwidl9oYXNoIjpudWxsLCJ2X3NpemUiOm51bGwsInZfZm5hbWUiOm51bGx9.srt",
+      "lang": "fra"
+    },
+    {
+      "id": "Fixture.Movie.1994.Unknown_xxx",
+      "url": "https://stremio-community-subtitles.top/scs-fixture_token-0001-abcdEFGH/download/eyJjb250ZW50X3R5cGUiOiJtb3ZpZSIsImNvbnRlbnRfaWQiOiJ0dDAxMTExNjEiLCJsYW5nIjoieHh4Iiwidl9oYXNoIjpudWxsLCJ2X3NpemUiOm51bGwsInZfZm5hbWUiOm51bGx9.vtt",
+      "lang": "xxx"
+    }
+  ]
+}

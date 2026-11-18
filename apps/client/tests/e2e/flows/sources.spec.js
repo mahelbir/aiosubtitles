@@ -109,6 +109,12 @@ const SOURCE_HELP = [
     keyPageUrl: null,
     helpText: "No key needed. Requests share the server's limits.",
   },
+  {
+    subtitleSource: SubtitleSource.STREMIO_COMMUNITY_SUBTITLES,
+    keyPageUrl: 'https://stremio-community-subtitles.top/configure',
+    helpText:
+      'Requires your own token. Sign in, copy your install link, and paste it — the page accepts either the whole link or just the token and keeps only the token.',
+  },
 ];
 
 function getSourceSwitch(panel, label) {
