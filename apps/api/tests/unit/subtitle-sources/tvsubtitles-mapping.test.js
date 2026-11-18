@@ -14,6 +14,9 @@ const SEASON_PAGE_FIXTURE = 'subtitle-sources/tvsubtitles/tvshow-2023-1.html';
 const EPISODE_PAGE_FIXTURE = 'subtitle-sources/tvsubtitles/episode-61938.html';
 const DOWNLOAD_PAGE_FIXTURE =
   'subtitle-sources/tvsubtitles/download-309819.html';
+const SEARCH_PAGE_FIXTURE = 'subtitle-sources/tvsubtitles/search2.html';
+const CAPTURE_EPISODE_REF = {showId: '2023', catalogSeason: 1};
+const EMPTY_EPISODE_REF = {showId: '1', catalogSeason: 1};
 const SITE_URL = 'https://www.tvsubtitles.net';
 const ZIP_NAME = 'Stranger Things_1x08_WebRip.NTb.en.zip';
 const ZIP_URL = `${SITE_URL}/files/Stranger%20Things_1x08_WebRip.NTb.en.zip`;
@@ -87,6 +90,7 @@ function toMissingResponse() {
 async function readCaptureHits(replacePage = pageText => pageText) {
   return tvsubtitlesMapping.toSearchHits(
     toPageResponse(replacePage(await readPage(EPISODE_PAGE_FIXTURE))),
+    CAPTURE_EPISODE_REF,
   );
 }
 
@@ -141,7 +145,7 @@ describe('tvsubtitlesMapping.buildSearchRequest', () => {
 
     expect(searchRequest).toMatchObject({
       subtitleSource: SubtitleSource.TVSUBTITLES,
-      url: `${SITE_URL}/search1.php`,
+      url: `${SITE_URL}/search2.php`,
       method: 'POST',
       responseType: 'text',
       acceptedStatuses: [],
@@ -196,6 +200,40 @@ describe('tvsubtitlesMapping.findShowId', () => {
     expect(
       tvsubtitlesMapping.findShowId(toPageResponse(SEARCH_PAGE), episodeQuery),
     ).toBe('2023');
+  });
+
+  it.each([null, 2016])(
+    'picks the show from the captured search page for year %s',
+    async catalogYear => {
+      expect(
+        tvsubtitlesMapping.findShowId(
+          toPageResponse(await readPage(SEARCH_PAGE_FIXTURE)),
+          {...episodeQuery, catalogYear},
+        ),
+      ).toBe('2023');
+    },
+  );
+
+  it('finds no show on the captured search page for a title it does not list', async () => {
+    expect(
+      tvsubtitlesMapping.findShowId(
+        toPageResponse(await readPage(SEARCH_PAGE_FIXTURE)),
+        {...episodeQuery, catalogTitle: 'Things', catalogYear: 2016},
+      ),
+    ).toBeNull();
+  });
+
+  it('treats the retired search page answer as an unavailable source', () => {
+    expect(
+      catchError(() =>
+        tvsubtitlesMapping.findShowId(
+          toPageResponse(
+            '<!DOCTYPE HTML PUBLIC "-//IETF//DTD HTML 2.0//EN"><html><head><title>404 Not Found</title></head><body><h1>Not Found</h1></body></html>',
+          ),
+          episodeQuery,
+        ),
+      ),
+    ).toBeInstanceOf(SourceUnavailableError);
   });
 
   it('compares the titles without case', () => {
@@ -553,7 +591,10 @@ describe('tvsubtitlesMapping.toSearchHits', () => {
 
   it('answers an episode page without subtitles with no hits', () => {
     expect(
-      tvsubtitlesMapping.toSearchHits(toPageResponse(EMPTY_EPISODE_PAGE)),
+      tvsubtitlesMapping.toSearchHits(
+        toPageResponse(EMPTY_EPISODE_PAGE),
+        EMPTY_EPISODE_REF,
+      ),
     ).toEqual([]);
   });
 
@@ -563,8 +604,42 @@ describe('tvsubtitlesMapping.toSearchHits', () => {
         toPageResponse(
           EMPTY_EPISODE_PAGE.replace('Subtitles for this episode:', ''),
         ),
+        EMPTY_EPISODE_REF,
       ),
     ).toEqual([]);
+  });
+
+  it.each([
+    ['another show', {showId: '2', catalogSeason: 1}],
+    ['another season', {showId: '1', catalogSeason: 2}],
+  ])(
+    'treats an episode page whose season link names %s as an unavailable source',
+    (_, episodeRef) => {
+      expect(
+        catchError(() =>
+          tvsubtitlesMapping.toSearchHits(
+            toPageResponse(EMPTY_EPISODE_PAGE),
+            episodeRef,
+          ),
+        ),
+      ).toBeInstanceOf(SourceUnavailableError);
+    },
+  );
+
+  it('ignores a sidebar season link of another show', () => {
+    const pageHtml = EMPTY_EPISODE_PAGE.replace(
+      '</body>',
+      '<div class="smallboxitem"><a href="/tvshow-793-14.html">Blue Bloods</a></div></body>',
+    );
+
+    expect(
+      catchError(() =>
+        tvsubtitlesMapping.toSearchHits(toPageResponse(pageHtml), {
+          showId: '793',
+          catalogSeason: 14,
+        }),
+      ),
+    ).toBeInstanceOf(SourceUnavailableError);
   });
 
   it('reads the subtitle blocks of an episode page without its subtitle heading', async () => {
@@ -587,7 +662,10 @@ describe('tvsubtitlesMapping.toSearchHits', () => {
 
     expect(
       catchError(() =>
-        tvsubtitlesMapping.toSearchHits(toPageResponse(pageHtml)),
+        tvsubtitlesMapping.toSearchHits(
+          toPageResponse(pageHtml),
+          CAPTURE_EPISODE_REF,
+        ),
       ),
     ).toBeInstanceOf(SourceUnavailableError);
   });
@@ -600,7 +678,10 @@ describe('tvsubtitlesMapping.toSearchHits', () => {
 
     expect(
       catchError(() =>
-        tvsubtitlesMapping.toSearchHits(toPageResponse(pageHtml)),
+        tvsubtitlesMapping.toSearchHits(
+          toPageResponse(pageHtml),
+          CAPTURE_EPISODE_REF,
+        ),
       ),
     ).toBeInstanceOf(SourceUnavailableError);
   });
@@ -608,21 +689,32 @@ describe('tvsubtitlesMapping.toSearchHits', () => {
   it('treats a page that is not a TVsubtitles page as an unavailable source', () => {
     expect(
       catchError(() =>
-        tvsubtitlesMapping.toSearchHits(toPageResponse(CHALLENGE_PAGE)),
+        tvsubtitlesMapping.toSearchHits(
+          toPageResponse(CHALLENGE_PAGE),
+          CAPTURE_EPISODE_REF,
+        ),
       ),
     ).toBeInstanceOf(SourceUnavailableError);
   });
 
   it('treats a missing episode page as an unavailable source', () => {
     expect(
-      catchError(() => tvsubtitlesMapping.toSearchHits(toMissingResponse())),
+      catchError(() =>
+        tvsubtitlesMapping.toSearchHits(
+          toMissingResponse(),
+          CAPTURE_EPISODE_REF,
+        ),
+      ),
     ).toBeInstanceOf(SourceUnavailableError);
   });
 
   it('treats a maintenance page of the site as an unavailable source', () => {
     expect(
       catchError(() =>
-        tvsubtitlesMapping.toSearchHits(toPageResponse(MAINTENANCE_PAGE)),
+        tvsubtitlesMapping.toSearchHits(
+          toPageResponse(MAINTENANCE_PAGE),
+          CAPTURE_EPISODE_REF,
+        ),
       ),
     ).toBeInstanceOf(SourceUnavailableError);
   });
@@ -635,7 +727,10 @@ describe('tvsubtitlesMapping.toSearchHits', () => {
 
     expect(
       catchError(() =>
-        tvsubtitlesMapping.toSearchHits(toPageResponse(pageHtml)),
+        tvsubtitlesMapping.toSearchHits(
+          toPageResponse(pageHtml),
+          CAPTURE_EPISODE_REF,
+        ),
       ),
     ).toBeInstanceOf(SourceUnavailableError);
   });
@@ -648,7 +743,10 @@ describe('tvsubtitlesMapping.toSearchHits', () => {
 
     expect(
       catchError(() =>
-        tvsubtitlesMapping.toSearchHits(toPageResponse(pageHtml)),
+        tvsubtitlesMapping.toSearchHits(
+          toPageResponse(pageHtml),
+          CAPTURE_EPISODE_REF,
+        ),
       ),
     ).toBeInstanceOf(SourceUnavailableError);
   });

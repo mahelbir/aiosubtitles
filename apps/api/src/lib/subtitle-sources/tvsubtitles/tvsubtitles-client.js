@@ -46,6 +46,7 @@ export const tvsubtitlesClient = {
         ...tvsubtitlesMapping.buildEpisodeRequest(episodeId),
         signal,
       }),
+      {showId, catalogSeason: searchQuery.catalogSeason},
     );
   },
   async downloadSubtitle(subtitleRef, credential, {signal} = {}) {

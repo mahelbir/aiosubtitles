@@ -20,7 +20,6 @@ const SHOW_LINK_PATTERN = /^\/?tvshow-(\d+)\.html$/;
 const SHOW_YEARS_PATTERN = /\((\d{4})(?:-\d{0,4})?\)\s*$/;
 const TITLE_TAG_PATTERN = /\s*\(([A-Z]{2}|\d{4})\)$/;
 const YEAR_TAG_PATTERN = /^\d{4}$/;
-const SEASON_LINK_PATTERN = /^tvshow-\d+-\d+\.html$/;
 const ANY_SUBTITLE_LINK_PATTERN = /^\/?subtitle-\d+\.html$/;
 const SHOW_YEAR_TOLERANCE = 1;
 const WHITESPACE_PATTERN = /\s+/g;
@@ -202,7 +201,7 @@ function buildSearchRequest({
   ) {
     return null;
   }
-  return buildRequest(`${TVSUBTITLES_SITE_URL}/search1.php`, 'text', {
+  return buildRequest(`${TVSUBTITLES_SITE_URL}/search2.php`, 'text', {
     method: 'POST',
     headers: {'Content-Type': 'application/x-www-form-urlencoded'},
     body: new URLSearchParams({qs: catalogTitle}).toString(),
@@ -230,9 +229,13 @@ function findShowId(response, {catalogTitle, catalogYear = null}) {
   );
 }
 
+function toSeasonPath(showId, catalogSeason) {
+  return `tvshow-${encodeURIComponent(showId)}-${catalogSeason}.html`;
+}
+
 function buildSeasonRequest(showId, {catalogSeason}) {
   return buildRequest(
-    `${TVSUBTITLES_SITE_URL}/tvshow-${encodeURIComponent(showId)}-${catalogSeason}.html`,
+    `${TVSUBTITLES_SITE_URL}/${toSeasonPath(showId, catalogSeason)}`,
     'text',
   );
 }
@@ -340,16 +343,17 @@ function toSearchHit({subtitleBlock, siteFileId, siteLanguageCode}) {
   };
 }
 
-function hasLinkMatching($, linkPattern) {
+function hasLinkMatching($, isLinkWanted) {
   return $('a[href]')
     .toArray()
-    .some(linkElement => linkPattern.test($(linkElement).attr('href') ?? ''));
+    .some(linkElement => isLinkWanted($(linkElement).attr('href') ?? ''));
 }
 
-function toSearchHits(response) {
+function toSearchHits(response, {showId, catalogSeason}) {
   throwUnlessFound(response);
   const $ = loadTvsubtitlesPage(response.body);
-  if (!hasLinkMatching($, SEASON_LINK_PATTERN)) {
+  const seasonLink = toSeasonPath(showId, catalogSeason);
+  if (!hasLinkMatching($, linkHref => linkHref === seasonLink)) {
     throw toUnavailableError('Episode page unreadable.');
   }
   const subtitleBlocks = $('div.subtitlen')
@@ -361,7 +365,8 @@ function toSearchHits(response) {
   );
   if (
     readableBlocks.length === 0 &&
-    (subtitleBlocks.length > 0 || hasLinkMatching($, ANY_SUBTITLE_LINK_PATTERN))
+    (subtitleBlocks.length > 0 ||
+      hasLinkMatching($, linkHref => ANY_SUBTITLE_LINK_PATTERN.test(linkHref)))
   ) {
     throw toUnavailableError('Subtitle blocks unreadable.');
   }
