@@ -1,0 +1,86 @@
+{
+  "matchingSubtitles": [
+    {
+      "subtitleId": "0VBJFixture0Sub000001A",
+      "version": "HDTV",
+      "completed": true,
+      "hearingImpaired": false,
+      "corrected": true,
+      "hd": false,
+      "downloadUri": "/subtitles/download/0VBJFixture0Sub000001A",
+      "language": "Portuguese (Brazil)",
+      "discovered": "2022-04-02T05:16:45.4001274",
+      "downloadCount": 100,
+      "source": "Addic7ed",
+      "qualities": [],
+      "release": null
+    },
+    {
+      "subtitleId": "0VBJFixture0Sub000002B",
+      "version": "WEB",
+      "completed": true,
+      "hearingImpaired": true,
+      "corrected": false,
+      "hd": true,
+      "downloadUri": "/subtitles/download/0VBJFixture0Sub000002B",
+      "language": "Portuguese (Brazil)",
+      "discovered": "2022-04-03T08:00:00.0000000",
+      "downloadCount": 7,
+      "source": "SuperSubtitles",
+      "qualities": ["720p", "1080p"],
+      "release": "Fixture.Show.S02E03.1080p.WEB.h264-GRP"
+    },
+    {
+      "subtitleId": "0VBJFixture0Sub000003C",
+      "version": "AMZN",
+      "completed": false,
+      "hearingImpaired": false,
+      "corrected": false,
+      "hd": true,
+      "downloadUri": "/subtitles/download/0VBJFixture0Sub000003C",
+      "language": "Portuguese (Brazil)",
+      "discovered": "2022-04-04T08:00:00.0000000",
+      "downloadCount": 0,
+      "source": "Addic7ed",
+      "qualities": ["1080p"],
+      "release": null
+    },
+    {
+      "subtitleId": "sp_5RtyFixture0Pack0001_ep_3",
+      "version": "Fixture.Show.S02.720p.BluRay.x264-PACK",
+      "completed": true,
+      "hearingImpaired": false,
+      "corrected": false,
+      "hd": true,
+      "downloadUri": "/subtitles/download/sp_5RtyFixture0Pack0001_ep_3",
+      "language": "Portuguese (Brazil)",
+      "discovered": "2022-05-01T10:00:00.0000000",
+      "downloadCount": 12,
+      "source": "SuperSubtitles",
+      "qualities": ["720p"],
+      "release": "Fixture.Show.S02.720p.BluRay.x264-PACK"
+    },
+    {
+      "subtitleId": "sp_5RtyFixture0Pack0002_entry_7HjkFixture0Entry001",
+      "version": "DUB",
+      "completed": true,
+      "hearingImpaired": true,
+      "corrected": false,
+      "hd": false,
+      "downloadUri": "/subtitles/download/sp_5RtyFixture0Pack0002_entry_7HjkFixture0Entry001",
+      "language": "Portuguese (Brazil)",
+      "discovered": "2022-05-02T10:00:00.0000000",
+      "downloadCount": 3,
+      "source": "SuperSubtitles",
+      "qualities": [],
+      "release": null
+    }
+  ],
+  "episode": {
+    "season": 2,
+    "number": 3,
+    "title": "Fixture Episode",
+    "show": "Fixture Show",
+    "discovered": "2022-04-02T05:16:45.3996669"
+  }
+}

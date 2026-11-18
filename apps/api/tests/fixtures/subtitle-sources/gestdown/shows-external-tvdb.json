@@ -1,0 +1,13 @@
+{
+  "shows": [
+    {
+      "id": "3kq7Fixture0Show00000A",
+      "name": "Fixture Show",
+      "nbSeasons": 3,
+      "seasons": [1, 2, 3],
+      "tvDbId": 81189,
+      "tmdbId": 1396,
+      "slug": "fixture-show"
+    }
+  ]
+}
