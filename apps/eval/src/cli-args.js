@@ -4,6 +4,7 @@ import {runExportDisagreements} from './commands/export-disagreements.js';
 import {runExportNames} from './commands/export-names.js';
 import {runInspect} from './commands/inspect.js';
 import {runParserTestCommand} from './commands/parser-test.js';
+import {runScoreTablesCommand} from './commands/score-tables.js';
 
 const GLOBAL_OPTIONS = {atlas: {type: 'string'}};
 const SENTENCE_END_PATTERN = /[.!?]?$/;
@@ -46,6 +47,10 @@ export const EVAL_COMMANDS = {
       'report-date': STRING_OPTION,
     },
     run: runParserTestCommand,
+  },
+  'score-tables': {
+    options: {'report-date': STRING_OPTION},
+    run: runScoreTablesCommand,
   },
 };
 

@@ -4,7 +4,7 @@ export const NEAR_DUPLICATE_TEXT_SIMILARITY_MIN = 0.9;
 
 const EARLY_EXIT_EPSILON = 1e-9;
 
-const measureTextSimilarity = (textA, textB) => {
+export const measureTextSimilarity = (textA, textB) => {
   const longerLength = Math.max(textA.length, textB.length);
   return longerLength === 0 ? 1 : 1 - distance(textA, textB) / longerLength;
 };

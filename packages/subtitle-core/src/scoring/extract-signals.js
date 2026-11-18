@@ -22,9 +22,9 @@ export const RELEASE_NAME_SIGNALS = Object.freeze([
 ]);
 
 const FRAME_RATE_TOLERANCE = 0.01;
-const CUE_SHAPE_MIN_END_SHARE = 0.5;
-const CUE_SHAPE_MAX_END_SHARE = 1.25;
-const CUE_SHAPE_MIN_CUES_PER_MINUTE = 1;
+export const CUE_SHAPE_MIN_END_SHARE = 0.5;
+export const CUE_SHAPE_MAX_END_SHARE = 1.25;
+export const CUE_SHAPE_MIN_CUES_PER_MINUTE = 1;
 const MS_PER_MINUTE = 60_000;
 
 const UNKNOWN_READING = Object.freeze({

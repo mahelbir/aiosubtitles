@@ -7,7 +7,7 @@ import {
   summarizeVideoMeans,
 } from './metric-math.js';
 
-const NEAR_DUPLICATE_THRESHOLD_BASE = 0.9;
+export const NEAR_DUPLICATE_THRESHOLD_BASE = 0.9;
 const CROSS_CLASS_THRESHOLD_STEP = 0.01;
 
 const groupByVideoCode = members =>

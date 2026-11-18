@@ -8,8 +8,13 @@ import {readCorpus} from './read-corpus.js';
 const getCasePrivateValues = evalCase => [
   evalCase.video.videoFilename,
   evalCase.video.videoHash,
-  ...evalCase.poolRows.flatMap(poolRow => [poolRow.rowId, poolRow.label]),
+  ...evalCase.poolRows.flatMap(poolRow => [
+    poolRow.rowId,
+    poolRow.label,
+    poolRow.siteIdentity?.siteFileId,
+  ]),
   ...evalCase.candidates.flatMap(candidate => [
+    candidate.candidateId,
     candidate.rowId,
     ...candidate.parsedRowId.releaseNames,
     candidate.rawSha256,

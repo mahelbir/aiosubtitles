@@ -8,6 +8,7 @@ import {
   SUBTITLE_CORE_SOURCE_TREE_PATH,
 } from '../eval-paths.js';
 import {runGit} from '../git-command.js';
+import {readJsonFile} from '../json-file.js';
 import {computeMetricsDigest} from '../metrics-lock.js';
 
 const SOURCE_TREE_PATHS = [
@@ -53,3 +54,14 @@ export const getCodeFingerprint = ({repositoryRoot = EVAL_APP_ROOT} = {}) => ({
       ...SOURCE_TREE_PATHS.map(treePath => `:(top)${treePath}`),
     ]) !== '',
 });
+
+export const readRunFingerprint = async atlasRoot => {
+  const corpusIndex = await readJsonFile(atlasPaths.corpusIndex(atlasRoot));
+  return {
+    corpusFingerprint: await computeCorpusFingerprint({
+      atlasRoot,
+      caseCodes: corpusIndex.cases.map(({code}) => code),
+    }),
+    codeFingerprint: getCodeFingerprint(),
+  };
+};

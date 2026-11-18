@@ -1,11 +1,16 @@
 import {NameDataset, ParserLibrary} from '../constants/parser-library.js';
 import {RESAMPLE_DRAW_COUNT, RESAMPLE_SEED} from '../metrics/resampling.js';
+import {
+  MISSING_CELL,
+  formatScore,
+  formatSpread,
+  formatTableRow,
+  formatTableRule,
+} from '../report/format-cells.js';
 import {PARSED_FIELD_NAMES} from './normalize-fields.js';
 
-const SCORE_DIGITS = 3;
 const PERCENT_SCALE = 100;
 const PERCENT_DIGITS = 1;
-const MISSING_CELL = '—';
 
 const FIELD_HEADERS = {
   releaseGroup: 'group',
@@ -36,12 +41,6 @@ const formatExternalCounts = countByDataset =>
     )
     .join(', ');
 
-const formatScore = scoreValue =>
-  scoreValue === null ? MISSING_CELL : scoreValue.toFixed(SCORE_DIGITS);
-
-const formatSpread = ({pointEstimate, lowerBound, upperBound}) =>
-  `${formatScore(pointEstimate)} [${formatScore(lowerBound)}, ${formatScore(upperBound)}]`;
-
 const formatRate = (numerator, denominator) =>
   denominator === 0
     ? MISSING_CELL
@@ -51,8 +50,6 @@ const formatFieldCell = ({correctCount, itemCount, accuracy}) =>
   itemCount === 0
     ? MISSING_CELL
     : `${formatScore(accuracy)} (${correctCount}/${itemCount})`;
-
-const formatTableRow = cells => `| ${cells.join(' | ')} |`;
 
 const formatDatasets = datasetNames =>
   datasetNames.map(datasetName => NameDataset.label(datasetName)).join(' + ');
@@ -117,9 +114,7 @@ const buildAccuracySection = ({libraryResults}) => [
         'Score [95% CI]',
         'n',
       ]),
-      formatTableRow(
-        Array.from({length: PARSED_FIELD_NAMES.length + 3}, () => '---'),
-      ),
+      formatTableRule(PARSED_FIELD_NAMES.length + 3),
       ...datasetResults.map(libraryResult =>
         formatTableRow([
           ParserLibrary.label(libraryResult.library),
@@ -156,7 +151,7 @@ const buildComparisonSection = ({pairComparisons}) => [
   'A wins only when the 95% interval of the paired difference excludes 0.',
   '',
   formatTableRow(['A', 'B', 'Names', 'A − B [95% CI]', 'n', 'Result']),
-  formatTableRow(Array.from({length: 6}, () => '---')),
+  formatTableRule(6),
   ...pairComparisons.map(pairComparison =>
     formatTableRow([
       ParserLibrary.label(pairComparison.libraryA),

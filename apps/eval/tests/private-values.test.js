@@ -46,6 +46,12 @@ describe('getPrivateValues', () => {
     );
   });
 
+  it('collects the candidate ids and the site file ids from the list urls', () => {
+    expect(privateValues).toEqual(
+      expect.arrayContaining(['V90/c1', 'V92/c2', '11-22-33', '7001']),
+    );
+  });
+
   it('lists each value once and skips missing ones', () => {
     expect(new Set(privateValues).size).toBe(privateValues.length);
     expect(privateValues.every(privateValue => privateValue)).toBe(true);
