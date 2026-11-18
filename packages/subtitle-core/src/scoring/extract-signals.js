@@ -185,6 +185,10 @@ export const extractCandidateSignals = ({candidate, video}) => ({
     SignalState.CONFLICT,
   ),
   [ScoringSignal.FORCED]: readFlag(candidate.isForced, SignalState.CONFLICT),
+  [ScoringSignal.QUOTA_COSTLY]: readFlag(
+    candidate.isQuotaCostly,
+    SignalState.CONFLICT,
+  ),
   [ScoringSignal.REFERENCE_FAMILY]: readState(
     readReferenceFamilyState(candidate.referenceComparison),
   ),

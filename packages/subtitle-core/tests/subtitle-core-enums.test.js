@@ -43,6 +43,7 @@ const enumMembers = [
       'INDEPENDENT_COPIES',
       'VARIANT_REFERENCE_FAMILY',
       'VARIANT_HASH_MATCH',
+      'QUOTA_COSTLY',
     ],
   ],
   [
@@ -99,7 +100,7 @@ const enumMembers = [
     DuplicateTier,
     ['IDENTITY', 'ALIAS', 'CONTENT_KEY', 'NEAR_DUPLICATE'],
   ],
-  ['ScoreTableMode', ScoreTableMode, ['ADDITIVE', 'STRICT_PRIORITY']],
+  ['ScoreTableMode', ScoreTableMode, ['ADDITIVE', 'STRICT_PRIORITY', 'TIERED']],
   ['SubtitleNotice', SubtitleNotice, ['OPENSUBTITLES_ACCOUNT']],
   [
     'SubtitleNote',

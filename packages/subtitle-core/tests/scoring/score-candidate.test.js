@@ -1,4 +1,5 @@
 import {describe, expect, it} from 'vitest';
+import {SubtitleSource} from '@repo/shared/constants/subtitle-source.js';
 import {
   ConfidenceWord,
   HardRejectReason,
@@ -354,22 +355,219 @@ describe('scoreSubtitleCandidate', () => {
     });
   });
 
-  it('does not penalise a paid subtitle', () => {
-    const rel = makeReleaseInfo();
-    const video = makeVideo();
-    const free = scoreSubtitleCandidate({
-      candidate: makeCandidate({isQuotaCostly: false}),
-      candidateReleases: [rel],
-      video,
-      scoreTable: AIOSUBTITLES_SCORE_TABLE,
+  describe('paid subtitles', () => {
+    const scorePaidAndFree = scoreTable =>
+      [false, true].map(isQuotaCostly =>
+        scoreSubtitleCandidate({
+          candidate: makeCandidate({isQuotaCostly}),
+          candidateReleases: [makeReleaseInfo()],
+          video: makeVideo(),
+          scoreTable,
+        }),
+      );
+
+    it('scores the quota signal through a table that weighs it', () => {
+      const [free, paid] = scorePaidAndFree(
+        makeScoreTable({
+          signalPoints: {
+            [ScoringSignal.QUOTA_COSTLY]: {matchPoints: 0, conflictPoints: -7},
+          },
+        }),
+      );
+      expect(paid).toMatchObject({
+        totalScore: -7,
+        signalPoints: {[ScoringSignal.QUOTA_COSTLY]: -7},
+      });
+      expect(free.totalScore).toBe(0);
     });
-    const paid = scoreSubtitleCandidate({
-      candidate: makeCandidate({isQuotaCostly: true}),
-      candidateReleases: [rel],
-      video,
-      scoreTable: AIOSUBTITLES_SCORE_TABLE,
+
+    it('does not penalise a paid subtitle', () => {
+      const [free, paid] = scorePaidAndFree(AIOSUBTITLES_SCORE_TABLE);
+      expect(paid.signalPoints).toMatchObject({
+        [ScoringSignal.QUOTA_COSTLY]: 0,
+      });
+      expect(paid.totalScore).toBe(free.totalScore);
     });
-    expect(paid.totalScore).toBe(free.totalScore);
+  });
+
+  describe('episode signal points', () => {
+    const KIND_TABLE = makeScoreTable({
+      signalPoints: {
+        [ScoringSignal.RELEASE_GROUP]: {matchPoints: 50, conflictPoints: 0},
+        [ScoringSignal.RELEASE_EDITION]: {matchPoints: 30, conflictPoints: 0},
+      },
+      episodeSignalPoints: {
+        [ScoringSignal.RELEASE_GROUP]: {matchPoints: 30, conflictPoints: 0},
+      },
+    });
+    const groupRelease = makeReleaseInfo({releaseGroup: 'NTb'});
+
+    it('takes the episode points for an episode video', () => {
+      expect(
+        score({
+          candidateReleases: [groupRelease],
+          video: makeVideo({
+            catalogSeason: 1,
+            catalogEpisode: 2,
+            videoRelease: makeReleaseInfo({releaseGroup: 'NTb'}),
+          }),
+          scoreTable: KIND_TABLE,
+        }),
+      ).toMatchObject({
+        totalScore: 30,
+        signalPoints: {
+          [ScoringSignal.RELEASE_GROUP]: 30,
+          [ScoringSignal.RELEASE_EDITION]: 0,
+        },
+      });
+    });
+
+    it('takes the base points for a movie video', () => {
+      expect(
+        score({candidateReleases: [groupRelease], scoreTable: KIND_TABLE}),
+      ).toMatchObject({
+        totalScore: 50,
+        signalPoints: {[ScoringSignal.RELEASE_GROUP]: 50},
+      });
+    });
+  });
+
+  describe('tiered tables', () => {
+    const TIERED_TABLE = makeScoreTable({
+      tableMode: ScoreTableMode.TIERED,
+      signalPoints: {
+        [ScoringSignal.QUOTA_COSTLY]: {matchPoints: 0, conflictPoints: -1},
+        [ScoringSignal.RELEASE_GROUP]: {matchPoints: 7, conflictPoints: -3},
+      },
+      tierOrder: [ScoringSignal.QUOTA_COSTLY],
+    });
+    const groupRelease = makeReleaseInfo({releaseGroup: 'NTb'});
+
+    it('keeps tier signals out of the total score', () => {
+      expect(
+        score({
+          candidate: makeCandidate({isQuotaCostly: true}),
+          candidateReleases: [groupRelease],
+          scoreTable: TIERED_TABLE,
+        }),
+      ).toMatchObject({
+        totalScore: 7,
+        priorityVector: [-1],
+        tierScore: 7,
+        signalPoints: {
+          [ScoringSignal.QUOTA_COSTLY]: -1,
+          [ScoringSignal.RELEASE_GROUP]: 7,
+        },
+      });
+    });
+
+    it('puts a free subtitle above a paid one with a higher score', () => {
+      const paidMatch = score({
+        candidate: makeCandidate({isQuotaCostly: true}),
+        candidateReleases: [groupRelease],
+        scoreTable: TIERED_TABLE,
+      });
+      const freeConflict = score({
+        candidateReleases: [makeReleaseInfo({releaseGroup: 'FLUX'})],
+        scoreTable: TIERED_TABLE,
+      });
+      expect([paidMatch, freeConflict].sort(compareScoreBreakdowns)).toEqual([
+        freeConflict,
+        paidMatch,
+      ]);
+    });
+
+    it('orders by total score inside one tier', () => {
+      const groupMatch = score({
+        candidateReleases: [groupRelease],
+        scoreTable: TIERED_TABLE,
+      });
+      const groupConflict = score({
+        candidateReleases: [makeReleaseInfo({releaseGroup: 'FLUX'})],
+        scoreTable: TIERED_TABLE,
+      });
+      expect([groupConflict, groupMatch].sort(compareScoreBreakdowns)).toEqual([
+        groupMatch,
+        groupConflict,
+      ]);
+    });
+
+    it('compares the total score by bucket when the table sets a bucket size', () => {
+      const bucketTable = {...TIERED_TABLE, scoreBucketSize: 10};
+      const groupMatch = score({
+        candidateReleases: [groupRelease],
+        scoreTable: bucketTable,
+      });
+      const noGroup = score({scoreTable: bucketTable});
+      expect(groupMatch).toMatchObject({totalScore: 7, tierScore: 0});
+      expect(noGroup).toMatchObject({totalScore: 0, tierScore: 0});
+      expect(compareScoreBreakdowns(groupMatch, noGroup)).toBe(0);
+    });
+
+    it('floors a negative total into the bucket below zero', () => {
+      expect(
+        score({
+          candidateReleases: [makeReleaseInfo({releaseGroup: 'FLUX'})],
+          scoreTable: {...TIERED_TABLE, scoreBucketSize: 10},
+        }),
+      ).toMatchObject({totalScore: -3, tierScore: -1});
+    });
+
+    it('leaves the tier score empty for additive and strict-priority tables', () => {
+      expect(score()).toMatchObject({tierScore: null});
+      expect(score({scoreTable: STRICT_TABLE})).toMatchObject({
+        tierScore: null,
+      });
+    });
+  });
+
+  describe('subtitle source points', () => {
+    const SUBTITLE_SOURCE_TABLE = makeScoreTable({
+      signalPoints: FIXTURE_POINTS,
+      subtitleSourcePoints: {[SubtitleSource.SUBDL]: 4},
+    });
+
+    it('adds the points of the candidate source once', () => {
+      expect(
+        score({
+          candidate: makeCandidate({subtitleSource: SubtitleSource.SUBDL}),
+          candidateReleases: [makeReleaseInfo(), makeReleaseInfo()],
+          scoreTable: SUBTITLE_SOURCE_TABLE,
+        }),
+      ).toMatchObject({totalScore: 4, subtitleSourcePoints: 4});
+    });
+
+    it('adds nothing for a source the table does not name', () => {
+      expect(
+        score({
+          candidate: makeCandidate({subtitleSource: SubtitleSource.YIFY}),
+          scoreTable: SUBTITLE_SOURCE_TABLE,
+        }),
+      ).toMatchObject({totalScore: 0, subtitleSourcePoints: 0});
+    });
+
+    it('adds source points to a request without video information', () => {
+      expect(
+        score({
+          candidate: makeCandidate({subtitleSource: SubtitleSource.SUBDL}),
+          candidateReleases: [],
+          scoreTable: SUBTITLE_SOURCE_TABLE,
+        }),
+      ).toMatchObject({totalScore: 4});
+    });
+
+    it('keeps source points out of the priority vector', () => {
+      expect(
+        score({
+          candidate: makeCandidate({subtitleSource: SubtitleSource.SUBDL}),
+          scoreTable: {
+            ...SUBTITLE_SOURCE_TABLE,
+            tableMode: ScoreTableMode.STRICT_PRIORITY,
+            priorityOrder: [ScoringSignal.RELEASE_GROUP],
+          },
+        }),
+      ).toMatchObject({totalScore: 4, priorityVector: [0]});
+    });
   });
 });
 
@@ -396,6 +594,24 @@ describe('compareScoreBreakdowns', () => {
   it('puts the lexicographically higher priority vector first', () => {
     const higher = makeBreakdown({priorityVector: [1, 0, 0]});
     const lower = makeBreakdown({priorityVector: [0, 9, 9]});
+    expect([lower, higher].sort(compareScoreBreakdowns)).toEqual([
+      higher,
+      lower,
+    ]);
+  });
+
+  it('compares the tier score after an equal priority vector', () => {
+    const higher = makeBreakdown({priorityVector: [0], tierScore: 3});
+    const lower = makeBreakdown({priorityVector: [0], tierScore: 1});
+    expect([lower, higher].sort(compareScoreBreakdowns)).toEqual([
+      higher,
+      lower,
+    ]);
+  });
+
+  it('lets the priority vector outrank the tier score', () => {
+    const higher = makeBreakdown({priorityVector: [0], tierScore: 1});
+    const lower = makeBreakdown({priorityVector: [-1], tierScore: 99});
     expect([lower, higher].sort(compareScoreBreakdowns)).toEqual([
       higher,
       lower,

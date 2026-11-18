@@ -303,11 +303,13 @@ describe('extractSignals', () => {
           isMachineTranslated: true,
           isHearingImpaired: true,
           isForced: true,
+          isQuotaCostly: true,
           siteDownloadCount: 1000,
         }),
         video: makeVideo(),
       });
       expect(signals).toMatchObject({
+        [ScoringSignal.QUOTA_COSTLY]: {signalState: SignalState.CONFLICT},
         [ScoringSignal.TRUSTED_UPLOADER]: {signalState: SignalState.MATCH},
         [ScoringSignal.MACHINE_TRANSLATED]: {
           signalState: SignalState.CONFLICT,
@@ -327,8 +329,19 @@ describe('extractSignals', () => {
         ScoringSignal.MACHINE_TRANSLATED,
         ScoringSignal.HEARING_IMPAIRED,
         ScoringSignal.FORCED,
+        ScoringSignal.QUOTA_COSTLY,
         ScoringSignal.DOWNLOAD_COUNT,
       ]);
+    });
+
+    it('reads a free subtitle as unknown on the quota signal', () => {
+      expectAllUnknown(
+        readSignals({
+          candidate: makeCandidate({isQuotaCostly: false}),
+          video: makeVideo(),
+        }),
+        [ScoringSignal.QUOTA_COSTLY],
+      );
     });
 
     it('takes copy and variant counts as magnitudes', () => {

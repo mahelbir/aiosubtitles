@@ -162,7 +162,12 @@ describe('AIOSUBTITLES_SCORE_TABLE', () => {
         conflictPoints: 0,
         maxPoints: 900,
       },
+      [ScoringSignal.QUOTA_COSTLY]: {matchPoints: 0, conflictPoints: 0},
     });
+  });
+
+  it('prefers no subtitle source', () => {
+    expect(AIOSUBTITLES_SCORE_TABLE.subtitleSourcePoints).toBeUndefined();
   });
 
   it('caps the download points at 10 for 1,000,000 downloads', () => {

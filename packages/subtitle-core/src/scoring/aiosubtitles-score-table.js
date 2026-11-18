@@ -1,23 +1,19 @@
-import {mapValues} from 'es-toolkit';
+import {deepFreeze} from 'es-toolkit';
 import {
   ScoreTableMode,
   ScoringSignal,
 } from '../constants/subtitle-core-enums.js';
 
-const freezeSignalPoints = signalPoints =>
-  Object.freeze(
-    mapValues(signalPoints, tablePoints => Object.freeze(tablePoints)),
-  );
-
-export const AIOSUBTITLES_SCORE_TABLE = Object.freeze({
+export const AIOSUBTITLES_SCORE_TABLE = deepFreeze({
   tableName: 'aiosubtitles',
-  tableCitations: Object.freeze([
+  tableCitations: [
     'docs/superpowers/specs/2026-11-17-aiosubtitles-design.md §9.2',
     'docs/superpowers/specs/2026-11-17-aiosubtitles-design.md §9.3',
     'docs/superpowers/specs/2026-11-17-aiosubtitles-design.md §9.5',
-  ]),
+    'docs/superpowers/2026-11-17-decision-ledger.md:18',
+  ],
   tableMode: ScoreTableMode.ADDITIVE,
-  signalPoints: freezeSignalPoints({
+  signalPoints: {
     [ScoringSignal.HASH_MATCH]: {matchPoints: 1000, conflictPoints: 0},
     [ScoringSignal.EXACT_NAME]: {matchPoints: 50, conflictPoints: 0},
     [ScoringSignal.RELEASE_GROUP]: {matchPoints: 40, conflictPoints: -10},
@@ -64,5 +60,6 @@ export const AIOSUBTITLES_SCORE_TABLE = Object.freeze({
       conflictPoints: 0,
       maxPoints: 900,
     },
-  }),
+    [ScoringSignal.QUOTA_COSTLY]: {matchPoints: 0, conflictPoints: 0},
+  },
 });

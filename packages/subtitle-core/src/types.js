@@ -101,7 +101,16 @@
  *     strongConflictPoints?: number,
  *     maxPoints?: number,
  *   }>,
+ *   episodeSignalPoints?: Object<string, {
+ *     matchPoints: number,
+ *     conflictPoints: number,
+ *     strongConflictPoints?: number,
+ *     maxPoints?: number,
+ *   }>,
  *   priorityOrder?: string[],
+ *   tierOrder?: string[],
+ *   scoreBucketSize?: number,
+ *   subtitleSourcePoints?: Object<string, number>,
  * }} ScoreTable
  */
 
@@ -110,9 +119,11 @@
  *   totalScore: number,
  *   hardRejectReason: string|null,
  *   signalPoints: Object<string, number>,
+ *   subtitleSourcePoints: number,
  *   bestReleaseIndex: number|null,
  *   confidenceWord: string|null,
  *   priorityVector: number[]|null,
+ *   tierScore: number|null,
  * }} ScoreBreakdown
  */
 

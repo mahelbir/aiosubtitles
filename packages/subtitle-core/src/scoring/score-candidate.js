@@ -1,4 +1,4 @@
-import {mapValues, sum} from 'es-toolkit';
+import {mapValues, omit, sum} from 'es-toolkit';
 import {
   ScoreTableMode,
   ScoringSignal,
@@ -38,16 +38,55 @@ const scoreSignalReading = ({signalState, signalMagnitude}, signalPoints) => {
     : Math.min(readingPoints, signalPoints.maxPoints);
 };
 
-const buildScoreBreakdown = ({signals, scoreTable, bestReleaseIndex}) => {
-  const signalPoints = mapValues(
-    scoreTable.signalPoints,
-    (tablePoints, scoringSignal) =>
-      scoreSignalReading(signals[scoringSignal], tablePoints),
+const readSubtitleSourcePoints = (subtitleSource, scoreTable) =>
+  scoreTable.subtitleSourcePoints?.[subtitleSource] ?? 0;
+
+const readTablePoints = (scoreTable, video) =>
+  video.catalogEpisode == null || scoreTable.episodeSignalPoints == null
+    ? scoreTable.signalPoints
+    : {...scoreTable.signalPoints, ...scoreTable.episodeSignalPoints};
+
+const readVectorOrder = scoreTable => {
+  switch (scoreTable.tableMode) {
+    case ScoreTableMode.STRICT_PRIORITY:
+      return scoreTable.priorityOrder;
+    case ScoreTableMode.TIERED:
+      return scoreTable.tierOrder;
+    default:
+      return null;
+  }
+};
+
+const readTierScore = (scoreTable, totalScore) => {
+  if (scoreTable.tableMode !== ScoreTableMode.TIERED) {
+    return null;
+  }
+  return scoreTable.scoreBucketSize == null
+    ? totalScore
+    : Math.floor(totalScore / scoreTable.scoreBucketSize);
+};
+
+const buildScoreBreakdown = ({
+  signals,
+  scoreTable,
+  tablePoints,
+  bestReleaseIndex,
+  subtitleSourcePoints,
+}) => {
+  const signalPoints = mapValues(tablePoints, (signalEntry, scoringSignal) =>
+    scoreSignalReading(signals[scoringSignal], signalEntry),
   );
+  const vectorOrder = readVectorOrder(scoreTable);
+  const summedPoints =
+    scoreTable.tableMode === ScoreTableMode.TIERED
+      ? omit(signalPoints, vectorOrder)
+      : signalPoints;
+  const totalScore = sum(Object.values(summedPoints)) + subtitleSourcePoints;
   return {
-    totalScore: sum(Object.values(signalPoints)),
+    totalScore,
     hardRejectReason: null,
     signalPoints,
+    subtitleSourcePoints,
     bestReleaseIndex,
     confidenceWord: getConfidenceWord({
       signals,
@@ -55,11 +94,9 @@ const buildScoreBreakdown = ({signals, scoreTable, bestReleaseIndex}) => {
         signals[ScoringSignal.HASH_MATCH].signalState === SignalState.MATCH,
     }),
     priorityVector:
-      scoreTable.tableMode === ScoreTableMode.STRICT_PRIORITY
-        ? scoreTable.priorityOrder.map(
-            scoringSignal => signalPoints[scoringSignal] ?? 0,
-          )
-        : null,
+      vectorOrder?.map(scoringSignal => signalPoints[scoringSignal] ?? 0) ??
+      null,
+    tierScore: readTierScore(scoreTable, totalScore),
   };
 };
 
@@ -73,9 +110,12 @@ export const compareScoreBreakdowns = (breakdownA, breakdownB) => {
     (priorityPoints, priorityIndex) =>
       priorityPoints !== vectorB[priorityIndex],
   );
-  return differingIndex < 0
+  if (differingIndex >= 0) {
+    return vectorB[differingIndex] - vectorA[differingIndex];
+  }
+  return breakdownA.tierScore == null || breakdownB.tierScore == null
     ? 0
-    : vectorB[differingIndex] - vectorA[differingIndex];
+    : breakdownB.tierScore - breakdownA.tierScore;
 };
 
 export const scoreSubtitleCandidate = ({
@@ -98,12 +138,19 @@ export const scoreSubtitleCandidate = ({
       totalScore: 0,
       hardRejectReason,
       signalPoints: {},
+      subtitleSourcePoints: 0,
       bestReleaseIndex: null,
       confidenceWord: null,
       priorityVector: null,
+      tierScore: null,
     };
   }
   const candidateSignals = extractCandidateSignals({candidate, video});
+  const subtitleSourcePoints = readSubtitleSourcePoints(
+    candidate.subtitleSource,
+    scoreTable,
+  );
+  const tablePoints = readTablePoints(scoreTable, video);
   const releaseChoices =
     candidateReleases.length === 0
       ? [{candidateRelease: null, releaseIndex: null}]
@@ -123,7 +170,9 @@ export const scoreSubtitleCandidate = ({
           ...extractReleaseSignals({candidate, candidateRelease, video}),
         },
         scoreTable,
+        tablePoints,
         bestReleaseIndex: releaseIndex,
+        subtitleSourcePoints,
       }),
     )
     .reduce((bestBreakdown, releaseBreakdown) =>

@@ -21,6 +21,7 @@ export const ScoringSignal = Enum({
   INDEPENDENT_COPIES: {value: 'independent-copies'},
   VARIANT_REFERENCE_FAMILY: {value: 'variant-reference-family'},
   VARIANT_HASH_MATCH: {value: 'variant-hash-match'},
+  QUOTA_COSTLY: {value: 'quota-costly'},
 });
 
 export const SignalState = Enum({
@@ -95,6 +96,7 @@ export const DuplicateTier = Enum({
 export const ScoreTableMode = Enum({
   ADDITIVE: {value: 'additive'},
   STRICT_PRIORITY: {value: 'strict-priority'},
+  TIERED: {value: 'tiered'},
 });
 
 export const SubtitleNote = Enum({
