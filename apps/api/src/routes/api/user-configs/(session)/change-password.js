@@ -1,13 +1,16 @@
 import {StatusCodes} from 'http-status-codes';
-import {changeUserConfigPasswordSchema} from '@repo/shared/schemas/user-config.js';
+import {
+  changeUserConfigPasswordSchema,
+  userConfigSessionSchema,
+} from '@repo/shared/schemas/user-config.js';
 import {sequelize} from '../../../../db/index.js';
 import {UserConfig} from '../../../../db/models/user-config.js';
 import {hashPassword} from '../../../../lib/crypto.js';
 import {getSuccessEnvelopeSchema} from '../../../../lib/response.js';
+import {readLockedPasswordHash} from '../../../../lib/user-config-password.js';
 import {
   USER_CONFIG_API_ROUTE_CONFIG,
   createPasswordAttemptCheck,
-  readLockedPasswordHash,
   userConfigParamsSchema,
 } from '../_user-config.js';
 
@@ -21,13 +24,15 @@ export default async function (fastify) {
       schema: {
         params: userConfigParamsSchema,
         body: changeUserConfigPasswordSchema,
-        response: {[StatusCodes.OK]: getSuccessEnvelopeSchema()},
+        response: {
+          [StatusCodes.OK]: getSuccessEnvelopeSchema(userConfigSessionSchema),
+        },
       },
     },
     async (request, reply) => {
       const {userConfigId} = request.params;
       const {currentPassword, newPassword} = request.body;
-      await sequelize.transaction(async transaction => {
+      const passwordHash = await sequelize.transaction(async transaction => {
         reply.abort(
           await assertPasswordAttempt(request, {
             password: currentPassword,
@@ -37,12 +42,22 @@ export default async function (fastify) {
             ),
           }),
         );
+        const newPasswordHash = hashPassword(newPassword);
         await UserConfig.update(
-          {passwordHash: hashPassword(newPassword)},
+          {passwordHash: newPasswordHash},
           {where: {id: userConfigId}, transaction},
         );
+        return newPasswordHash;
       });
-      return reply.success(null, 'Password changed.');
+      return reply.success(
+        {
+          sessionToken: await fastify.issueUserConfigSession({
+            userConfigId,
+            passwordHash,
+          }),
+        },
+        'Password changed.',
+      );
     },
   );
 }

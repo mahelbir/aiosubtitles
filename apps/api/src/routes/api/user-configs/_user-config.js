@@ -97,21 +97,6 @@ export function createPasswordAttemptCheck(fastify) {
   };
 }
 
-export async function readPasswordHash(userConfigId) {
-  const userConfig = await UserConfig.findByPk(userConfigId, {
-    attributes: ['id', 'passwordHash'],
-  });
-  return userConfig?.passwordHash ?? null;
-}
-
-export async function readLockedPasswordHash(userConfigId, transaction) {
-  const userConfig = await UserConfig.findOneLocked(
-    {attributes: ['id', 'passwordHash'], where: {id: userConfigId}},
-    transaction,
-  );
-  return userConfig?.passwordHash ?? null;
-}
-
 export function assertSubtitleSourcesAvailable(
   subtitleSourceRegistry,
   credentials = [],

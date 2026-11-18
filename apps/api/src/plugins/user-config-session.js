@@ -1,7 +1,9 @@
 import fp from 'fastify-plugin';
 import {config} from '../config/index.js';
+import {fingerprintPasswordHash, isSameSecret} from '../lib/crypto.js';
 import {unauthorized} from '../lib/errors.js';
 import {generateJwt, verifyJwt} from '../lib/jwt.js';
+import {readPasswordHash} from '../lib/user-config-password.js';
 
 export const USER_CONFIG_SESSION_TYPE = 'user-config-session';
 
@@ -9,7 +11,7 @@ const SESSION_REFUSAL = 'Your session expired. Enter your password again.';
 
 const BEARER_PREFIX = 'Bearer ';
 
-const REQUIRED_CLAIMS = ['sub'];
+const REQUIRED_CLAIMS = ['sub', 'passwordFingerprint'];
 
 const EXPECTED_TOKEN_ERRORS = new Set([
   'ERR_JWT_EXPIRED',
@@ -22,19 +24,26 @@ const EXPECTED_TOKEN_ERRORS = new Set([
 
 export default fp(
   async function userConfigSessionPlugin(fastify) {
-    fastify.decorate('issueUserConfigSession', userConfigId =>
+    fastify.decorate('issueUserConfigSession', ({userConfigId, passwordHash}) =>
       generateJwt(
-        {type: USER_CONFIG_SESSION_TYPE, seconds: config.userConfigSessionTtl},
-        {sub: userConfigId},
+        {
+          type: USER_CONFIG_SESSION_TYPE,
+          seconds: config.userConfigSessionTtl,
+        },
+        {
+          sub: userConfigId,
+          passwordFingerprint: fingerprintPasswordHash(passwordHash),
+        },
       ),
     );
 
     async function verifyUserConfigSession(request, reply) {
       const payload = await readSessionPayload(request);
-      if (
-        !payload ||
-        payload.sub !== request.params.userConfigId?.toLowerCase()
-      ) {
+      const isSessionValid =
+        payload !== null &&
+        payload.sub === request.params.userConfigId?.toLowerCase() &&
+        (await isPasswordUnchanged(payload));
+      if (!isSessionValid) {
         reply.abort(unauthorized(SESSION_REFUSAL));
       }
     }
@@ -44,6 +53,14 @@ export default fp(
   },
   {name: 'user-config-session'},
 );
+
+async function isPasswordUnchanged({sub, passwordFingerprint}) {
+  const passwordHash = await readPasswordHash(sub);
+  return (
+    passwordHash === null ||
+    isSameSecret(passwordFingerprint, fingerprintPasswordHash(passwordHash))
+  );
+}
 
 async function readSessionPayload(request) {
   const header = request.headers.authorization;

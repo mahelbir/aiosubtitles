@@ -6,10 +6,10 @@ import {
 } from '@repo/shared/schemas/user-config.js';
 import {isValidUuid} from '../../../lib/common.js';
 import {getSuccessEnvelopeSchema} from '../../../lib/response.js';
+import {readPasswordHash} from '../../../lib/user-config-password.js';
 import {
   USER_CONFIG_API_ROUTE_CONFIG,
   createPasswordAttemptCheck,
-  readPasswordHash,
 } from './_user-config.js';
 
 export default async function (fastify) {
@@ -39,7 +39,12 @@ export default async function (fastify) {
         }),
       );
       return reply.success(
-        {sessionToken: await fastify.issueUserConfigSession(userConfigId)},
+        {
+          sessionToken: await fastify.issueUserConfigSession({
+            userConfigId,
+            passwordHash,
+          }),
+        },
         'Session opened.',
       );
     },

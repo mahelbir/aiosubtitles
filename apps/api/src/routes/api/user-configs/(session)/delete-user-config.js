@@ -3,10 +3,10 @@ import {deleteUserConfigSchema} from '@repo/shared/schemas/user-config.js';
 import {sequelize} from '../../../../db/index.js';
 import {UserConfig} from '../../../../db/models/user-config.js';
 import {getSuccessEnvelopeSchema} from '../../../../lib/response.js';
+import {readLockedPasswordHash} from '../../../../lib/user-config-password.js';
 import {
   USER_CONFIG_API_ROUTE_CONFIG,
   createPasswordAttemptCheck,
-  readLockedPasswordHash,
   userConfigParamsSchema,
 } from '../_user-config.js';
 

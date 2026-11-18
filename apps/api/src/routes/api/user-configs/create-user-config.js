@@ -48,14 +48,11 @@ export default async function (fastify, opts) {
       if (!manifestUrl.success) {
         return reply.validationError(manifestUrl.error);
       }
+      const passwordHash = hashPassword(password);
       const userConfigCredentials = await sequelize.transaction(
         async transaction => {
           await UserConfig.create(
-            {
-              ...preferences,
-              id: userConfigId,
-              passwordHash: hashPassword(password),
-            },
+            {...preferences, id: userConfigId, passwordHash},
             {transaction},
           );
           const credentialPositions = getCredentialPositions(credentials);
@@ -72,7 +69,7 @@ export default async function (fastify, opts) {
         },
       );
       const [sessionToken] = await Promise.all([
-        fastify.issueUserConfigSession(userConfigId),
+        fastify.issueUserConfigSession({userConfigId, passwordHash}),
         checkCredentials({
           subtitleSourceRegistry,
           userConfigId,

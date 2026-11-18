@@ -15,7 +15,10 @@ type RateLimitIdentify = (
 
 declare module 'fastify' {
   interface FastifyInstance {
-    issueUserConfigSession(userConfigId: string): Promise<string>;
+    issueUserConfigSession(session: {
+      userConfigId: string;
+      passwordHash: string;
+    }): Promise<string>;
 
     verifyUserConfigSession(
       request: FastifyRequest,

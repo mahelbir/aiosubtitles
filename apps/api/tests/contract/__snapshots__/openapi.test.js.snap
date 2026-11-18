@@ -2266,11 +2266,17 @@ exports[`OpenAPI document > matches the recorded contract 1`] = `
                   "additionalProperties": false,
                   "properties": {
                     "data": {
-                      "enum": [
-                        null,
+                      "additionalProperties": false,
+                      "properties": {
+                        "sessionToken": {
+                          "minLength": 1,
+                          "type": "string",
+                        },
+                      },
+                      "required": [
+                        "sessionToken",
                       ],
-                      "nullable": true,
-                      "type": "string",
+                      "type": "object",
                     },
                     "message": {
                       "type": "string",

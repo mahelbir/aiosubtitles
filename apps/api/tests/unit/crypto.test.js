@@ -1,14 +1,19 @@
+import {createHash} from 'node:crypto';
 import {describe, expect, it} from 'vitest';
 import {
   decryptSecret,
   deriveSecretKey,
   encryptSecret,
+  fingerprintPasswordHash,
   hashPassword,
   isSameSecret,
   verifyPassword,
 } from '../../src/lib/crypto.js';
 
 const SEALED = {context: 'fixture:secret'};
+
+const STORED_PASSWORD_HASH =
+  '$2b$10$abcdefghijklmnopqrstuuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYa';
 
 const UPPER_HEX = {
   encode: bytes => Buffer.from(bytes).toString('hex').toUpperCase(),
@@ -205,5 +210,31 @@ describe('isSameSecret', () => {
   it('refuses a value that is not a string', () => {
     expect(isSameSecret(undefined, 'service-key')).toBe(false);
     expect(isSameSecret(['service-key'], 'service-key')).toBe(false);
+  });
+});
+
+describe('fingerprintPasswordHash', () => {
+  it('gives the same hash the same fingerprint', () => {
+    expect(fingerprintPasswordHash(STORED_PASSWORD_HASH)).toBe(
+      fingerprintPasswordHash(STORED_PASSWORD_HASH),
+    );
+  });
+
+  it('changes when the password hash changes', () => {
+    expect(fingerprintPasswordHash(STORED_PASSWORD_HASH)).not.toBe(
+      fingerprintPasswordHash(`${STORED_PASSWORD_HASH.slice(0, -1)}b`),
+    );
+  });
+
+  it('is a short url-safe digest that carries no part of the hash', () => {
+    const fingerprint = fingerprintPasswordHash(STORED_PASSWORD_HASH);
+    expect(fingerprint).toMatch(/^[\w-]{22}$/);
+    expect(STORED_PASSWORD_HASH).not.toContain(fingerprint);
+    expect(fingerprint).not.toBe(
+      createHash('sha256')
+        .update(STORED_PASSWORD_HASH)
+        .digest('base64url')
+        .slice(0, fingerprint.length),
+    );
   });
 });

@@ -9,6 +9,8 @@ const CIPHER_ALGORITHM = 'aes-256-gcm';
 const CIPHER_ENCODING = 'base64url';
 const PLAIN_ENCODING = 'utf8';
 const SECRET_DIGEST = 'sha256';
+const FINGERPRINT_LENGTH = 16;
+const FINGERPRINT_ENCODING = 'base64url';
 
 /** @typedef {'base64url'|'base64'|'hex'|null|{encode: function(Uint8Array): string, decode: function(string): Uint8Array}} CipherEncoding */
 
@@ -19,6 +21,8 @@ export function deriveSecretKey(purpose) {
 }
 
 const cipherKey = deriveSecretKey('secret');
+
+const passwordFingerprintKey = deriveSecretKey('password-fingerprint');
 
 /**
  * @param {string|Uint8Array} plain
@@ -123,6 +127,15 @@ export function verifyPassword(plain, hash) {
     return false;
   }
   return bcryptVerify(plain, hash, {key: config.secretKey});
+}
+
+export function fingerprintPasswordHash(passwordHash) {
+  return crypto
+    .createHmac(SECRET_DIGEST, passwordFingerprintKey)
+    .update(passwordHash)
+    .digest()
+    .subarray(0, FINGERPRINT_LENGTH)
+    .toString(FINGERPRINT_ENCODING);
 }
 
 export function isSameSecret(presented, expected) {
