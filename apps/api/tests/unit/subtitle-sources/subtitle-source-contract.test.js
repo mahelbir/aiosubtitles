@@ -12,6 +12,7 @@ import {
   subtitleSourceHitSchema,
   toHitReleaseNames,
   toHitSiteFileId,
+  toNullableBoolean,
   toSubtitleRowValues,
 } from '../../../src/lib/subtitle-sources/subtitle-source-contract.js';
 import {
@@ -202,6 +203,14 @@ describe('buildImdbVideoId', () => {
   it('names no series episode without its season or episode', () => {
     expect(buildImdbVideoId({...episode, catalogSeason: null})).toBeNull();
     expect(buildImdbVideoId({...episode, catalogEpisode: null})).toBeNull();
+  });
+});
+
+describe('toNullableBoolean', () => {
+  it('keeps a boolean and reads any other kind as unknown', () => {
+    expect(
+      [true, false, 'yes', 1, 0, null, undefined].map(toNullableBoolean),
+    ).toEqual([true, false, null, null, null, null, null]);
   });
 });
 

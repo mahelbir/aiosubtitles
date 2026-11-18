@@ -54,6 +54,7 @@ const CREDENTIAL_REJECTED_STATUSES = new Set([
 ]);
 const REDIRECT_PROTOCOLS = new Set(['http:', 'https:']);
 const JSON_CONTENT_TYPE_PATTERN = /^application\/(?:[\w.-]+\+)?json\b/i;
+const HTML_CONTENT_TYPE_PATTERN = /^text\/html\b/i;
 const BODY_KEEPING_REDIRECT_STATUSES = new Set([
   StatusCodes.TEMPORARY_REDIRECT,
   StatusCodes.PERMANENT_REDIRECT,
@@ -158,6 +159,19 @@ export function readSubtitleSourceContentType(headers) {
 export function isSubtitleSourceJsonResponse(headers) {
   return JSON_CONTENT_TYPE_PATTERN.test(
     readSubtitleSourceContentType(headers) ?? '',
+  );
+}
+
+export function isSubtitleSourceHtmlResponse(headers) {
+  return HTML_CONTENT_TYPE_PATTERN.test(
+    readSubtitleSourceContentType(headers) ?? '',
+  );
+}
+
+export function isSubtitleSourceErrorBodyResponse(headers) {
+  return (
+    isSubtitleSourceJsonResponse(headers) ||
+    isSubtitleSourceHtmlResponse(headers)
   );
 }
 

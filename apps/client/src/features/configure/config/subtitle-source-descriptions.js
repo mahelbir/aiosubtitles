@@ -30,6 +30,10 @@ export const SUBTITLE_SOURCE_DESCRIPTIONS = Object.freeze({
   [SubtitleSource.GESTDOWN]: {
     helpText: "No key needed. Requests share the server's limits.",
   },
+  [SubtitleSource.SUBDL]: {
+    helpText: 'Requires an API key.',
+    keyPageUrl: 'https://subdl.com/panel/api',
+  },
   [SubtitleSource.ANISUB]: {
     helpText:
       "Token optional. Without a token, downloads share the server's limit of 60 a minute across all users (server's shared IP). With your token, you get 1000 requests a day of your own.",

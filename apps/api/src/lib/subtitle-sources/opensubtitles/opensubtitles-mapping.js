@@ -14,7 +14,10 @@ import {
   toSiteLanguageCodes,
 } from '../site-language-codes.js';
 import {SubtitleAliasSource} from '../subtitle-alias-source.js';
-import {toHitReleaseNames} from '../subtitle-source-contract.js';
+import {
+  toHitReleaseNames,
+  toNullableBoolean,
+} from '../subtitle-source-contract.js';
 import {
   SourceCredentialError,
   SourceRateLimitError,
@@ -85,10 +88,6 @@ function isSiteFileId(siteFileId) {
 
 function toCount(siteCount) {
   return Number.isSafeInteger(siteCount) && siteCount >= 0 ? siteCount : null;
-}
-
-function toNullableBoolean(siteFlag) {
-  return typeof siteFlag === 'boolean' ? siteFlag : null;
 }
 
 function toUnavailableError(reason) {

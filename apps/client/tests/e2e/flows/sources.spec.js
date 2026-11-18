@@ -76,6 +76,11 @@ const SOURCE_HELP = [
     helpText: 'Requires an API key.',
   },
   {
+    subtitleSource: SubtitleSource.SUBDL,
+    keyPageUrl: 'https://subdl.com/panel/api',
+    helpText: 'Requires an API key.',
+  },
+  {
     subtitleSource: SubtitleSource.ANISUB,
     keyPageUrl: 'https://anisub.co/ayarlar',
     helpText:

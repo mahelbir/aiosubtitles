@@ -5,10 +5,13 @@ import {SubtitleLanguage} from '@repo/shared/constants/subtitle-language.js';
 import {SubtitleSource} from '@repo/shared/constants/subtitle-source.js';
 import {VideoType} from '@repo/shared/constants/video-type.js';
 import {SubtitleFileExtension} from '@repo/subtitle-core/constants/subtitle-core-enums.js';
-import {toHitReleaseNames} from '../subtitle-source-contract.js';
+import {
+  toHitReleaseNames,
+  toNullableBoolean,
+} from '../subtitle-source-contract.js';
 import {SourceUnavailableError} from '../subtitle-source-errors.js';
 import {
-  readSubtitleSourceContentType,
+  isSubtitleSourceErrorBodyResponse,
   readSubtitleSourceFileName,
   SUBTITLE_SOURCE_BROWSER_USER_AGENT,
   toSubtitleSourceStatusError,
@@ -21,8 +24,6 @@ const CREDENTIAL_CHECK_QUERY = 'matrix';
 const MACHINE_TRANSLATED_PATTERN = /(?:^|[^a-z])(?:machine|ai)(?:[^a-z]|$)/i;
 const SITE_WORD_SEPARATOR_PATTERN = /[\s/]+/g;
 const SITE_WORD_BRACKET_PATTERN = /[()]/g;
-const ERROR_BODY_CONTENT_TYPE_PATTERN =
-  /^(?:application\/(?:[\w.-]+\+)?json|text\/html)\b/i;
 const CREDENTIAL_STATUS_BY_STATUS = new Map([
   [StatusCodes.UNAUTHORIZED, CredentialStatus.INVALID],
   [StatusCodes.FORBIDDEN, CredentialStatus.INVALID],
@@ -160,10 +161,6 @@ function toLanguageCode(siteLanguage) {
 
 function toSiteWord(languageCode) {
   return SUBSOURCE_LANGUAGE_WORDS.get(languageCode)?.[0] ?? null;
-}
-
-function toNullableBoolean(siteValue) {
-  return typeof siteValue === 'boolean' ? siteValue : null;
 }
 
 function buildRequest(sitePath, searchParams, credential, requestOptions = {}) {
@@ -312,11 +309,7 @@ function toDownload(response) {
       subtitleSource: SubtitleSource.SUBSOURCE,
     });
   }
-  if (
-    ERROR_BODY_CONTENT_TYPE_PATTERN.test(
-      readSubtitleSourceContentType(response.headers) ?? '',
-    )
-  ) {
+  if (isSubtitleSourceErrorBodyResponse(response.headers)) {
     throw new SourceUnavailableError({
       subtitleSource: SubtitleSource.SUBSOURCE,
       cause: new Error('Error body in place of the archive.'),

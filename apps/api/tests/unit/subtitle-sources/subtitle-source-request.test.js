@@ -17,7 +17,9 @@ import {
   buildSubtitleSourceRequestOptions,
   findRedirectLocation,
   isPrivateSubtitleSourceUrl,
+  isSubtitleSourceErrorBodyResponse,
   isSubtitleSourceFileUrl,
+  isSubtitleSourceHtmlResponse,
   isSubtitleSourceJsonResponse,
   parseRetryAfterMs,
   readCappedBody,
@@ -1038,6 +1040,49 @@ describe('isSubtitleSourceJsonResponse', () => {
 
   it('reads an answer without a content type as no JSON answer', () => {
     expect(isSubtitleSourceJsonResponse({})).toBe(false);
+  });
+});
+
+describe('isSubtitleSourceHtmlResponse', () => {
+  it.each([
+    ['text/html', true],
+    ['TEXT/HTML; charset=utf-8', true],
+    ['application/json', false],
+    ['application/zip', false],
+  ])('reads %s as an HTML answer: %s', (contentType, isHtml) => {
+    expect(isSubtitleSourceHtmlResponse({'content-type': contentType})).toBe(
+      isHtml,
+    );
+  });
+
+  it('reads an answer without a content type as no HTML answer', () => {
+    expect(isSubtitleSourceHtmlResponse({})).toBe(false);
+  });
+});
+
+describe('isSubtitleSourceErrorBodyResponse', () => {
+  it.each([
+    'application/json; charset=utf-8',
+    'Application/Problem+JSON',
+    'text/html',
+    'TEXT/HTML; charset=utf-8',
+  ])('reads %s as an error body', contentType => {
+    expect(
+      isSubtitleSourceErrorBodyResponse({'content-type': contentType}),
+    ).toBe(true);
+  });
+
+  it.each(['application/zip', 'application/x-subrip', 'text/plain'])(
+    'reads %s as a file',
+    contentType => {
+      expect(
+        isSubtitleSourceErrorBodyResponse({'content-type': contentType}),
+      ).toBe(false);
+    },
+  );
+
+  it('reads an answer without a content type as a file', () => {
+    expect(isSubtitleSourceErrorBodyResponse({})).toBe(false);
   });
 });
 

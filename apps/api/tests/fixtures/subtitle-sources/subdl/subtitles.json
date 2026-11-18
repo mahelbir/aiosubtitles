@@ -1,0 +1,103 @@
+{
+  "status": true,
+  "results": [
+    {
+      "imdb_id": "tt9900001",
+      "tmdb_id": 990001,
+      "type": "tv",
+      "name": "Fixture Show",
+      "sd_id": 990001,
+      "first_air_date": "2024-01-01",
+      "year": 2024
+    }
+  ],
+  "subtitles": [
+    {
+      "release_name": "Fixture.Show.S01E03.1080p.WEB-DL-GROUP",
+      "name": "SUBDL::Fixture.Show.S01E03.1080p.WEB-DL-GROUP.zip",
+      "lang": "english",
+      "language": "EN",
+      "author": "fixture-uploader",
+      "url": "/subtitle/3197651-3213944.zip",
+      "season": 1,
+      "episode": 3,
+      "framerate": 2,
+      "fps": "23.976",
+      "hi": false,
+      "episode_from": 3,
+      "episode_end": 3,
+      "full_season": false,
+      "releases": [
+        "Fixture.Show.S01E03.1080p.WEB-DL-GROUP",
+        "Fixture.Show.S01E03.720p.WEB-DL-GROUP"
+      ]
+    },
+    {
+      "release_name": "Fixture.Show.S01E03.2160p.WEB-DL-OTHER",
+      "name": "SUBDL::Fixture.Show.S01E03.2160p.WEB-DL-OTHER.zip",
+      "lang": "turkish",
+      "language": "TR",
+      "author": "fixture-uploader",
+      "url": "/subtitle/3197652-3213945.zip",
+      "season": 1,
+      "episode": 3,
+      "framerate": 2,
+      "fps": null,
+      "hi": true,
+      "episode_from": 3,
+      "episode_end": 3,
+      "full_season": false,
+      "releases": []
+    },
+    {
+      "release_name": "Fixture.Show.S01.1080p.WEB-DL-GROUP",
+      "name": "SUBDL::Fixture.Show.S01.1080p.WEB-DL-GROUP.zip",
+      "lang": "brazillian portuguese",
+      "language": "BR_PT",
+      "author": "fixture-uploader",
+      "url": "/subtitle/3197653-3213946.zip",
+      "season": 1,
+      "episode": null,
+      "framerate": 0,
+      "fps": "25",
+      "hi": false,
+      "episode_from": 1,
+      "episode_end": 10,
+      "full_season": true
+    },
+    {
+      "release_name": "Fixture.Show.S01E03.1080p.WEB-DL-GROUP",
+      "name": "SUBDL::Fixture.Show.S01E03.1080p.WEB-DL-GROUP.zip",
+      "lang": "chinese bg code",
+      "language": "ZH_BG",
+      "author": "fixture-uploader",
+      "url": "/subtitle/3197654-3213947.zip",
+      "season": 1,
+      "episode": 3,
+      "framerate": 0,
+      "fps": null,
+      "hi": false,
+      "episode_from": 3,
+      "episode_end": 3,
+      "full_season": false,
+      "releases": ["Fixture.Show.S01E03.1080p.WEB-DL-GROUP"]
+    },
+    {
+      "release_name": "Fixture.Show.S01E03.1080p.WEB-DL-GROUP",
+      "name": "SUBDL::Fixture.Show.S01E03.1080p.WEB-DL-GROUP.zip",
+      "lang": "english",
+      "language": "XX_YY",
+      "author": "fixture-uploader",
+      "url": "/subtitle/3197655-3213948.zip",
+      "season": 1,
+      "episode": 3,
+      "framerate": 2,
+      "fps": "23.976",
+      "hi": false,
+      "episode_from": 3,
+      "episode_end": 3,
+      "full_season": false,
+      "releases": []
+    }
+  ]
+}

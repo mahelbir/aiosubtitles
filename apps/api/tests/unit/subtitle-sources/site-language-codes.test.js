@@ -91,6 +91,19 @@ describe('toSiteLanguageCodes', () => {
     expect(toSiteLanguageCodes(['tur', 'eng'])).toEqual(['tr', 'en']);
   });
 
+  it("asks a site's own codes in place of the shared site variants", () => {
+    expect(
+      toSiteLanguageCodes(
+        ['pob', 'zho', 'spa', 'spl', 'tur'],
+        SiteLanguageCodeStyle.TWO_LETTER,
+        new Map([
+          ['BR_PT', SubtitleLanguage.POB],
+          ['ZH_BG', SubtitleLanguage.ZHO],
+        ]),
+      ),
+    ).toEqual(['BR_PT', 'zh', 'ZH_BG', 'es', 'tr']);
+  });
+
   it('asks each site code once', () => {
     expect(toSiteLanguageCodes(['por', 'pob', 'por'])).toEqual([
       'pt',

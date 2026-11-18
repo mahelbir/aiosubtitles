@@ -1,5 +1,5 @@
 import {Enum} from 'enum-plus';
-import {isNil, uniq} from 'es-toolkit';
+import {isBoolean, isNil, uniq} from 'es-toolkit';
 import {z} from 'zod';
 import {SubtitleLanguage} from '@repo/shared/constants/subtitle-language.js';
 import {SubtitleSource} from '@repo/shared/constants/subtitle-source.js';
@@ -219,6 +219,10 @@ export function buildImdbVideoId({
   return [imdbId, catalogSeason, catalogEpisode]
     .map(idPart => encodeURIComponent(idPart))
     .join(IMDB_VIDEO_ID_SEPARATOR);
+}
+
+export function toNullableBoolean(siteValue) {
+  return isBoolean(siteValue) ? siteValue : null;
 }
 
 export function toHitReleaseNames(releaseNames) {

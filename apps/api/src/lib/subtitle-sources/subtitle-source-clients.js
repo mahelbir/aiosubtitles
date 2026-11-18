@@ -4,6 +4,7 @@ import {anisubClient} from './anisub/anisub-client.js';
 import {gestdownClient} from './gestdown/gestdown-client.js';
 import {opensubtitlesClient} from './opensubtitles/opensubtitles-client.js';
 import {opensubtitlesV3Client} from './opensubtitles-v3/opensubtitles-v3-client.js';
+import {subdlClient} from './subdl/subdl-client.js';
 import {subsourceClient} from './subsource/subsource-client.js';
 import {thesubtitledbClient} from './thesubtitledb/thesubtitledb-client.js';
 import {yifyClient} from './yify/yify-client.js';
@@ -34,6 +35,7 @@ export const {getSubtitleSourceClient, listSubtitleSourceClients} =
     gestdownClient,
     opensubtitlesClient,
     opensubtitlesV3Client,
+    subdlClient,
     subsourceClient,
     thesubtitledbClient,
     yifyClient,

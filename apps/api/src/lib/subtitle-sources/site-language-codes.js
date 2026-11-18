@@ -64,11 +64,33 @@ export function fromSiteLanguageCode(siteLanguageCode) {
   );
 }
 
-function listSiteLanguageCodes(languageCode, siteLanguageCodeStyle) {
-  const styledCodes =
+function listStyledCodes(
+  languageCode,
+  siteLanguageCodeStyle,
+  ownSiteLanguageCodes,
+) {
+  if (ownSiteLanguageCodes) {
+    return [...ownSiteLanguageCodes]
+      .filter(([, ownLanguageCode]) => ownLanguageCode === languageCode)
+      .map(([siteLanguageCode]) => siteLanguageCode);
+  }
+  return (
     siteLanguageCodesByStyledLanguage[
       toStyledLanguageKey({languageCode, siteLanguageCodeStyle})
-    ] ?? [];
+    ] ?? []
+  );
+}
+
+function listSiteLanguageCodes(
+  languageCode,
+  siteLanguageCodeStyle,
+  ownSiteLanguageCodes,
+) {
+  const styledCodes = listStyledCodes(
+    languageCode,
+    siteLanguageCodeStyle,
+    ownSiteLanguageCodes,
+  );
   const iso6391 = SubtitleLanguage.raw(languageCode)?.iso6391;
   const isIsoCodeAsked =
     Boolean(iso6391) &&
@@ -81,15 +103,21 @@ function listSiteLanguageCodes(languageCode, siteLanguageCodeStyle) {
 /**
  * @param {string[]} languageCodes
  * @param {string} [siteLanguageCodeStyle]
+ * @param {Map<string, string>|null} [ownSiteLanguageCodes]
  * @returns {string[]}
  */
 export function toSiteLanguageCodes(
   languageCodes,
   siteLanguageCodeStyle = SiteLanguageCodeStyle.TWO_LETTER,
+  ownSiteLanguageCodes = null,
 ) {
   return uniq(
     languageCodes.flatMap(languageCode =>
-      listSiteLanguageCodes(languageCode, siteLanguageCodeStyle),
+      listSiteLanguageCodes(
+        languageCode,
+        siteLanguageCodeStyle,
+        ownSiteLanguageCodes,
+      ),
     ),
   );
 }
