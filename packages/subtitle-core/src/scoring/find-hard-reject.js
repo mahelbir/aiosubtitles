@@ -1,4 +1,4 @@
-import {isEqual} from 'es-toolkit';
+import {deburr, isEqual} from 'es-toolkit';
 import {
   HardRejectReason,
   SignalState,
@@ -31,7 +31,7 @@ const joinSingleLetterRuns = titleTokens =>
 export const normalizeReleaseTitle = releaseTitle =>
   joinSingleLetterRuns(
     tokenizeReleaseName(
-      releaseTitle
+      deburr(releaseTitle)
         .normalize('NFKD')
         .replaceAll(COMBINING_MARKS, '')
         .replaceAll(APOSTROPHES, '')

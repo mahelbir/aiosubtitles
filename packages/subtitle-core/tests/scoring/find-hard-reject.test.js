@@ -227,6 +227,8 @@ describe('findHardRejectReason', () => {
       ["Grey's Anatomy", 'Greys Anatomy'],
       ['Marvel’s Agents of S.H.I.E.L.D.', 'Marvels Agents of SHIELD'],
       ['Marvelʼs Agents of SHIELD', 'Marvels Agents of SHIELD'],
+      ['Kızıl Goncalar', 'Kizil Goncalar'],
+      ['Ødegaard', 'Odegaard'],
     ])('keeps %s for a video titled %s', (candidateTitle, videoTitle) => {
       expect(findTitleRejectReason(candidateTitle, videoTitle)).toBeNull();
     });

@@ -499,6 +499,9 @@ importers:
       melperjs:
         specifier: ^17.4.0
         version: 17.4.0
+      parsium-media:
+        specifier: ^1.1.0
+        version: 1.1.0
     devDependencies:
       iconv-lite:
         specifier: ^0.7.3
