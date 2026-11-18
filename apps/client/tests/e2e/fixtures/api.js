@@ -1,15 +1,10 @@
-import {keepPreviousData, useQueryClient} from '@tanstack/react-query';
+import {useQueryClient} from '@tanstack/react-query';
 import {delay} from 'es-toolkit';
 import {withApiQuery} from '@repo/shared/lib/url-query.js';
 import {env} from '@/config/env';
 import {requestApi} from '@/lib/api-request';
 import {optionSource} from '@/lib/option-source';
-import {
-  useAppMutation,
-  useAppQuery,
-  useOptionsQuery,
-  useToastMutation,
-} from '@/lib/query';
+import {useAppMutation, useAppQuery, useToastMutation} from '@/lib/query';
 import {fakeUsers} from './lib/fake-users';
 import {readFakeLedger} from './lib/fake-ledger';
 import {findFixturePerson} from './lib/fake-people';
@@ -17,13 +12,6 @@ import {findFixturePerson} from './lib/fake-people';
 export const fixtureKeys = {
   all: ['fixtures'],
   users: () => [...fixtureKeys.all, 'users'],
-  userList: (source, total, query) => [
-    ...fixtureKeys.users(),
-    'list',
-    source,
-    total,
-    query,
-  ],
   userOptions: (source, total) => [
     ...fixtureKeys.users(),
     'options',
@@ -114,10 +102,6 @@ export function getFixtureDepartmentOptionSource(scenario) {
   return optionSource.preloaded(getFixtureDepartmentsQuery(scenario));
 }
 
-export async function toggleFixtureUser({total, id}) {
-  return fakeUsers.toggle({total, id});
-}
-
 export async function fetchFixtureLedger({signal}) {
   await delay(300, {signal});
   return readFakeLedger();
@@ -155,31 +139,6 @@ export async function fetchFixturePerson({id, latency, signal}) {
 export function useSubmitFormPolicies(options) {
   return useAppMutation(
     {isFormBound: true, mutationFn: submitFormPolicies},
-    options,
-  );
-}
-
-export function useFixtureUsers({source, total, query, latency}, options) {
-  return useAppQuery(
-    {
-      queryKey: fixtureKeys.userList(source, total, query),
-      queryFn: ({signal}) =>
-        source === 'api'
-          ? fetchApiFixtureUsers({query, signal})
-          : fetchFixtureUsers({total, query, latency, signal}),
-      placeholderData: keepPreviousData,
-    },
-    options,
-  );
-}
-
-export function useFixtureDepartments(scenario, options) {
-  return useOptionsQuery(getFixtureDepartmentsQuery(scenario), options);
-}
-
-export function useToggleFixtureUser(options) {
-  return useAppMutation(
-    {mutationFn: toggleFixtureUser, invalidates: fixtureKeys.users()},
     options,
   );
 }

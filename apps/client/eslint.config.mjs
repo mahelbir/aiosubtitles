@@ -197,12 +197,6 @@ const eslintConfig = defineConfig([
     },
   },
   {
-    files: ['src/components/table/table-provider.js'],
-    rules: {
-      'react-hooks/incompatible-library': 'off',
-    },
-  },
-  {
     files: ['src/components/ui/**'],
     rules: {
       'import/order': 'off',

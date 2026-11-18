@@ -105,24 +105,6 @@ export const FIXTURES = [
       ),
   },
   {
-    slug: 'table-kit',
-    title: 'Table kit',
-    variants: [
-      '?total=0',
-      '?total=0&action',
-      '?state=offline',
-      '?delay=800',
-      '?selectable=active',
-      '?rowVariant=unknown',
-      '?source=api',
-      '?options=api',
-    ],
-    load: () =>
-      import('./components/table-kit-fixture').then(
-        ({TableKitFixture}) => TableKitFixture,
-      ),
-  },
-  {
     slug: 'form-shells',
     title: 'Form shells',
     variants: [
@@ -136,42 +118,6 @@ export const FIXTURES = [
     load: () =>
       import('./components/form-shells-fixture').then(
         ({FormShellsFixture}) => FormShellsFixture,
-      ),
-  },
-  {
-    slug: 'date-time',
-    title: 'Date and time',
-    variants: [],
-    load: () =>
-      import('./components/date-time-fixture').then(
-        ({DateTimeFixture}) => DateTimeFixture,
-      ),
-  },
-  {
-    slug: 'detail-view',
-    title: 'Detail view',
-    variants: [],
-    load: () =>
-      import('./components/detail-view-fixture').then(
-        ({DetailViewFixture}) => DetailViewFixture,
-      ),
-  },
-  {
-    slug: 'portal-slot',
-    title: 'Portal slot',
-    variants: [],
-    load: () =>
-      import('./components/portal-slot-fixture').then(
-        ({PortalSlotFixture}) => PortalSlotFixture,
-      ),
-  },
-  {
-    slug: 'animated-tabs',
-    title: 'Animated tabs',
-    variants: ['?value=missing'],
-    load: () =>
-      import('./components/animated-tabs-fixture').then(
-        ({AnimatedTabsFixture}) => AnimatedTabsFixture,
       ),
   },
   {
@@ -217,15 +163,6 @@ export const FIXTURES = [
     load: () =>
       import('./components/form-grid-fixture').then(
         ({FormGridFixture}) => FormGridFixture,
-      ),
-  },
-  {
-    slug: 'code-viewer',
-    title: 'Code viewer',
-    variants: [],
-    load: () =>
-      import('./components/code-viewer-fixture').then(
-        ({CodeViewerFixture}) => CodeViewerFixture,
       ),
   },
   {

@@ -182,17 +182,6 @@ export const fakeUsers = {
     });
   },
 
-  toggle({total, id}) {
-    const users = getDataset(total);
-    const index = users.findIndex(user => user.id === id);
-    const user = users[index];
-    users[index] = {
-      ...user,
-      disabledAt: user.disabledAt ? null : user.createdAt,
-    };
-    return users[index];
-  },
-
   departments() {
     return DEPARTMENTS.map(department => ({...department}));
   },

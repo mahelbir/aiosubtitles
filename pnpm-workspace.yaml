@@ -17,10 +17,6 @@ minimumReleaseAgeExclude:
   - '@mahelbir/settings@6.0.0'
   - '@fastify/swagger-ui@6.1.3'
 
-permissions:
-  '@tanstack/react-table':
-    skills: true
-
 skills:
   dirs:
     - .agents/skills
