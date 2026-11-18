@@ -1,3 +1,4 @@
+import {castArray} from 'es-toolkit/compat';
 import fp from 'fastify-plugin';
 import rateLimit, {normalizeIP} from '@fastify/rate-limit';
 import LocalStore from '@fastify/rate-limit/store/LocalStore.js';
@@ -20,10 +21,8 @@ const toAddress = request =>
 
 const IDENTIFY = {
   [RateLimitKey.IP]: toAddress,
-};
-
-const PHASE = {
-  [RateLimitKey.IP]: 'onRequest',
+  [RateLimitKey.USER_CONFIG]: request =>
+    request.params.userConfigId?.toLowerCase() ?? null,
 };
 
 const STORE_FLAGS = {
@@ -47,6 +46,7 @@ const isGlobalSkipped = async request =>
 
 const DEFAULT_PENALTY = {
   [RateLimitKey.IP]: config.rateLimitIpPenalty,
+  [RateLimitKey.USER_CONFIG]: RateLimitPenalty.NONE,
 };
 
 const NAMESPACE = 'rate:';
@@ -173,8 +173,6 @@ const isExclusive = request => {
   return exclusiveRateLimits === true && rateLimits?.length > 0;
 };
 
-const asArray = value => (value ? [value].flat() : []);
-
 const scopeMethodOf = request =>
   request.method === 'HEAD' ? 'GET' : request.method;
 
@@ -263,17 +261,26 @@ export default fp(
             'rateLimiter() builds a counter and must run while routes register, not inside a handler.',
           );
         }
-        const toKey = request =>
-          toRateLimitKey({
-            key,
-            max,
-            timeWindow,
-            scope: scopeOf(request, scope),
-            identity: identify?.(request) ?? IDENTIFY[key](request),
-          });
+        const identityOf = async request => {
+          const identity = await identify?.(request);
+          return identity === undefined ? IDENTIFY[key](request) : identity;
+        };
+        const toKey = async request => {
+          const identity = await identityOf(request);
+          return identity === null
+            ? null
+            : toRateLimitKey({
+                key,
+                max,
+                timeWindow,
+                scope: scopeOf(request, scope),
+                identity,
+              });
+        };
         let store = null;
         const limit = fastify.createRateLimit({
-          allowList: isExempt,
+          allowList: async (request, rateLimitKey) =>
+            rateLimitKey === null || (await isExempt(request)),
           ...STORE_FLAGS[penalty ?? DEFAULT_PENALTY[key]],
           max,
           timeWindow,
@@ -282,8 +289,18 @@ export default fp(
             store = created;
           },
         });
-        limit.reset = request => redis.del(`${NAMESPACE}${toKey(request)}`);
-        limit.refund = request => store.refund(toKey(request), timeWindow);
+        limit.reset = async request => {
+          const rateLimitKey = await toKey(request);
+          return rateLimitKey === null
+            ? 0
+            : redis.del(`${NAMESPACE}${rateLimitKey}`);
+        };
+        limit.refund = async request => {
+          const rateLimitKey = await toKey(request);
+          if (rateLimitKey !== null) {
+            await store.refund(rateLimitKey, timeWindow);
+          }
+        };
         return limit;
       },
     );
@@ -306,7 +323,7 @@ export default fp(
     };
 
     fastify.addHook(
-      PHASE[RateLimitKey.IP],
+      'onRequest',
       toGlobalHook(RateLimitKey.IP, config.rateLimitIpMax, () => true),
     );
 
@@ -316,25 +333,10 @@ export default fp(
         return;
       }
       const {rateLimitGroup} = route.config;
-      const checks = {onRequest: [], preHandler: []};
-      for (const window of windows) {
-        const {key = RateLimitKey.IP} = window;
-        checks[PHASE[key]].push(
-          fastify.rateLimiter({...window, scope: rateLimitGroup}),
-        );
-      }
-      if (checks.onRequest.length > 0) {
-        route.onRequest = [
-          toHook(checks.onRequest),
-          ...asArray(route.onRequest),
-        ];
-      }
-      if (checks.preHandler.length > 0) {
-        route.preHandler = [
-          ...asArray(route.preHandler),
-          toHook(checks.preHandler),
-        ];
-      }
+      const checks = windows.map(window =>
+        fastify.rateLimiter({...window, scope: rateLimitGroup}),
+      );
+      route.onRequest = [toHook(checks), ...castArray(route.onRequest ?? [])];
     });
   },
   {name: 'rate-limit', dependencies: ['cors']},

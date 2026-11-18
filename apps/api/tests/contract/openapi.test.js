@@ -20,9 +20,12 @@ describe('OpenAPI document', () => {
     }
     expect(open.toSorted()).toEqual([
       'GET /',
+      'GET /api/subtitle-sources',
       'GET /manifest.json',
       'GET /{userConfigId}/configure',
       'GET /{userConfigId}/manifest.json',
+      'POST /api/user-configs',
+      'POST /api/user-configs/{userConfigId}/sessions',
     ]);
   });
 });

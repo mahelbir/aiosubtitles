@@ -79,7 +79,6 @@ export const config = deepFreeze({
   redisDb: env.REDIS_DB,
 
   opensubtitlesApiKey: env.OPENSUBTITLES_API_KEY,
-  stremioCommunitySubtitlesToken: env.STREMIO_COMMUNITY_SUBTITLES_TOKEN,
   subtitleSearchDeadline: env.SUBTITLE_SEARCH_DEADLINE,
   subtitleSearchCacheFreshTtl: env.SUBTITLE_SEARCH_CACHE_FRESH_TTL,
   subtitleSearchCacheStaleTtl: env.SUBTITLE_SEARCH_CACHE_STALE_TTL,

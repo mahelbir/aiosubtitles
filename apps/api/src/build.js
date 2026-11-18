@@ -13,11 +13,13 @@ import app from './app.js';
  * @param {import('fastify').FastifyServerOptions & Object} [options]
  * @param {string} [options.basePath]
  * @param {import('fastify').FastifyPluginAsync[]} [options.extraPlugins]
+ * @param {ReturnType<typeof import('./lib/subtitle-sources/subtitle-source-clients.js').createSubtitleSourceRegistry>} [options.subtitleSourceRegistry]
  * @returns {import('fastify').FastifyInstance}
  */
 export function buildApp({
   basePath = config.apiBasePath,
   extraPlugins = [],
+  subtitleSourceRegistry,
   ...options
 } = {}) {
   const fastify = Fastify({
@@ -39,6 +41,7 @@ export function buildApp({
   fastify.register(app, {
     basePath: basePathField.parse(basePath),
     extraPlugins,
+    subtitleSourceRegistry,
   });
 
   return fastify;

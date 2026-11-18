@@ -541,6 +541,92 @@ describe('a window keyed by a named caller', () => {
   });
 });
 
+describe('a window keyed by the configuration in the path', () => {
+  it('labels a user-config bucket user-config:', async () => {
+    const {app} = await buildProbe([
+      {
+        path: '/configs/:userConfigId',
+        config: {
+          rateLimits: [
+            {key: RateLimitKey.USER_CONFIG, max: 2, timeWindow: 60000},
+          ],
+        },
+      },
+    ]);
+
+    const first = await codes(app, '/configs/first', 3);
+    const second = await call(app, '/configs/second');
+
+    expect(first).toEqual([OK, OK, LIMITED]);
+    expect(second.statusCode).toBe(OK);
+    expect(await routeBuckets()).toEqual([
+      'user-config:2/60000:GET/configs/:userConfigId-first',
+      'user-config:2/60000:GET/configs/:userConfigId-second',
+    ]);
+  });
+});
+
+describe('a user-config window on a route without the configuration', () => {
+  it('skips the window rather than sharing one bucket', async () => {
+    const {app} = await buildProbe([
+      {
+        path: '/no-config',
+        config: {
+          rateLimits: [
+            {key: RateLimitKey.USER_CONFIG, max: 1, timeWindow: 60000},
+          ],
+        },
+      },
+    ]);
+
+    expect(await codes(app, '/no-config', 3)).toEqual([OK, OK, OK]);
+    expect(await routeBuckets()).toEqual([]);
+  });
+});
+
+describe('a window whose identify decides per request', () => {
+  it('skips a window whose identify answers null', async () => {
+    const {app} = await buildProbe([
+      {
+        path: '/unknown',
+        config: {
+          rateLimits: [{max: 1, timeWindow: 60000, identify: () => null}],
+        },
+      },
+    ]);
+
+    expect(await codes(app, '/unknown', 3)).toEqual([OK, OK, OK]);
+    expect(await routeBuckets()).toEqual([]);
+  });
+
+  it('awaits an async identify', async () => {
+    const {app} = await buildProbe([
+      {
+        path: '/later',
+        config: {
+          rateLimits: [
+            {
+              max: 2,
+              timeWindow: 60000,
+              identify: async request => callerOf(request),
+            },
+          ],
+        },
+      },
+    ]);
+
+    const alice = await codes(app, '/later', 3, {headers: asCaller('alice')});
+    const bob = await call(app, '/later', {headers: asCaller('bob')});
+
+    expect(alice).toEqual([OK, OK, LIMITED]);
+    expect(bob.statusCode).toBe(OK);
+    expect(await routeBuckets()).toEqual([
+      'ip:2/60000:GET/later-alice',
+      'ip:2/60000:GET/later-bob',
+    ]);
+  });
+});
+
 describe('a group of routes', () => {
   const grouped = (path, extra = {}) => ({
     path,

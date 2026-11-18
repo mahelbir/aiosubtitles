@@ -34,6 +34,11 @@ export default fp(
     await fastify.register(swagger, {
       openapi: {
         info: {title: 'API', version: 'latest'},
+        components: {
+          securitySchemes: {
+            bearerAuth: {type: 'http', scheme: 'bearer', bearerFormat: 'JWT'},
+          },
+        },
       },
       transform: jsonSchemaTransform,
     });

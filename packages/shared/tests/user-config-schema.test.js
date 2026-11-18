@@ -915,6 +915,28 @@ describe('response schemas', () => {
     });
   });
 
+  it.each([
+    `http://localhost:7000/${UUID}/manifest.json`,
+    `http://192.168.1.10/${UUID}/manifest.json`,
+  ])('accepts a manifest url on a local host: %s', manifestUrl => {
+    for (const schema of [createdUserConfigSchema, userConfigSchema]) {
+      expect(schema.shape.manifestUrl.safeParse(manifestUrl).success).toBe(
+        true,
+      );
+    }
+  });
+
+  it.each([
+    `https://aiosubtitles.example/${UUID}/manifest.json?x=1`,
+    `https://user:pass@aiosubtitles.example/${UUID}/manifest.json`,
+  ])('refuses a manifest url with a query or userinfo: %s', manifestUrl => {
+    for (const schema of [createdUserConfigSchema, userConfigSchema]) {
+      expect(schema.shape.manifestUrl.safeParse(manifestUrl).success).toBe(
+        false,
+      );
+    }
+  });
+
   it('describes every subtitle source as an option', () => {
     const subtitleSourceOptions = SubtitleSource.toList({
       extra: subtitleSourceItem => ({

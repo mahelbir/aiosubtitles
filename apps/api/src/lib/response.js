@@ -1,5 +1,5 @@
 import {StatusCodes} from 'http-status-codes';
-import {ZodError} from 'zod';
+import {ZodError, z} from 'zod';
 import {ErrorCode} from '@repo/shared/constants/error-code.js';
 import {config} from '../config/index.js';
 
@@ -13,6 +13,14 @@ export function successEnvelope(data = null, message = null) {
     message: message || DEFAULT_SUCCESS_MESSAGE,
     data,
   };
+}
+
+export function getSuccessEnvelopeSchema(dataSchema = z.null()) {
+  return z.object({
+    success: z.literal(true),
+    message: z.string(),
+    data: dataSchema,
+  });
 }
 
 export function errorEnvelope(data = null, message = null) {

@@ -1,8 +1,31 @@
 import 'fastify';
 import type {ZodError} from 'zod';
 
+type RateLimitSkippedIdentity = null;
+
+type RateLimitDefaultIdentity = undefined;
+
+type RateLimitIdentify = (
+  request: import('fastify').FastifyRequest,
+) =>
+  | string
+  | RateLimitSkippedIdentity
+  | RateLimitDefaultIdentity
+  | Promise<string | RateLimitSkippedIdentity | RateLimitDefaultIdentity>;
+
 declare module 'fastify' {
   interface FastifyInstance {
+    issueUserConfigSession(userConfigId: string): Promise<string>;
+
+    verifyUserConfigSession(
+      request: FastifyRequest,
+      reply: FastifyReply,
+    ): Promise<void>;
+
+    guardSubtree(
+      guards: ((request: FastifyRequest, reply: FastifyReply) => unknown)[],
+    ): void;
+
     startRunner(runner: {
       name: string;
       runningJobs: Record<string | number, unknown>;
@@ -20,7 +43,7 @@ declare module 'fastify' {
       timeWindow: number;
       key?: string;
       scope?: string;
-      identify?: (request: FastifyRequest) => string | undefined;
+      identify?: RateLimitIdentify;
       penalty?: string;
     }): ReturnType<FastifyInstance['createRateLimit']> & {
       reset(request: FastifyRequest): Promise<number>;
@@ -73,6 +96,7 @@ declare module 'fastify' {
       max: number;
       timeWindow: number;
       key?: string;
+      identify?: RateLimitIdentify;
       penalty?: string;
     }[];
     rateLimitGroup?: string;

@@ -7,6 +7,7 @@ let instance = null;
 let scope = null;
 let basePath = config.apiBasePath;
 let testPlugins = [];
+let testAppOptions = {};
 const routes = [];
 
 function assertNotBuilt() {
@@ -25,6 +26,11 @@ export function setTestAppPlugins(plugins) {
   testPlugins = plugins;
 }
 
+export function setTestAppOptions(options) {
+  assertNotBuilt();
+  testAppOptions = options;
+}
+
 export function getTestAppBasePath() {
   return basePath;
 }
@@ -32,6 +38,7 @@ export function getTestAppBasePath() {
 export async function getTestApp() {
   if (!instance) {
     instance = buildApp({
+      ...testAppOptions,
       logger: false,
       basePath,
       extraPlugins: [httpFixture, paginationFixture, ...testPlugins],
@@ -73,6 +80,7 @@ export async function closeTestApp() {
   scope = null;
   basePath = config.apiBasePath;
   testPlugins = [];
+  testAppOptions = {};
   routes.length = 0;
   await app.close();
 }

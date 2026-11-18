@@ -144,7 +144,6 @@ export function getEnvSchema({appPath}) {
     REDIS_DB: z.coerce.number().int().nonnegative().default(0),
 
     OPENSUBTITLES_API_KEY: z.string().default(''),
-    STREMIO_COMMUNITY_SUBTITLES_TOKEN: z.string().default(''),
     SUBTITLE_SEARCH_DEADLINE: z.coerce
       .number()
       .int()

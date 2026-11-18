@@ -118,7 +118,6 @@ describe('the subtitle service keys', () => {
   it('fall back to their defaults when left unset', () => {
     expect(parseEnv({}).data).toMatchObject({
       OPENSUBTITLES_API_KEY: '',
-      STREMIO_COMMUNITY_SUBTITLES_TOKEN: '',
       SUBTITLE_SEARCH_DEADLINE: 7000,
       SUBTITLE_SEARCH_CACHE_FRESH_TTL: 21600,
       SUBTITLE_SEARCH_CACHE_STALE_TTL: 2592000,
@@ -175,6 +174,13 @@ describe('the subtitle service keys', () => {
     ]);
   });
 
+  it('know no shared Community Subtitles token', () => {
+    expect(
+      parseEnv({STREMIO_COMMUNITY_SUBTITLES_TOKEN: 'shared-token'}).data,
+    ).not.toHaveProperty('STREMIO_COMMUNITY_SUBTITLES_TOKEN');
+    expect(config).not.toHaveProperty('stremioCommunitySubtitlesToken');
+  });
+
   it('keep the OpenSubtitles API key untrimmed, since a secret may end in a space', () => {
     expect(parseEnv({OPENSUBTITLES_API_KEY: ' k '}).data).toMatchObject({
       OPENSUBTITLES_API_KEY: ' k ',
@@ -185,7 +191,6 @@ describe('the subtitle service keys', () => {
     expect(Object.keys(config)).toEqual(
       expect.arrayContaining([
         'opensubtitlesApiKey',
-        'stremioCommunitySubtitlesToken',
         'subtitleSearchDeadline',
         'subtitleSearchCacheFreshTtl',
         'subtitleSearchCacheStaleTtl',
@@ -208,7 +213,6 @@ describe('the subtitle service keys', () => {
   describe('when each key holds a value of its own', () => {
     const distinctEnv = {
       OPENSUBTITLES_API_KEY: 'distinct-opensubtitles-api-key',
-      STREMIO_COMMUNITY_SUBTITLES_TOKEN: 'distinct-community-token',
       SUBTITLE_SEARCH_DEADLINE: '1001',
       SUBTITLE_SEARCH_CACHE_FRESH_TTL: '1002',
       SUBTITLE_SEARCH_CACHE_STALE_TTL: '1003',
@@ -242,7 +246,6 @@ describe('the subtitle service keys', () => {
 
       expect(distinctConfig).toMatchObject({
         opensubtitlesApiKey: 'distinct-opensubtitles-api-key',
-        stremioCommunitySubtitlesToken: 'distinct-community-token',
         subtitleSearchDeadline: 1001,
         subtitleSearchCacheFreshTtl: 1002,
         subtitleSearchCacheStaleTtl: 1003,

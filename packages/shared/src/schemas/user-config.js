@@ -17,11 +17,11 @@ import {
 } from '../constants/user-config.js';
 import {toPatchSchema} from '../lib/schema.js';
 import {
+  baseUrlField,
   getCrossFieldCheck,
   getCrossFieldIssueCheck,
   getEnumField,
   getUuidField,
-  httpUrlField,
   isoDateTimeField,
   jwtField,
 } from './common.js';
@@ -285,12 +285,12 @@ export const userConfigSessionSchema = z.object({
 
 export const createdUserConfigSchema = userConfigSessionSchema.extend({
   userConfigId: uuidField,
-  manifestUrl: httpUrlField,
+  manifestUrl: baseUrlField,
 });
 
 export const userConfigSchema = z.object({
   userConfigId: uuidField,
-  manifestUrl: httpUrlField,
+  manifestUrl: baseUrlField,
   languageCodes: languageCodesField,
   subtitleLanguageLimit: subtitleLanguageLimitField.unwrap(),
   subtitleSourceSwitchStates: z.record(subtitleSourceField, z.boolean()),
