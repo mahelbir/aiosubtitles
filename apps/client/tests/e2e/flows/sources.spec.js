@@ -11,15 +11,19 @@ import {
   THESUBTITLEDB_VALID_API_KEY,
 } from '../../../../api/tests/e2e/fixture-credentials.js';
 import {getApiUrl} from '../lib/api.js';
-import {getTab, getTabPanel, getVisibleText} from '../lib/locators.js';
-import {readTokenColor} from '../lib/page.js';
+import {getTabPanel, getVisibleText} from '../lib/locators.js';
+import {
+  openTabMenuItem,
+  openTabMenuItems,
+  readTokenColor,
+} from '../lib/page.js';
 import {waitForApiRequest} from '../lib/requests.js';
 import {
   SAVED_TEXT,
-  UNSAVED_TEXT,
   callApi,
   expect,
-  getMain,
+  getAllSourcesCheckbox,
+  getUnsavedNotice,
   getUserConfigPath,
   getVisibleSaveButton,
   openConfigure,
@@ -30,7 +34,6 @@ import {
 const PASSWORD = 'correct horse';
 const STORED_LANGUAGE_CODES = [SubtitleLanguage.TUR];
 const SUBTITLE_SOURCES_PATH = '/api/subtitle-sources';
-const ALL_SOURCES = 'All sources';
 const GET_A_KEY = 'Get a key';
 const ADD_API_KEY = 'Add API key';
 const API_KEY = CredentialKind.label(CredentialKind.API_KEY);
@@ -80,10 +83,6 @@ const SOURCE_HELP = [
   },
 ];
 
-function getAllSourcesCheckbox(page) {
-  return getMain(page).getByRole('checkbox', {name: ALL_SOURCES, exact: true});
-}
-
 function getSourceSwitch(panel, label) {
   return panel.getByRole('switch', {name: label, exact: true});
 }
@@ -97,18 +96,11 @@ async function saveAndSettle(page, {userConfigId}) {
   await getVisibleSaveButton(page).click();
   const request = await patch;
   await request.response();
-  await expect(getVisibleSaveButton(page)).toBeEnabled();
+  await expect(
+    page.getByRole('button', {name: 'Save', disabled: true}),
+  ).toHaveCount(0);
   await expect(getVisibleText(page, SAVED_TEXT)).toBeVisible();
   return request;
-}
-
-async function openSourceTab(page, label) {
-  const tab = getTab(page, label);
-  await expect(tab).toBeVisible();
-  await tab.click();
-  const panel = getTabPanel(page, label);
-  await expect(panel).toBeVisible();
-  return panel;
 }
 
 test.describe('sources', () => {
@@ -124,7 +116,7 @@ test.describe('sources', () => {
 
     await openConfigure(page);
 
-    await expect(getMain(page).getByRole('tab')).toHaveText(
+    await expect(await openTabMenuItems(page)).toHaveText(
       subtitleSources.map(({label}) => label),
     );
   });
@@ -136,7 +128,7 @@ test.describe('sources', () => {
 
     for (const {subtitleSource, keyPageUrl, helpText} of SOURCE_HELP) {
       const label = SubtitleSource.label(subtitleSource);
-      const panel = await openSourceTab(page, label);
+      const panel = await openTabMenuItem(page, label);
       await expect(panel, label).toContainText(helpText);
       const keyPageLink = panel.getByRole('link', {
         name: GET_A_KEY,
@@ -156,7 +148,7 @@ test.describe('sources', () => {
     await openConfigure(page);
     const allSources = getAllSourcesCheckbox(page);
     await expect(allSources).toBeChecked();
-    const panel = await openSourceTab(page, OPENSUBTITLES_V3);
+    const panel = await openTabMenuItem(page, OPENSUBTITLES_V3);
     const sourceSwitch = getSourceSwitch(panel, OPENSUBTITLES_V3);
     await expect(sourceSwitch).toBeChecked();
 
@@ -180,7 +172,7 @@ test.describe('sources', () => {
 
     await expect(allSources).not.toBeChecked();
     for (const label of [OPENSUBTITLES, THESUBTITLEDB]) {
-      const panel = await openSourceTab(page, label);
+      const panel = await openTabMenuItem(page, label);
       await expect(getSourceSwitch(panel, label), label).not.toBeChecked();
     }
   });
@@ -194,7 +186,7 @@ test.describe('sources', () => {
       languageCodes: STORED_LANGUAGE_CODES,
     });
     await openSignedIn(page, userConfig);
-    const panel = await openSourceTab(page, THESUBTITLEDB);
+    const panel = await openTabMenuItem(page, THESUBTITLEDB);
     const sourceSwitch = getSourceSwitch(panel, THESUBTITLEDB);
     await expect(sourceSwitch).toBeEnabled();
 
@@ -205,7 +197,7 @@ test.describe('sources', () => {
     await saveAndSettle(page, userConfig);
     await page.reload();
 
-    const reloadedPanel = await openSourceTab(page, THESUBTITLEDB);
+    const reloadedPanel = await openTabMenuItem(page, THESUBTITLEDB);
     const reloadedSwitch = getSourceSwitch(reloadedPanel, THESUBTITLEDB);
     await expect(reloadedSwitch).toBeChecked();
     await expect(reloadedSwitch).toBeDisabled();
@@ -225,7 +217,7 @@ test.describe('sources', () => {
       languageCodes: STORED_LANGUAGE_CODES,
     });
     await openSignedIn(page, userConfig);
-    const panel = await openSourceTab(page, THESUBTITLEDB);
+    const panel = await openTabMenuItem(page, THESUBTITLEDB);
     const sourceSwitch = getSourceSwitch(panel, THESUBTITLEDB);
     await sourceSwitch.click();
     await expect(sourceSwitch).not.toBeChecked();
@@ -251,7 +243,7 @@ test.describe('sources', () => {
       languageCodes: STORED_LANGUAGE_CODES,
     });
     await openSignedIn(page, userConfig);
-    const panel = await openSourceTab(page, THESUBTITLEDB);
+    const panel = await openTabMenuItem(page, THESUBTITLEDB);
     const sourceSwitch = getSourceSwitch(panel, THESUBTITLEDB);
     await sourceSwitch.click();
     await panel.getByRole('button', {name: ADD_API_KEY, exact: true}).click();
@@ -275,7 +267,7 @@ test.describe('sources', () => {
       languageCodes: STORED_LANGUAGE_CODES,
     });
     await openSignedIn(page, userConfig);
-    const panel = await openSourceTab(page, THESUBTITLEDB);
+    const panel = await openTabMenuItem(page, THESUBTITLEDB);
     await getSourceSwitch(panel, THESUBTITLEDB).click();
     await panel.getByRole('button', {name: ADD_API_KEY, exact: true}).click();
     await panel
@@ -307,7 +299,7 @@ test.describe('sources', () => {
       ],
     });
     await openSignedIn(page, userConfig);
-    const panel = await openSourceTab(page, THESUBTITLEDB);
+    const panel = await openTabMenuItem(page, THESUBTITLEDB);
     await expect(
       panel.getByText(CredentialStatus.label(CredentialStatus.UNCHECKED), {
         exact: true,
@@ -345,7 +337,7 @@ test.describe('sources', () => {
     });
     await openSignedIn(page, userConfig);
 
-    const panel = await openSourceTab(page, THESUBTITLEDB);
+    const panel = await openTabMenuItem(page, THESUBTITLEDB);
 
     await expect(
       panel.getByText(CredentialStatus.label(CredentialStatus.VALID), {
@@ -366,11 +358,11 @@ test.describe('sources', () => {
       languageCodes: STORED_LANGUAGE_CODES,
     });
     await openSignedIn(page, userConfig);
-    const panel = await openSourceTab(page, OPENSUBTITLES_V3);
+    const panel = await openTabMenuItem(page, OPENSUBTITLES_V3);
 
     await getSourceSwitch(panel, OPENSUBTITLES_V3).click();
 
-    await expect(getVisibleText(page, UNSAVED_TEXT)).toBeVisible();
+    await expect(getUnsavedNotice(page)).toBeVisible();
     const patch = await saveAndSettle(page, userConfig);
     expect(patch.postDataJSON().subtitleSourceSwitchStates).toMatchObject({
       [SubtitleSource.OPENSUBTITLES_V3]: false,
@@ -378,7 +370,7 @@ test.describe('sources', () => {
 
     await page.reload();
 
-    const reloadedPanel = await openSourceTab(page, OPENSUBTITLES_V3);
+    const reloadedPanel = await openTabMenuItem(page, OPENSUBTITLES_V3);
     await expect(
       getSourceSwitch(reloadedPanel, OPENSUBTITLES_V3),
     ).not.toBeChecked();
@@ -396,13 +388,13 @@ test.describe('sources', () => {
       languageCodes: STORED_LANGUAGE_CODES,
     });
     await openSignedIn(page, userConfig);
-    const panel = await openSourceTab(page, THESUBTITLEDB);
+    const panel = await openTabMenuItem(page, THESUBTITLEDB);
     await panel.getByRole('button', {name: ADD_API_KEY, exact: true}).click();
     await panel
       .getByLabel(API_KEY, {exact: true})
       .fill(THESUBTITLEDB_VALID_API_KEY);
     await saveAndSettle(page, userConfig);
-    const v3Panel = await openSourceTab(page, OPENSUBTITLES_V3);
+    const v3Panel = await openTabMenuItem(page, OPENSUBTITLES_V3);
     await getSourceSwitch(v3Panel, OPENSUBTITLES_V3).click();
 
     const patch = await saveAndSettle(page, userConfig);
@@ -426,9 +418,9 @@ test.describe('sources', () => {
       languageCodes: STORED_LANGUAGE_CODES,
     });
     await openSignedIn(page, userConfig);
-    const panel = await openSourceTab(page, THESUBTITLEDB);
+    const panel = await openTabMenuItem(page, THESUBTITLEDB);
     await panel.getByRole('button', {name: ADD_API_KEY, exact: true}).click();
-    await openSourceTab(page, SUBSOURCE);
+    await openTabMenuItem(page, SUBSOURCE);
 
     await getVisibleSaveButton(page).click();
 
@@ -457,21 +449,20 @@ test.describe('sources', () => {
 
     await openSignedIn(page, userConfig);
 
-    const panel = await openSourceTab(page, THESUBTITLEDB);
+    const panel = await openTabMenuItem(page, THESUBTITLEDB);
     await expect(
       panel.getByText(CredentialStatus.label(CredentialStatus.INVALID), {
         exact: true,
       }),
     ).toBeVisible();
     const destructiveColor = await readTokenColor(page, '--destructive');
-    await expect(getTab(page, THESUBTITLEDB)).toHaveCSS(
-      'color',
-      destructiveColor,
-    );
-    await expect(getTab(page, SUBSOURCE)).not.toHaveCSS(
-      'color',
-      destructiveColor,
-    );
+    const tabMenuItems = await openTabMenuItems(page);
+    await expect(
+      tabMenuItems.getByText(THESUBTITLEDB, {exact: true}),
+    ).toHaveCSS('color', destructiveColor);
+    await expect(
+      tabMenuItems.getByText(SUBSOURCE, {exact: true}),
+    ).not.toHaveCSS('color', destructiveColor);
   });
 
   test('an OpenSubtitles account shows the downloads it has left today', async ({
@@ -492,7 +483,7 @@ test.describe('sources', () => {
 
     await openSignedIn(page, userConfig);
 
-    const panel = await openSourceTab(page, OPENSUBTITLES);
+    const panel = await openTabMenuItem(page, OPENSUBTITLES);
     await expect(
       panel.getByText('17 downloads left today', {exact: true}),
     ).toBeVisible();
@@ -520,7 +511,7 @@ test.describe('sources', () => {
 
     await openSignedIn(page, userConfig);
 
-    const panel = await openSourceTab(page, OPENSUBTITLES);
+    const panel = await openTabMenuItem(page, OPENSUBTITLES);
     await expect(
       panel.getByText(CredentialStatus.label(CredentialStatus.VALID), {
         exact: true,
@@ -585,7 +576,7 @@ test.describe('sources', () => {
       ],
     });
     await openSignedIn(page, userConfig);
-    const panel = await openSourceTab(page, OPENSUBTITLES);
+    const panel = await openTabMenuItem(page, OPENSUBTITLES);
     await expect(
       panel.getByText(CredentialStatus.label(CredentialStatus.INVALID), {
         exact: true,
@@ -625,7 +616,7 @@ test.describe('sources', () => {
 
     await openSignedIn(page, userConfig);
 
-    const panel = await openSourceTab(page, OPENSUBTITLES);
+    const panel = await openTabMenuItem(page, OPENSUBTITLES);
     await expect(
       panel.getByText('17 downloads left today in total', {exact: true}),
     ).toBeVisible();

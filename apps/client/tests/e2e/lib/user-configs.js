@@ -2,8 +2,10 @@ import {escapeRegExp} from 'es-toolkit';
 import {StatusCodes} from 'http-status-codes';
 import {SUBTITLE_LANGUAGE_LIMIT_DEFAULT} from '@repo/shared/constants/user-config.js';
 import {getApiUrl} from './api.js';
+import {getForm, getMain, getSectionPicker} from './locators.js';
 import {gotoWithQuery} from './page.js';
 import {expect, test as base} from './test.js';
+import {isPhoneLayout} from './viewport.js';
 
 export const USER_CONFIGS_PATH = '/api/user-configs';
 
@@ -18,7 +20,7 @@ export const LOGIN_REFUSAL = 'Wrong configuration ID or password.';
 export const SESSION_REFUSAL =
   'Your session expired. Enter your password again.';
 
-export const UNSAVED_TEXT = 'You have unsaved changes';
+const UNSAVED_PATTERN = /^(?:You have unsaved changes|Unsaved changes)$/;
 
 export const SAVED_TEXT = 'All changes saved';
 
@@ -195,14 +197,29 @@ export async function openSignedIn(page, userConfig, query = {}) {
   await openConfigure(page, {userConfigId: userConfig.userConfigId, ...query});
 }
 
-export function getMain(page) {
-  return page.getByRole('main');
+export function getAllSourcesCheckbox(page) {
+  return getMain(page).getByRole('checkbox', {
+    name: 'All sources',
+    exact: true,
+  });
 }
 
-export function getNavItem(page, label) {
-  return page
-    .getByRole('navigation', {name: 'Settings sections'})
-    .getByRole('button', {name: label, exact: true});
+export function getUnsavedNotice(page) {
+  return page.getByText(UNSAVED_PATTERN).filter({visible: true});
+}
+
+export async function openSection(page, label) {
+  if (!isPhoneLayout(page)) {
+    await page
+      .getByRole('navigation', {name: 'Settings sections'})
+      .getByRole('button', {name: label, exact: true})
+      .click();
+    return;
+  }
+  const picker = getSectionPicker(page);
+  await picker.click();
+  await page.getByRole('option', {name: label, exact: true}).click();
+  await expect(picker).toHaveText(label);
 }
 
 export function getVisibleSaveButton(page) {
@@ -238,7 +255,7 @@ export function getAddLanguageButton(page) {
 }
 
 export function getLanguagePickers(page) {
-  return getMain(page).getByRole('combobox');
+  return getForm(page, 'Subtitle settings').getByRole('combobox');
 }
 
 export function getLanguageOption(page, label) {

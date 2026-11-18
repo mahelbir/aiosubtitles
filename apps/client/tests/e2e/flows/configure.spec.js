@@ -12,8 +12,8 @@ import {
   getErrorEnvelope,
   getFailedRequestPattern,
 } from '../lib/api.js';
-import {getOfflineBanner, getVisibleText} from '../lib/locators.js';
-import {PHONE_VIEWPORT, expectSearchParams} from '../lib/page.js';
+import {getMain, getOfflineBanner, getVisibleText} from '../lib/locators.js';
+import {expectSearchParams} from '../lib/page.js';
 import {recordRequests, waitForApiRequest} from '../lib/requests.js';
 import {
   LOGIN_REFUSAL,
@@ -21,27 +21,32 @@ import {
   NOT_SAVED_YET_TEXT,
   SAVED_TEXT,
   SESSION_REFUSAL,
-  UNSAVED_TEXT,
   USER_CONFIG_PATH,
   USER_CONFIG_SESSIONS_PATH,
   addLanguage,
   callApi,
   expect,
+  getAllSourcesCheckbox,
   getConfigurationIdField,
   getLanguage,
-  getMain,
-  getNavItem,
   getPasswordDialog,
   getPasswordField,
   getSetPasswordDialog,
+  getUnsavedNotice,
   getUserConfigPath,
   getVisibleSaveButton,
   openConfigure,
+  openSection,
   openSignedIn,
   readSessionToken,
   submitPassword,
   test,
 } from '../lib/user-configs.js';
+import {
+  PHONE_VIEWPORT,
+  TALL_PHONE_VIEWPORT,
+  isPhoneLayout,
+} from '../lib/viewport.js';
 
 const PASSWORD = 'correct horse';
 const NEW_PASSWORD = 'battery staple';
@@ -49,13 +54,14 @@ const TURKISH = SubtitleLanguage.label(SubtitleLanguage.TUR);
 const ENGLISH = SubtitleLanguage.label(SubtitleLanguage.ENG);
 const STORED_LANGUAGE_CODES = [SubtitleLanguage.TUR];
 
-function isOverlapping(first, second) {
-  return (
-    first.x < second.x + second.width &&
-    second.x < first.x + first.width &&
-    first.y < second.y + second.height &&
-    second.y < first.y + first.height
-  );
+function readFixedAncestorTop(locator) {
+  return locator.evaluate(node => {
+    let element = node;
+    while (element && getComputedStyle(element).position !== 'fixed') {
+      element = element.parentElement;
+    }
+    return element.getBoundingClientRect().top;
+  });
 }
 
 function refuseNextSave(page, userConfigId) {
@@ -113,10 +119,10 @@ test.describe('configure', () => {
       userConfigs,
     }) => {
       await openConfigure(page);
-      await getNavItem(page, 'Languages').click();
+      await openSection(page, 'Languages');
       await expectSearchParams(page).toEqual({tab: 'languages'});
       await addLanguage(page, TURKISH);
-      await expect(getVisibleText(page, UNSAVED_TEXT)).toBeVisible();
+      await expect(getUnsavedNotice(page)).toBeVisible();
 
       await getVisibleSaveButton(page).click();
       const dialog = getSetPasswordDialog(page);
@@ -149,6 +155,9 @@ test.describe('configure', () => {
       page,
     }) => {
       await openConfigure(page);
+      if (isPhoneLayout(page)) {
+        await getAllSourcesCheckbox(page).click();
+      }
 
       await getVisibleSaveButton(page).click();
 
@@ -180,7 +189,7 @@ test.describe('configure', () => {
       await expectSearchParams(page).toMatchObject({
         userConfigId: userConfig.userConfigId,
       });
-      await getNavItem(page, 'Languages').click();
+      await openSection(page, 'Languages');
       await expect(getLanguage(page, TURKISH)).toBeVisible();
     });
   });
@@ -223,7 +232,7 @@ test.describe('configure', () => {
       await submitPassword(page, PASSWORD);
 
       await expect(idField).toHaveCount(0);
-      await getNavItem(page, 'Languages').click();
+      await openSection(page, 'Languages');
       await expect(getLanguage(page, TURKISH)).toBeVisible();
       expect(await readSessionToken(page, userConfigId)).toEqual(
         expect.any(String),
@@ -262,12 +271,12 @@ test.describe('configure', () => {
       await expect(getLanguage(page, TURKISH)).toBeVisible();
       await expect(getPasswordField(page)).toHaveCount(0);
       await expect(getVisibleText(page, SAVED_TEXT)).toBeVisible();
-      await getNavItem(page, 'Install').click();
+      await openSection(page, 'Install');
       await expectSearchParams(page).toEqual({
         userConfigId: userConfig.userConfigId,
         tab: 'install',
       });
-      await expect(getVisibleText(page, UNSAVED_TEXT)).toHaveCount(0);
+      await expect(getUnsavedNotice(page)).toHaveCount(0);
     });
   });
 
@@ -377,46 +386,42 @@ test.describe('configure', () => {
     });
   });
 
-  test.describe('on a phone', () => {
-    test.use({viewport: PHONE_VIEWPORT});
+  for (const viewport of [PHONE_VIEWPORT, TALL_PHONE_VIEWPORT]) {
+    test.describe(`on a phone ${viewport.width} wide`, () => {
+      test.use({viewport});
+      test.skip(
+        ({isMobile}) => !isMobile,
+        'The phone profile runs the save bar checks.',
+      );
 
-    test('a new user sees that the configuration is not saved yet', async ({
-      page,
-    }) => {
-      await openConfigure(page);
+      test('the offline banner never covers the save bar', async ({
+        page,
+        context,
+        userConfigs,
+      }) => {
+        const userConfig = await userConfigs.create({
+          password: PASSWORD,
+          languageCodes: STORED_LANGUAGE_CODES,
+        });
+        await openSignedIn(page, userConfig, {tab: 'languages'});
+        await addLanguage(page, ENGLISH);
+        const saveButton = getVisibleSaveButton(page);
+        await expect(saveButton).toBeVisible();
 
-      await expect(getVisibleText(page, NOT_SAVED_YET_TEXT)).toBeVisible();
-      await expect(getVisibleText(page, SAVED_TEXT)).toHaveCount(0);
-    });
+        await context.setOffline(true);
 
-    test('the offline banner never covers the save bar', async ({
-      page,
-      context,
-      userConfigs,
-    }) => {
-      const userConfig = await userConfigs.create({
-        password: PASSWORD,
-        languageCodes: STORED_LANGUAGE_CODES,
+        const banner = getOfflineBanner(page);
+        await expect(banner).toBeInViewport();
+        await expect(saveButton).toBeInViewport();
+        const [bannerBox, saveBarTop] = await Promise.all([
+          banner.boundingBox(),
+          readFixedAncestorTop(getUnsavedNotice(page)),
+        ]);
+        expect(bannerBox.y + bannerBox.height).toBeLessThanOrEqual(saveBarTop);
+        await context.setOffline(false);
       });
-      await openSignedIn(page, userConfig, {tab: 'languages'});
-      await addLanguage(page, ENGLISH);
-      const saveButton = getVisibleSaveButton(page);
-      await expect(saveButton).toBeVisible();
-
-      await context.setOffline(true);
-
-      const banner = getOfflineBanner(page);
-      await expect(banner).toBeVisible();
-      const [bannerBox, saveButtonBox, unsavedBox] = await Promise.all([
-        banner.boundingBox(),
-        saveButton.boundingBox(),
-        getVisibleText(page, 'Unsaved changes').boundingBox(),
-      ]);
-      expect(isOverlapping(bannerBox, saveButtonBox)).toBe(false);
-      expect(isOverlapping(bannerBox, unsavedBox)).toBe(false);
-      await context.setOffline(false);
     });
-  });
+  }
 
   test.describe('a stored secret', () => {
     test('an untouched stored key is sent blank beside its credentialId', async ({

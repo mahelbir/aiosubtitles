@@ -31,6 +31,14 @@ export function getDialog(page, name) {
   return page.getByRole('dialog', {name});
 }
 
+export function getMain(page) {
+  return page.getByRole('main');
+}
+
+export function getSectionPicker(page) {
+  return page.getByRole('combobox', {name: 'Settings section'});
+}
+
 export function getTab(page, name) {
   return page.getByRole('tab', {name, exact: true});
 }

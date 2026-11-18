@@ -2,6 +2,7 @@ import {StatusCodes} from 'http-status-codes';
 import {
   getOfflineBanner,
   getSaveButton,
+  getSectionPicker,
   getVisibleText,
 } from '../lib/locators.js';
 import {
@@ -10,10 +11,10 @@ import {
   readDigest,
 } from '../lib/fixture-page.js';
 import {expect, test} from '../lib/test.js';
+import {TALL_PHONE_VIEWPORT} from '../lib/viewport.js';
 
 const FIXTURE = 'settings-layout';
 const DESKTOP_VIEWPORT = Object.freeze({width: 1280, height: 800});
-const SETTINGS_PHONE_VIEWPORT = Object.freeze({width: 390, height: 844});
 const SECTION_LABELS = ['Sources', 'Languages', 'Install'];
 const UNSAVED_TEXT = 'You have unsaved changes';
 const INDICATOR_SLOT = 'settings-nav-indicator';
@@ -25,10 +26,6 @@ function getNav(page) {
 
 function getNavItem(page, label) {
   return getNav(page).getByRole('button', {name: label, exact: true});
-}
-
-function getPicker(page) {
-  return page.getByRole('combobox', {name: 'Settings section'});
 }
 
 function getPreviousButton(page) {
@@ -207,12 +204,12 @@ test.describe('settings layout', () => {
   });
 
   test.describe('on a phone', () => {
-    test.use({viewport: SETTINGS_PHONE_VIEWPORT});
+    test.use({viewport: TALL_PHONE_VIEWPORT});
 
     test('a section picker replaces the nav', async ({page}) => {
       await openFixture(page, FIXTURE);
 
-      await expect(getPicker(page)).toHaveText('Sources');
+      await expect(getSectionPicker(page)).toHaveText('Sources');
       await expect(getNav(page)).toBeHidden();
     });
 
@@ -225,7 +222,7 @@ test.describe('settings layout', () => {
       await getNextButton(page).click();
 
       await expectFixtureState(page, 'activeSection').toBe('languages');
-      await expect(getPicker(page)).toHaveText('Languages');
+      await expect(getSectionPicker(page)).toHaveText('Languages');
       await expect(getPreviousButton(page)).toBeEnabled();
     });
 
@@ -244,7 +241,7 @@ test.describe('settings layout', () => {
     test('a clean form has no save bar', async ({page}) => {
       await openFixture(page, FIXTURE);
 
-      await expect(getPicker(page)).toBeVisible();
+      await expect(getSectionPicker(page)).toBeVisible();
       await expect(getVisibleSaveButton(page)).toHaveCount(0);
     });
 
@@ -255,7 +252,7 @@ test.describe('settings layout', () => {
       await expect(saveButton).toBeVisible();
       await expect(saveButton).toBeInViewport();
       const box = await saveButton.boundingBox();
-      expect(box.y).toBeGreaterThan(SETTINGS_PHONE_VIEWPORT.height / 2);
+      expect(box.y).toBeGreaterThan(TALL_PHONE_VIEWPORT.height / 2);
 
       await saveButton.click();
 
@@ -300,7 +297,7 @@ test.describe('settings layout', () => {
       await expect(banner).toBeVisible();
       const bannerBox = await banner.boundingBox();
       expect(bannerBox.y + bannerBox.height).toBeGreaterThan(
-        SETTINGS_PHONE_VIEWPORT.height * 0.9,
+        TALL_PHONE_VIEWPORT.height * 0.9,
       );
       await context.setOffline(false);
     });

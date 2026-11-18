@@ -11,12 +11,12 @@ import {
   getTabPanel,
 } from '../lib/locators.js';
 import {
-  PHONE_VIEWPORT,
   clickButton,
   expectSearchParams,
   expectUnloadAsked,
 } from '../lib/page.js';
 import {expect, test} from '../lib/test.js';
+import {PHONE_VIEWPORT} from '../lib/viewport.js';
 
 const SIZE_WIDTHS = {sm: 320, default: 384, lg: 576, xl: 768, full: 1216};
 

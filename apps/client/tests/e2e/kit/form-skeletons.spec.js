@@ -19,7 +19,6 @@ import {
   getTabPanel,
 } from '../lib/locators.js';
 import {
-  PHONE_VIEWPORT,
   clickButton,
   expectHeightsToGlide,
   expectSearchParams,
@@ -28,6 +27,7 @@ import {
   settleAnimations,
 } from '../lib/page.js';
 import {expect, test} from '../lib/test.js';
+import {PHONE_VIEWPORT} from '../lib/viewport.js';
 
 const LATENCY_MS = 800;
 const HELD_LATENCY_MS = 60_000;

@@ -21,7 +21,7 @@ export default function nextConfig(phase) {
       APP_VERSION: getAppVersion(),
       NEXT_PUBLIC_API_URL: isDev ? process.env.NEXT_PUBLIC_API_URL : '',
     },
-    reactCompiler: !isDev, // The feature has been disabled to save device's battery life
+    reactCompiler: !isDev || isTest, // The feature has been disabled to save device's battery life
     experimental: {
       globalNotFound: true,
       optimizePackageImports: ['@reactuses/core', 'es-toolkit', 'melperjs'],

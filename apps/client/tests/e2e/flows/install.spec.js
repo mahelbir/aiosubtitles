@@ -1,7 +1,7 @@
 import {StatusCodes} from 'http-status-codes';
 import {SubtitleLanguage} from '@repo/shared/constants/subtitle-language.js';
 import {getApiUrl, getFailedRequestPattern} from '../lib/api.js';
-import {getVisibleText} from '../lib/locators.js';
+import {getMain, getVisibleText} from '../lib/locators.js';
 import {expectSearchParams} from '../lib/page.js';
 import {recordRequests} from '../lib/requests.js';
 import {expectToasts} from '../lib/toasts.js';
@@ -17,13 +17,12 @@ import {
   expect,
   getConfigurationIdField,
   getLanguage,
-  getMain,
-  getNavItem,
   getPasswordDialog,
   getPasswordField,
   getUserConfigPath,
   getVisibleSaveButton,
   openConfigure,
+  openSection,
   readSessionToken,
   submitPassword,
   test,
@@ -222,7 +221,7 @@ test.describe('install', () => {
       expect(await readSessionToken(page, userConfigId)).toEqual(
         expect.any(String),
       );
-      await getNavItem(page, 'Languages').click();
+      await openSection(page, 'Languages');
       await addLanguage(page, ENGLISH);
       await getVisibleSaveButton(page).click();
       await expect(getVisibleText(page, SAVED_TEXT)).toBeVisible();

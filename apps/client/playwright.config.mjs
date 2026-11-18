@@ -9,6 +9,7 @@ import {
 } from '../api/tests/e2e/ports.js';
 import {loadClientEnv} from './env.mjs';
 import {getApiUrl} from './tests/e2e/lib/api.js';
+import {TALL_PHONE_VIEWPORT} from './tests/e2e/lib/viewport.js';
 
 const SERVER_TIMEOUT = 180_000;
 const BROWSER_LOCALE = 'en-US';
@@ -52,6 +53,14 @@ export default defineConfig({
       fullyParallel: false,
       workers: 1,
       use: {...devices['Desktop Chrome']},
+    },
+    {
+      name: 'flows-phone',
+      testMatch: 'flows/**/*.spec.js',
+      dependencies: ['warmup'],
+      fullyParallel: false,
+      workers: 1,
+      use: {...devices['Pixel 7'], viewport: TALL_PHONE_VIEWPORT},
     },
   ],
   webServer: [

@@ -3,7 +3,7 @@ import {
   SUBTITLE_LANGUAGE_LIMIT_DEFAULT,
   USER_CONFIG_LANGUAGE_CODES_MAX,
 } from '@repo/shared/constants/user-config.js';
-import {getField} from '../lib/locators.js';
+import {getField, getMain} from '../lib/locators.js';
 import {
   addLanguage,
   callApi,
@@ -12,14 +12,13 @@ import {
   getLabelPattern,
   getLanguageOption,
   getLanguagePickers,
-  getMain,
-  getNavItem,
   getPasswordField,
   getSetPasswordDialog,
   getUserConfigPath,
   getVisibleSaveButton,
   openConfigure,
   openNextLanguagePicker,
+  openSection,
   openSignedIn,
   readSessionToken,
   test,
@@ -72,7 +71,7 @@ test.describe('languages', () => {
     const userConfigId = await createFromNewForm(page, userConfigs);
 
     await page.reload();
-    await getNavItem(page, 'Languages').click();
+    await openSection(page, 'Languages');
 
     await expect(getLanguagePickers(page)).toHaveText(
       getLanguageOrder(ENGLISH, TURKISH),

@@ -1,8 +1,8 @@
 import {escapeRegExp} from 'es-toolkit';
 import {withQuery} from '@repo/shared/lib/url-query.js';
+import {getDialog, getMain, getTab, getTabPanel} from './locators.js';
 import {expect} from './test.js';
-
-export const PHONE_VIEWPORT = Object.freeze({width: 375, height: 812});
+import {isPhoneLayout} from './viewport.js';
 
 export function gotoWithQuery(page, url, query) {
   return page.goto(withQuery(url, query));
@@ -25,6 +25,38 @@ export function readTokenColor(page, token) {
 
 export function clickButton(page, name) {
   return page.getByRole('button', {name, exact: true}).click();
+}
+
+async function openTabMenuDrawer(page) {
+  const activeLabel = await page
+    .getByRole('tabpanel')
+    .filter({visible: true})
+    .getAttribute('aria-label');
+  await clickButton(page, activeLabel);
+  const drawer = getDialog(page, activeLabel);
+  await expect(drawer).toBeVisible();
+  return drawer;
+}
+
+export async function openTabMenuItems(page) {
+  if (!isPhoneLayout(page)) {
+    return getMain(page).getByRole('tab');
+  }
+  const drawer = await openTabMenuDrawer(page);
+  return drawer.getByRole('navigation').getByRole('button');
+}
+
+export async function openTabMenuItem(page, label) {
+  if (isPhoneLayout(page)) {
+    const drawer = await openTabMenuDrawer(page);
+    await clickButton(drawer, label);
+    await expect(page.getByRole('dialog')).toHaveCount(0);
+  } else {
+    await getTab(page, label).click();
+  }
+  const panel = getTabPanel(page, label);
+  await expect(panel).toBeVisible();
+  return panel;
 }
 
 export function recordAnimations(page) {

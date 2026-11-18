@@ -7,6 +7,7 @@ import {useSettingsLayout} from './settings-layout-context';
 
 function SettingsPagerButton({label, section, className, children}) {
   const {onSectionChange} = useSettingsLayout();
+  const sectionValue = section?.value;
 
   return (
     <Button
@@ -16,7 +17,7 @@ function SettingsPagerButton({label, section, className, children}) {
         'h-auto min-w-0 flex-1 gap-2 rounded-xl px-3 py-3',
         className,
       )}
-      onClick={() => onSectionChange(section.value)}
+      onClick={() => onSectionChange(sectionValue)}
     >
       {children}
       <span className="flex min-w-0 flex-1 flex-col">
