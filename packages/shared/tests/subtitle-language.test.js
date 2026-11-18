@@ -158,6 +158,21 @@ describe('toSubtitleLanguageCode', () => {
   });
 
   it.each([
+    ['Farsi', 'fas'],
+    ['Norwegian Bokmål', 'nob'],
+    ['Khmer', 'khm'],
+    ['Sinhala', 'sin'],
+    ['Filipino', 'tgl'],
+    ['iw', 'heb'],
+    ['in', 'ind'],
+    ['ji', 'yid'],
+    ['FARSI', 'fas'],
+    [' filipino ', 'tgl'],
+  ])('maps the site alias %j to %s', (siteLanguage, subtitleLanguageCode) => {
+    expect(toSubtitleLanguageCode(siteLanguage)).toBe(subtitleLanguageCode);
+  });
+
+  it.each([
     'xx',
     '',
     'Klingonese',

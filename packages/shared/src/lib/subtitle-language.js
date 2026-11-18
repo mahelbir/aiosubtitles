@@ -5,6 +5,16 @@ const REGIONAL_LOCALE_TAGS = new Map([
   ['pt-br', SubtitleLanguage.POB],
   ['es-419', SubtitleLanguage.SPL],
 ]);
+const SITE_LANGUAGE_ALIASES = new Map([
+  ['farsi', SubtitleLanguage.FAS],
+  ['norwegian bokmål', SubtitleLanguage.NOB],
+  ['khmer', SubtitleLanguage.KHM],
+  ['sinhala', SubtitleLanguage.SIN],
+  ['filipino', SubtitleLanguage.TGL],
+  ['iw', SubtitleLanguage.HEB],
+  ['in', SubtitleLanguage.IND],
+  ['ji', SubtitleLanguage.YID],
+]);
 const NAME_QUALIFIER_PATTERN = /\s*\(.*\)$/;
 
 const subtitleLanguageList = SubtitleLanguage.toList();
@@ -46,6 +56,7 @@ export function toSubtitleLanguageCode(siteLanguage) {
   const [primaryLanguageTag] = localeTag.split('-');
   return (
     REGIONAL_LOCALE_TAGS.get(localeTag) ??
+    SITE_LANGUAGE_ALIASES.get(normalizedSiteLanguage) ??
     subtitleLanguageCodeByName.get(normalizedSiteLanguage) ??
     fromIsoLanguageCode(primaryLanguageTag)
   );
