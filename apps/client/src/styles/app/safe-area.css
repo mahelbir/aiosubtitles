@@ -1,5 +1,9 @@
 @utility bottom-safe {
-  bottom: max(calc(var(--spacing) * 6), env(safe-area-inset-bottom));
+  bottom: max(
+    calc(var(--spacing) * 6),
+    env(safe-area-inset-bottom),
+    calc(var(--bottom-bar-height, 0px) + var(--spacing) * 3)
+  );
 }
 
 @utility pb-safe {

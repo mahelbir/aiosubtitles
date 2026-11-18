@@ -32,7 +32,9 @@ function invalidateDeclared(client, mutation, phase) {
 function makeQueryClient() {
   const mutationCache = new MutationCache({
     onSuccess: async (data, variables, _context, mutation) => {
-      await invalidateDeclared(client, mutation, 'success');
+      if (data !== null) {
+        await invalidateDeclared(client, mutation, 'success');
+      }
       if (!mutation.meta?.isSuccessHandled && data?.message) {
         toast.success(data.message);
       }

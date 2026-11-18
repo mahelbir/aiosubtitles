@@ -23,6 +23,10 @@ export function getOfflineNotice(scope) {
   return scope.getByText('No connection. This will load when you are online.');
 }
 
+export function getVisibleText(page, text) {
+  return page.getByText(text, {exact: true}).filter({visible: true});
+}
+
 export function getDialog(page, name) {
   return page.getByRole('dialog', {name});
 }

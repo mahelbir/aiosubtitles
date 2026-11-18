@@ -2,7 +2,10 @@
 
 import {SettingsHeader} from './settings-header';
 import {SettingsLayoutContext} from './settings-layout-context';
-import {SettingsMobileBar} from './settings-mobile-bar';
+import {
+  SettingsMobileBar,
+  SettingsMobileSavedStatus,
+} from './settings-mobile-bar';
 import {SettingsNav, SettingsSectionPicker} from './settings-nav';
 import {SettingsPager} from './settings-pager';
 import {SettingsSaveButton} from './settings-save-button';
@@ -15,7 +18,8 @@ export function SettingsLayout({
   onSectionChange,
   isDirty,
   isSaving,
-  onSave,
+  formId,
+  savedText = 'All changes saved',
   children,
 }) {
   return (
@@ -29,12 +33,16 @@ export function SettingsLayout({
         onSectionChange,
         isDirty,
         isSaving,
-        onSave,
+        formId,
+        savedText,
       }}
     >
       <div className="mx-auto flex w-full max-w-6xl flex-col px-4 pb-8 md:px-6">
         <SettingsHeader title={title} description={description} />
-        <SettingsSectionPicker className="mb-4 md:hidden" />
+        <div className="mb-4 flex flex-col gap-2 md:hidden">
+          <SettingsSectionPicker />
+          <SettingsMobileSavedStatus />
+        </div>
         <div className="flex gap-10">
           <aside className="w-52 shrink-0 max-md:hidden">
             <div className="sticky top-6 flex flex-col gap-3">

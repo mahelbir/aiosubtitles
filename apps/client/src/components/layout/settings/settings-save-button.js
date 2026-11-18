@@ -8,13 +8,14 @@ import {LOADING_LABEL} from '@/components/common/loading-status';
 import {useSettingsLayout} from './settings-layout-context';
 
 export function SettingsSaveAction({className, children}) {
-  const {isSaving, onSave} = useSettingsLayout();
+  const {isSaving, formId} = useSettingsLayout();
 
   return (
     <Button
+      type="submit"
+      form={formId}
       disabled={isSaving}
       className={cn('relative', className)}
-      onClick={onSave}
     >
       {isSaving && (
         <Spinner data-icon="inline-start" aria-label={LOADING_LABEL} />
@@ -23,6 +24,19 @@ export function SettingsSaveAction({className, children}) {
       Save
       {children}
     </Button>
+  );
+}
+
+export function SettingsSaveStatus({className}) {
+  const {isDirty, savedText} = useSettingsLayout();
+
+  return (
+    <p
+      aria-live="polite"
+      className={cn('text-center text-xs text-muted-foreground', className)}
+    >
+      {isDirty ? 'You have unsaved changes' : savedText}
+    </p>
   );
 }
 
@@ -39,12 +53,7 @@ export function SettingsSaveButton({className}) {
           />
         )}
       </SettingsSaveAction>
-      <p
-        aria-live="polite"
-        className="text-center text-xs text-muted-foreground"
-      >
-        {isDirty ? 'You have unsaved changes' : 'All changes saved'}
-      </p>
+      <SettingsSaveStatus />
     </div>
   );
 }

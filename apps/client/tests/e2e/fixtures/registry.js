@@ -211,7 +211,7 @@ export const FIXTURES = [
   {
     slug: 'settings-layout',
     title: 'Settings layout',
-    variants: ['?dirty=1'],
+    variants: ['?dirty=1', '?unsaved=1'],
     load: () =>
       import('./components/settings-layout-fixture').then(
         ({SettingsLayoutFixture}) => SettingsLayoutFixture,

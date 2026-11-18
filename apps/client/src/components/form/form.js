@@ -8,11 +8,12 @@ import {focusFirstError} from '@/lib/form';
 
 const FORM_CLASS = 'flex flex-col gap-4';
 
-export function Form({form, children, className, ...props}) {
+export function Form({form, onBeforeSubmit, children, className, ...props}) {
   const formRef = useRef(null);
 
   const onSubmit = async event => {
     event.preventDefault();
+    await onBeforeSubmit?.();
     await form.handleSubmit();
     window.requestAnimationFrame(() => focusFirstError(formRef.current));
   };

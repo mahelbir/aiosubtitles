@@ -1,6 +1,6 @@
 'use client';
 
-import {useState} from 'react';
+import {useId, useState} from 'react';
 import {DownloadIcon, LanguagesIcon, LayersIcon} from 'lucide-react';
 import {useSearchParams} from 'next/navigation';
 import {SettingsLayout} from '@/components/layout/settings/settings-layout';
@@ -14,6 +14,7 @@ const SECTIONS = [
 
 export function SettingsLayoutFixture() {
   const searchParams = useSearchParams();
+  const formId = useId();
   const [activeSection, setActiveSection] = useState(SECTIONS[0].value);
   const [saveCount, setSaveCount] = useState(0);
 
@@ -26,9 +27,18 @@ export function SettingsLayoutFixture() {
       onSectionChange={setActiveSection}
       isDirty={searchParams.has('dirty')}
       isSaving={false}
-      onSave={() => setSaveCount(count => count + 1)}
+      formId={formId}
+      savedText={searchParams.has('unsaved') ? 'Not saved yet' : undefined}
     >
-      <FixtureState value={{activeSection, saveCount}} />
+      <form
+        id={formId}
+        onSubmit={event => {
+          event.preventDefault();
+          setSaveCount(count => count + 1);
+        }}
+      >
+        <FixtureState value={{activeSection, saveCount}} />
+      </form>
     </SettingsLayout>
   );
 }

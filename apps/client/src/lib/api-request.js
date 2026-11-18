@@ -22,17 +22,16 @@ export class ApiError extends Error {
 export async function requestApi(
   baseUrl,
   path,
-  {method = 'GET', body, signal, envelope = false} = {},
+  {method = 'GET', body, signal, envelope = false, headers} = {},
 ) {
-  const headers = {};
-  if (body !== undefined) {
-    headers['Content-Type'] = 'application/json';
-  }
   let response;
   try {
     response = await fetch(`${baseUrl}${path}`, {
       method,
-      headers,
+      headers: {
+        ...(body !== undefined && {'Content-Type': 'application/json'}),
+        ...headers,
+      },
       signal,
       body: body !== undefined ? JSON.stringify(body) : undefined,
     });

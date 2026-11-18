@@ -1,5 +1,9 @@
 import {StatusCodes} from 'http-status-codes';
-import {getSaveButton} from '../lib/locators.js';
+import {
+  getOfflineBanner,
+  getSaveButton,
+  getVisibleText,
+} from '../lib/locators.js';
 import {
   expectFixtureState,
   openFixture,
@@ -133,6 +137,18 @@ test.describe('settings layout', () => {
       await expect(getUnsavedNotice(page)).toHaveCount(0);
     });
 
+    test('a clean form says it is saved, or shows the text the screen passes', async ({
+      page,
+    }) => {
+      await openFixture(page, FIXTURE);
+      await expect(getVisibleText(page, 'All changes saved')).toBeVisible();
+
+      await openFixture(page, FIXTURE, {unsaved: 1});
+
+      await expect(getVisibleText(page, 'Not saved yet')).toBeVisible();
+      await expect(page.getByText('All changes saved')).toHaveCount(0);
+    });
+
     test('a dirty form shows the unsaved notice and saves on click', async ({
       page,
     }) => {
@@ -244,6 +260,49 @@ test.describe('settings layout', () => {
       await saveButton.click();
 
       await expectFixtureState(page, 'saveCount').toBe(1);
+    });
+
+    test('a clean form shows the text the screen passes', async ({page}) => {
+      await openFixture(page, FIXTURE, {unsaved: 1});
+
+      await expect(getVisibleText(page, 'Not saved yet')).toBeVisible();
+    });
+
+    test('the offline banner sits above the save bar', async ({
+      page,
+      context,
+    }) => {
+      await openFixture(page, FIXTURE, {dirty: 1});
+      const saveButton = getVisibleSaveButton(page);
+      await expect(saveButton).toBeVisible();
+
+      await context.setOffline(true);
+
+      const banner = getOfflineBanner(page);
+      await expect(banner).toBeVisible();
+      const [bannerBox, saveButtonBox] = await Promise.all([
+        banner.boundingBox(),
+        saveButton.boundingBox(),
+      ]);
+      expect(bannerBox.y + bannerBox.height).toBeLessThan(saveButtonBox.y);
+      await context.setOffline(false);
+    });
+
+    test('the offline banner keeps its place without a save bar', async ({
+      page,
+      context,
+    }) => {
+      await openFixture(page, FIXTURE);
+
+      await context.setOffline(true);
+
+      const banner = getOfflineBanner(page);
+      await expect(banner).toBeVisible();
+      const bannerBox = await banner.boundingBox();
+      expect(bannerBox.y + bannerBox.height).toBeGreaterThan(
+        SETTINGS_PHONE_VIEWPORT.height * 0.9,
+      );
+      await context.setOffline(false);
     });
   });
 

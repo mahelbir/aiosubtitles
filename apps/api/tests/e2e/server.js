@@ -30,11 +30,15 @@ closeWithGrace(async ({signal, err}) => {
   }
 });
 
-const [{buildApp}, {config}] = await Promise.all([
-  import('../../src/build.js'),
-  import('../../src/config/index.js'),
-]);
+const [{buildApp}, {config}, {createFixtureSubtitleSourceRegistry}] =
+  await Promise.all([
+    import('../../src/build.js'),
+    import('../../src/config/index.js'),
+    import('./fixture-subtitle-sources.js'),
+  ]);
 
-fastify = buildApp();
+fastify = buildApp({
+  subtitleSourceRegistry: createFixtureSubtitleSourceRegistry(),
+});
 
 await fastify.listen({port: config.port, host: config.host});

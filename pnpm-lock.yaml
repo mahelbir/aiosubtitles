@@ -362,6 +362,9 @@ importers:
       cn:
         specifier: ^0.5.2
         version: 0.5.2
+      enum-plus:
+        specifier: ^3.4.0
+        version: 3.4.0
       es-toolkit:
         specifier: ^1.53.1
         version: 1.53.1
