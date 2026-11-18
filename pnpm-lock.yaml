@@ -250,6 +250,9 @@ importers:
       '@repo/shared':
         specifier: workspace:*
         version: link:../../packages/shared
+      '@repo/subtitle-core':
+        specifier: workspace:*
+        version: link:../../packages/subtitle-core
       '@repo/tooling':
         specifier: workspace:*
         version: link:../../packages/tooling

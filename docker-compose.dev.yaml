@@ -35,6 +35,7 @@ x-workspace: &workspace
     - client-modules:/repo/apps/client/node_modules
     - shared-modules:/repo/packages/shared/node_modules
     - tooling-modules:/repo/packages/tooling/node_modules
+    - subtitle-core-modules:/repo/packages/subtitle-core/node_modules
     - client-next:/repo/apps/client/.next
 x-workspace-env: &workspace-env
   PNPM_CONFIG_STORE_DIR: /pnpm-store
@@ -136,6 +137,7 @@ volumes:
   client-modules:
   shared-modules:
   tooling-modules:
+  subtitle-core-modules:
   client-next:
   postgres-data:
   redis-data:

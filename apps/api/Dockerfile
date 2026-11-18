@@ -36,11 +36,13 @@ FROM pnpm AS build
 COPY apps/api/package.json apps/api/
 COPY packages/shared/package.json packages/shared/
 COPY packages/tooling/package.json packages/tooling/
+COPY packages/subtitle-core/package.json packages/subtitle-core/
 RUN --mount=type=cache,id=pnpm-store,target=/pnpm-store \
     pnpm install --frozen-lockfile --prefer-offline --filter api...
 
 COPY packages/shared packages/shared
 COPY packages/tooling packages/tooling
+COPY packages/subtitle-core packages/subtitle-core
 COPY apps/api apps/api
 COPY --from=client /repo/apps/client/out apps/api/public-client
 

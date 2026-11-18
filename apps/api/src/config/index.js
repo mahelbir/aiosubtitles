@@ -77,4 +77,25 @@ export const config = deepFreeze({
   redisUser: env.REDIS_USER,
   redisPass: env.REDIS_PASS,
   redisDb: env.REDIS_DB,
+
+  opensubtitlesApiKey: env.OPENSUBTITLES_API_KEY,
+  stremioCommunitySubtitlesToken: env.STREMIO_COMMUNITY_SUBTITLES_TOKEN,
+  subtitleSearchDeadline: env.SUBTITLE_SEARCH_DEADLINE,
+  subtitleSearchCacheFreshTtl: env.SUBTITLE_SEARCH_CACHE_FRESH_TTL,
+  subtitleSearchCacheStaleTtl: env.SUBTITLE_SEARCH_CACHE_STALE_TTL,
+  userConfigCacheTtl: env.USER_CONFIG_CACHE_TTL,
+  userConfigSessionTtl: env.USER_CONFIG_SESSION_TTL,
+  subtitleSourceBackgroundShare: env.SUBTITLE_SOURCE_BACKGROUND_SHARE,
+  opensubtitlesQuotaCandidateMax: env.OPENSUBTITLES_QUOTA_CANDIDATE_MAX,
+  opensubtitlesQuotaViewerShare: env.OPENSUBTITLES_QUOTA_VIEWER_SHARE,
+  subtitleListRateLimitIpMax: env.SUBTITLE_LIST_RATE_LIMIT_IP_MAX,
+  subtitleListRateLimitUserConfigMax:
+    env.SUBTITLE_LIST_RATE_LIMIT_USER_CONFIG_MAX,
+  subtitleFileRateLimitIpMax: env.SUBTITLE_FILE_RATE_LIMIT_IP_MAX,
+  subtitleFileRateLimitUserConfigMax:
+    env.SUBTITLE_FILE_RATE_LIMIT_USER_CONFIG_MAX,
+  userConfigPasswordRateLimitWindow: env.USER_CONFIG_PASSWORD_RATE_LIMIT_WINDOW,
+  userConfigPasswordRateLimitIpMax: env.USER_CONFIG_PASSWORD_RATE_LIMIT_IP_MAX,
+  userConfigPasswordRateLimitUserConfigMax:
+    env.USER_CONFIG_PASSWORD_RATE_LIMIT_USER_CONFIG_MAX,
 });

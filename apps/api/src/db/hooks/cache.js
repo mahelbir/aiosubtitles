@@ -1,5 +1,8 @@
 import {Op} from 'sequelize';
 import {uniq} from 'es-toolkit';
+import {userConfigCache} from '../../lib/user-config-cache.js';
+import {UserConfig} from '../models/user-config.js';
+import {UserConfigCredential} from '../models/user-config-credential.js';
 
 /* Hooks fire while the statement runs, so a write inside a transaction must defer
    its invalidation to commit — otherwise a concurrent read repopulates the cache
@@ -55,10 +58,29 @@ function invalidateIds(cache, ids) {
     : cache.invalidateMany(unique);
 }
 
+function invalidateRecord(cache, id) {
+  return id == null ? cache.invalidateAll() : cache.invalidate(id);
+}
+
 export function invalidateRecordsOn(model, cache, {key = 'id', recordHooks}) {
+  const storedKeys = new WeakMap();
   for (const hook of recordHooks) {
+    model.addHook(hook.replace(/^after/, 'before'), async (record, options) => {
+      if (record[key] != null) {
+        return;
+      }
+      const stored = await model.unscoped().findOne({
+        attributes: [key],
+        where: record.where(),
+        transaction: options?.transaction,
+        raw: true,
+      });
+      storedKeys.set(record, stored?.[key]);
+    });
     model.addHook(hook, (record, options) =>
-      afterCommit(options, () => cache.invalidate(record[key])),
+      afterCommit(options, () =>
+        invalidateRecord(cache, record[key] ?? storedKeys.get(record)),
+      ),
     );
   }
   model.addHook('afterBulkCreate', (records, options) =>
@@ -78,4 +100,12 @@ export function invalidateRecordsOn(model, cache, {key = 'id', recordHooks}) {
   }
 }
 
-export function applyCacheHooks() {}
+export function applyCacheHooks() {
+  invalidateRecordsOn(UserConfig, userConfigCache, {
+    recordHooks: ['afterUpdate', 'afterDestroy'],
+  });
+  invalidateRecordsOn(UserConfigCredential, userConfigCache, {
+    key: 'userConfigId',
+    recordHooks: ['afterSave', 'afterDestroy'],
+  });
+}

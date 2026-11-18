@@ -27,6 +27,7 @@
     "@fastify/type-provider-zod": "^1.0.3",
     "@mahelbir/settings": "^6.0.0",
     "@repo/shared": "workspace:*",
+    "@repo/subtitle-core": "workspace:*",
     "@repo/tooling": "workspace:*",
     "background-job": "^2.0.0",
     "close-with-grace": "^2.5.0",

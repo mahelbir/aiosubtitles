@@ -10,6 +10,12 @@ import {RateLimitPenalty} from '../lib/rate-limit.js';
 const ADDRESS_LIST_MESSAGE =
   'Must list IP addresses, CIDR ranges or named ranges';
 const BUNDLED_DB_HOST = 'network-alias-postgres';
+const SUBTITLE_SEARCH_DEADLINE_MIN = 1000;
+const SUBTITLE_SEARCH_DEADLINE_MAX = 9000;
+
+const ttlField = z.coerce.number().int().nonnegative();
+const positiveIntField = z.coerce.number().int().positive();
+const shareField = z.coerce.number().min(0).max(1);
 
 const rateLimitPenaltyField = z.preprocess(
   value => value?.trim() || undefined,
@@ -37,6 +43,19 @@ function getDbCredentialCheck(key) {
     {
       message: 'Required when DB_HOST points to an external database',
       path: [key],
+    },
+  );
+}
+
+function getSubtitleSearchCacheCheck() {
+  return getCrossFieldCheck(
+    ['SUBTITLE_SEARCH_CACHE_FRESH_TTL', 'SUBTITLE_SEARCH_CACHE_STALE_TTL'],
+    env =>
+      env.SUBTITLE_SEARCH_CACHE_STALE_TTL >=
+      env.SUBTITLE_SEARCH_CACHE_FRESH_TTL,
+    {
+      message: 'Must be at least SUBTITLE_SEARCH_CACHE_FRESH_TTL',
+      path: ['SUBTITLE_SEARCH_CACHE_STALE_TTL'],
     },
   );
 }
@@ -123,9 +142,37 @@ export function getEnvSchema({appPath}) {
     REDIS_USER: z.string().default(''),
     REDIS_PASS: z.string().default(''),
     REDIS_DB: z.coerce.number().int().nonnegative().default(0),
+
+    OPENSUBTITLES_API_KEY: z.string().default(''),
+    STREMIO_COMMUNITY_SUBTITLES_TOKEN: z.string().default(''),
+    SUBTITLE_SEARCH_DEADLINE: z.coerce
+      .number()
+      .int()
+      .min(SUBTITLE_SEARCH_DEADLINE_MIN)
+      .max(SUBTITLE_SEARCH_DEADLINE_MAX)
+      .default(7000),
+    SUBTITLE_SEARCH_CACHE_FRESH_TTL: ttlField.default(21600),
+    SUBTITLE_SEARCH_CACHE_STALE_TTL: ttlField.default(2592000),
+    USER_CONFIG_CACHE_TTL: ttlField.default(60),
+    USER_CONFIG_SESSION_TTL: positiveIntField.default(1800),
+    SUBTITLE_SOURCE_BACKGROUND_SHARE: shareField.default(0.5),
+    OPENSUBTITLES_QUOTA_CANDIDATE_MAX: positiveIntField.default(3),
+    OPENSUBTITLES_QUOTA_VIEWER_SHARE: shareField.default(0.5),
+    SUBTITLE_LIST_RATE_LIMIT_IP_MAX: positiveIntField.default(60),
+    SUBTITLE_LIST_RATE_LIMIT_USER_CONFIG_MAX: positiveIntField.default(30),
+    SUBTITLE_FILE_RATE_LIMIT_IP_MAX: positiveIntField.default(60),
+    SUBTITLE_FILE_RATE_LIMIT_USER_CONFIG_MAX: positiveIntField.default(30),
+    USER_CONFIG_PASSWORD_RATE_LIMIT_WINDOW: positiveIntField.default(900000),
+    USER_CONFIG_PASSWORD_RATE_LIMIT_IP_MAX: positiveIntField.default(20),
+    USER_CONFIG_PASSWORD_RATE_LIMIT_USER_CONFIG_MAX:
+      positiveIntField.default(5),
   });
 
   return schema
-    .check(getDbCredentialCheck('DB_USER'), getDbCredentialCheck('DB_PASS'))
+    .check(
+      getDbCredentialCheck('DB_USER'),
+      getDbCredentialCheck('DB_PASS'),
+      getSubtitleSearchCacheCheck(),
+    )
     .overwrite(fillBundledDbCredentials);
 }
