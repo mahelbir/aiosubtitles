@@ -18,6 +18,11 @@ describe('OpenAPI document', () => {
         }
       }
     }
-    expect(open.toSorted()).toEqual(['GET /', 'GET /{userConfigId}/configure']);
+    expect(open.toSorted()).toEqual([
+      'GET /',
+      'GET /manifest.json',
+      'GET /{userConfigId}/configure',
+      'GET /{userConfigId}/manifest.json',
+    ]);
   });
 });

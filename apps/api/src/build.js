@@ -3,6 +3,7 @@ import {
   serializerCompiler,
   validatorCompiler,
 } from '@fastify/type-provider-zod';
+import {URL_MAX_LENGTH} from '@repo/shared/constants/common.js';
 import {config} from './config/index.js';
 import {basePathField} from './config/schema.js';
 import {loggerOptions} from './lib/logger.js';
@@ -22,6 +23,7 @@ export function buildApp({
   const fastify = Fastify({
     routerOptions: {
       ignoreTrailingSlash: true,
+      maxParamLength: URL_MAX_LENGTH,
     },
     logger: loggerOptions,
     logController: new LogController({disableRequestLogging: true}),

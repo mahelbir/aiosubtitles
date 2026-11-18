@@ -86,6 +86,12 @@ declare module 'fastify' {
       result: Awaited<
         ReturnType<ReturnType<FastifyInstance['createRateLimit']>>
       >,
-    ) => void | Promise<void>;
+      reply: FastifyReply,
+    ) => void | FastifyReply | Promise<void | FastifyReply>;
+    isAddonRoute?: boolean;
+    replyAddonFallback?: (
+      request: FastifyRequest,
+      reply: FastifyReply,
+    ) => FastifyReply;
   }
 }

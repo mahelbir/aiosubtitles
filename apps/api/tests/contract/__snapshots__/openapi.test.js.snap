@@ -35,6 +35,92 @@ exports[`OpenAPI document > matches the recorded contract 1`] = `
         ],
       },
     },
+    "/manifest.json": {
+      "get": {
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": false,
+                  "description": "The Stremio addon manifest",
+                  "properties": {
+                    "behaviorHints": {
+                      "additionalProperties": false,
+                      "properties": {
+                        "configurable": {
+                          "type": "boolean",
+                        },
+                        "configurationRequired": {
+                          "type": "boolean",
+                        },
+                      },
+                      "required": [
+                        "configurable",
+                        "configurationRequired",
+                      ],
+                      "type": "object",
+                    },
+                    "catalogs": {
+                      "items": {
+                        "not": {},
+                      },
+                      "type": "array",
+                    },
+                    "description": {
+                      "type": "string",
+                    },
+                    "id": {
+                      "type": "string",
+                    },
+                    "idPrefixes": {
+                      "items": {
+                        "type": "string",
+                      },
+                      "type": "array",
+                    },
+                    "name": {
+                      "type": "string",
+                    },
+                    "resources": {
+                      "items": {
+                        "type": "string",
+                      },
+                      "type": "array",
+                    },
+                    "types": {
+                      "items": {
+                        "type": "string",
+                      },
+                      "type": "array",
+                    },
+                    "version": {
+                      "type": "string",
+                    },
+                  },
+                  "required": [
+                    "id",
+                    "version",
+                    "name",
+                    "description",
+                    "resources",
+                    "types",
+                    "idPrefixes",
+                    "catalogs",
+                    "behaviorHints",
+                  ],
+                  "type": "object",
+                },
+              },
+            },
+            "description": "The Stremio addon manifest",
+          },
+        },
+        "tags": [
+          "default",
+        ],
+      },
+    },
     "/{userConfigId}/configure": {
       "get": {
         "parameters": [
@@ -62,6 +148,102 @@ exports[`OpenAPI document > matches the recorded contract 1`] = `
               },
             },
             "description": "Redirects to the configure page",
+          },
+        },
+        "tags": [
+          "default",
+        ],
+      },
+    },
+    "/{userConfigId}/manifest.json": {
+      "get": {
+        "parameters": [
+          {
+            "in": "path",
+            "name": "userConfigId",
+            "required": true,
+            "schema": {
+              "type": "string",
+            },
+          },
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": false,
+                  "description": "The Stremio addon manifest",
+                  "properties": {
+                    "behaviorHints": {
+                      "additionalProperties": false,
+                      "properties": {
+                        "configurable": {
+                          "type": "boolean",
+                        },
+                        "configurationRequired": {
+                          "type": "boolean",
+                        },
+                      },
+                      "required": [
+                        "configurable",
+                        "configurationRequired",
+                      ],
+                      "type": "object",
+                    },
+                    "catalogs": {
+                      "items": {
+                        "not": {},
+                      },
+                      "type": "array",
+                    },
+                    "description": {
+                      "type": "string",
+                    },
+                    "id": {
+                      "type": "string",
+                    },
+                    "idPrefixes": {
+                      "items": {
+                        "type": "string",
+                      },
+                      "type": "array",
+                    },
+                    "name": {
+                      "type": "string",
+                    },
+                    "resources": {
+                      "items": {
+                        "type": "string",
+                      },
+                      "type": "array",
+                    },
+                    "types": {
+                      "items": {
+                        "type": "string",
+                      },
+                      "type": "array",
+                    },
+                    "version": {
+                      "type": "string",
+                    },
+                  },
+                  "required": [
+                    "id",
+                    "version",
+                    "name",
+                    "description",
+                    "resources",
+                    "types",
+                    "idPrefixes",
+                    "catalogs",
+                    "behaviorHints",
+                  ],
+                  "type": "object",
+                },
+              },
+            },
+            "description": "The Stremio addon manifest",
           },
         },
         "tags": [

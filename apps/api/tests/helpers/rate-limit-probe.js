@@ -1,5 +1,6 @@
 import Fastify from 'fastify';
 import clientIpPlugin from '../../src/plugins/client-ip.js';
+import corsPlugin from '../../src/plugins/cors.js';
 import rateLimitPlugin from '../../src/plugins/rate-limit.js';
 import responsePlugin from '../../src/plugins/response.js';
 
@@ -14,6 +15,7 @@ export async function buildProbe(routes) {
 
   await app.register(responsePlugin);
   await app.register(clientIpPlugin);
+  await app.register(corsPlugin);
   await app.register(rateLimitPlugin);
 
   const guard = async () => {

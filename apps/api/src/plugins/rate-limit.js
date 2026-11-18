@@ -205,7 +205,14 @@ function toHook(checks) {
         continue;
       }
       if (result.isExceeded) {
-        await request.routeOptions.config?.onRateLimited?.(request, result);
+        await request.routeOptions.config?.onRateLimited?.(
+          request,
+          result,
+          reply,
+        );
+        if (reply.sent) {
+          return reply;
+        }
         publish(reply, result);
         return reply.respond(tooManyRequests());
       }
@@ -330,5 +337,5 @@ export default fp(
       }
     });
   },
-  {name: 'rate-limit'},
+  {name: 'rate-limit', dependencies: ['cors']},
 );

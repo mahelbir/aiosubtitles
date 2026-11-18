@@ -4,7 +4,10 @@ import {pickBy} from 'es-toolkit';
 import {castArray} from 'es-toolkit/compat';
 import {StatusCodes} from 'http-status-codes';
 import proxyAddr from 'proxy-addr';
-import {ADDON_MANIFEST_VERSION} from '@repo/shared/constants/app.js';
+import {
+  ADDON_MANIFEST_VERSION,
+  ADDON_NAME,
+} from '@repo/shared/constants/app.js';
 import {
   SourceCredentialError,
   SourceRateLimitError,
@@ -25,7 +28,7 @@ export const SUBTITLE_SOURCE_RETRY_AFTER_MAX = 86400000;
 
 const SUBTITLE_SOURCE_REDIRECTS_MAX = 5;
 const SUBTITLE_SOURCE_DEFAULT_HEADERS = {
-  'User-Agent': `AIOSubtitles v${ADDON_MANIFEST_VERSION}`,
+  'User-Agent': `${ADDON_NAME} v${ADDON_MANIFEST_VERSION}`,
   Accept: '*/*',
 };
 const CROSS_ORIGIN_HEADER_NAMES = new Set([
