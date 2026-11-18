@@ -10,4 +10,5 @@ apps/client/src/components/ui
 packages/shared/tests/fixtures
 apps/api/tests/fixtures/client-export
 apps/eval/metrics*.md
+apps/eval/reports/
 apps/eval/tests/fixtures/reference-mini
