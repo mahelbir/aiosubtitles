@@ -50,4 +50,7 @@ export const SUBTITLE_SOURCE_DESCRIPTIONS = Object.freeze({
     helpText: 'Requires an API key.',
     keyPageUrl: 'https://sub.wyzie.io/redeem',
   },
+  [SubtitleSource.TVSUBTITLES]: {
+    helpText: "No key needed. Requests share the server's limits.",
+  },
 });

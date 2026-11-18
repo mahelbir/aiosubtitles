@@ -39,6 +39,8 @@ export function makeSearchQuery(overrides = {}) {
     catalogSeason: null,
     catalogEpisode: null,
     tvdbId: null,
+    catalogTitle: null,
+    catalogYear: null,
     languageCodes: ['tur', 'eng'],
     videoHash: null,
     videoSizeBytes: null,

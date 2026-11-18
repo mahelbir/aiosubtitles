@@ -8,6 +8,7 @@ import {opensubtitlesV3Client} from './opensubtitles-v3/opensubtitles-v3-client.
 import {subdlClient} from './subdl/subdl-client.js';
 import {subsourceClient} from './subsource/subsource-client.js';
 import {thesubtitledbClient} from './thesubtitledb/thesubtitledb-client.js';
+import {tvsubtitlesClient} from './tvsubtitles/tvsubtitles-client.js';
 import {wyzieClient} from './wyzie/wyzie-client.js';
 import {yifyClient} from './yify/yify-client.js';
 
@@ -41,6 +42,7 @@ export const {getSubtitleSourceClient, listSubtitleSourceClients} =
     subdlClient,
     subsourceClient,
     thesubtitledbClient,
+    tvsubtitlesClient,
     wyzieClient,
     yifyClient,
   ]);

@@ -17,6 +17,8 @@ export function makeVideoSearchQuery({
     catalogSeason,
     catalogEpisode,
     tvdbId: null,
+    catalogTitle: null,
+    catalogYear: null,
     languageCodes,
     videoHash,
     videoSizeBytes: null,

@@ -55,6 +55,8 @@ export async function resolveListVideo({
       catalogSeason,
       catalogEpisode,
       tvdbId: catalogMeta?.tvdbId ?? null,
+      catalogTitle: catalogMeta?.catalogTitle ?? null,
+      catalogYear: catalogMeta?.catalogYear ?? null,
       videoHash,
       videoSizeBytes,
       videoFilename,

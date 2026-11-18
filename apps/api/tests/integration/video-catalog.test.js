@@ -146,9 +146,15 @@ describe('the Kitsu mapping', () => {
 });
 
 describe('the catalog meta', () => {
-  it('reads the duration and TVDB id once per video', async () => {
+  it('reads the duration, TVDB id and title once per video', async () => {
     const requestRemoteResource = answerWith({
-      meta: {id: 'tt0944947', runtime: '57 min', tvdb_id: 121361},
+      meta: {
+        id: 'tt0944947',
+        name: 'Game of Thrones',
+        runtime: '57 min',
+        tvdb_id: 121361,
+        year: '2011–2019',
+      },
     });
     const readCatalogMeta = createCatalogMetaReader({requestRemoteResource});
 
@@ -158,7 +164,15 @@ describe('the catalog meta', () => {
       imdbId: 'tt0944947',
     });
 
-    expect(catalogMeta).toEqual({catalogDurationMs: 3420000, tvdbId: '121361'});
+    expect(catalogMeta).toEqual({
+      catalogDurationMs: 3420000,
+      tvdbId: '121361',
+      catalogTitle: 'Game of Thrones',
+      catalogYear: 2011,
+    });
+    await expect(
+      redis.exists('catalog-meta:v2:series:tt0944947'),
+    ).resolves.toBe(1);
     expect(requestRemoteResource).toHaveBeenCalledTimes(1);
     expect(requestRemoteResource).toHaveBeenCalledWith(
       expect.objectContaining({

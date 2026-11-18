@@ -99,18 +99,58 @@ describe('the Cinemeta lookup', () => {
     });
   });
 
-  it('maps the runtime and the TVDB id', () => {
+  it('maps the runtime, the TVDB id, the title and the first year', () => {
     expect(
       toCatalogMeta({
-        meta: {id: 'tt0944947', runtime: '57 min', tvdb_id: 121361},
+        meta: {
+          id: 'tt0944947',
+          name: 'Game of Thrones',
+          runtime: '57 min',
+          tvdb_id: 121361,
+          year: '2011–2019',
+        },
       }),
-    ).toEqual({catalogDurationMs: 3420000, tvdbId: '121361'});
+    ).toEqual({
+      catalogDurationMs: 3420000,
+      tvdbId: '121361',
+      catalogTitle: 'Game of Thrones',
+      catalogYear: 2011,
+    });
   });
 
-  it('maps a meta without runtime or TVDB id to nulls', () => {
+  it.each([
+    ['1999', 1999],
+    ['2016–', 2016],
+    ['unknown', null],
+    [1999, 1999],
+    [19999, null],
+  ])('reads the year %s as %s', (year, catalogYear) => {
+    expect(toCatalogMeta({meta: {id: 'tt0133093', year}})?.catalogYear).toBe(
+      catalogYear,
+    );
+  });
+
+  it('falls back to the release info for the year', () => {
+    expect(
+      toCatalogMeta({meta: {id: 'tt0944947', releaseInfo: '2011–2019'}})
+        ?.catalogYear,
+    ).toBe(2011);
+  });
+
+  it('prefers the year over the release info', () => {
+    expect(
+      toCatalogMeta({
+        meta: {id: 'tt0944947', year: '2011–2019', releaseInfo: '2012'},
+      })?.catalogYear,
+    ).toBe(2011);
+  });
+
+  it('maps a meta without runtime, TVDB id, title or year to nulls', () => {
     expect(toCatalogMeta({meta: {id: 'tt0133093'}})).toEqual({
       catalogDurationMs: null,
       tvdbId: null,
+      catalogTitle: null,
+      catalogYear: null,
     });
   });
 });

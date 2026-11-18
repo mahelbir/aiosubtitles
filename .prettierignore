@@ -10,6 +10,7 @@ apps/client/src/components/ui
 packages/shared/tests/fixtures
 apps/api/tests/fixtures/client-export
 apps/api/tests/fixtures/subtitle-sources/yify/*.html
+apps/api/tests/fixtures/subtitle-sources/tvsubtitles/*.html
 apps/eval/metrics*.md
 apps/eval/reports/
 apps/eval/tests/fixtures/reference-mini

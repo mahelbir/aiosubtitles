@@ -70,12 +70,13 @@ const EPISODE_SRT = '1\n00:00:01,000 --> 00:00:03,000\nBölüm başlıyor.\n';
 
 const CATALOG_BODIES = {
   [`${CINEMETA_META_URL}/movie/${MOVIE_ID}.json`]: {
-    meta: {id: MOVIE_ID, type: 'movie', runtime: '136 min'},
+    meta: {id: MOVIE_ID, type: 'movie', name: 'The Matrix', runtime: '136 min'},
   },
   [`${CINEMETA_META_URL}/series/${SERIES_IMDB_ID}.json`]: {
     meta: {
       id: SERIES_IMDB_ID,
       type: 'series',
+      name: 'Game of Thrones',
       runtime: '57 min',
       tvdb_id: 121361,
     },
@@ -84,8 +85,10 @@ const CATALOG_BODIES = {
     meta: {
       id: ANIME_IMDB_ID,
       type: 'series',
+      name: 'Attack on Titan',
       runtime: '24 min',
       tvdb_id: 267440,
+      year: '2013–2023',
     },
   },
   [KITSU_META_URL]: {
@@ -375,6 +378,8 @@ describe('the subtitle list route', () => {
         kitsuId: null,
         catalogSeason: null,
         catalogEpisode: null,
+        catalogTitle: 'The Matrix',
+        catalogYear: null,
         languageCodes: ['tur', 'eng'],
         videoHash: null,
         videoSizeBytes: null,
@@ -751,6 +756,8 @@ describe('the subtitle list route', () => {
         catalogSeason: 1,
         catalogEpisode: 5,
         tvdbId: '267440',
+        catalogTitle: 'Attack on Titan',
+        catalogYear: 2013,
       }),
     ]);
     expect(catalogRequest).toHaveBeenCalledWith(

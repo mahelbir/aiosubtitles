@@ -10,6 +10,7 @@ const RUNTIME_PATTERN = /^\s*(?:(\d+)\s*h)?\s*(?:(\d+)\s*min)?\s*$/i;
 const HOUR_MS = 3600000;
 const MINUTE_MS = 60000;
 const CATALOG_KEY_SEPARATOR = ':';
+const YEAR_PATTERN = /^\s*(\d{4})(?!\d)/;
 
 export function buildCatalogMetaRequest({videoType, imdbId}) {
   return {
@@ -28,6 +29,13 @@ export function parseCatalogRuntimeMs(runtime) {
   return Number(hourText) * HOUR_MS + Number(minuteText) * MINUTE_MS;
 }
 
+function parseCatalogYear(year) {
+  const yearMatch =
+    (typeof year === 'string' || typeof year === 'number') &&
+    String(year).match(YEAR_PATTERN);
+  return yearMatch ? Number(yearMatch[1]) : null;
+}
+
 export function toCatalogMeta(metaBody) {
   const meta = metaBody?.meta;
   if (!meta) {
@@ -36,6 +44,12 @@ export function toCatalogMeta(metaBody) {
   return {
     catalogDurationMs: parseCatalogRuntimeMs(meta.runtime),
     tvdbId: isNil(meta.tvdb_id) ? null : String(meta.tvdb_id),
+    catalogTitle:
+      typeof meta.name === 'string' && meta.name.trim() !== ''
+        ? meta.name
+        : null,
+    catalogYear:
+      parseCatalogYear(meta.year) ?? parseCatalogYear(meta.releaseInfo),
   };
 }
 
@@ -51,7 +65,7 @@ export function createCatalogMetaReader({
   requestRemoteResource = sendRemoteResourceRequest,
 } = {}) {
   const {readCatalogValue} = createCatalogLookup({
-    prefix: 'catalog-meta:v1:',
+    prefix: 'catalog-meta:v2:',
     ttl: CATALOG_META_TTL,
     requestRemoteResource,
     buildRequest: toCatalogMetaRequest,

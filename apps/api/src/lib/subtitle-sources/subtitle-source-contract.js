@@ -22,6 +22,8 @@ import {SubtitleAliasSource} from './subtitle-alias-source.js';
  * @property {number|null} catalogSeason
  * @property {number|null} catalogEpisode
  * @property {string|null} tvdbId
+ * @property {string|null} catalogTitle
+ * @property {number|null} catalogYear
  * @property {string[]} languageCodes
  * @property {string|null} videoHash
  * @property {number|null} videoSizeBytes
