@@ -5,6 +5,7 @@ import {SubtitleSource} from '@repo/shared/constants/subtitle-source.js';
 import {subtitleSourceHitSchema} from '../../../src/lib/subtitle-sources/subtitle-source-contract.js';
 import {SourceUnavailableError} from '../../../src/lib/subtitle-sources/subtitle-source-errors.js';
 import {thesubtitledbMapping} from '../../../src/lib/subtitle-sources/thesubtitledb/thesubtitledb-mapping.js';
+import {catchError, toErrorText} from '../../helpers/caught-error.js';
 import {readFixture} from '../../helpers/read-fixture.js';
 import {
   makeSearchQuery,
@@ -29,19 +30,6 @@ async function readEpisodeHits() {
     headers: {'content-type': 'application/json'},
     body: await readFixture(EPISODE_FIXTURE),
   });
-}
-
-function catchError(callback) {
-  try {
-    callback();
-  } catch (error) {
-    return error;
-  }
-  return null;
-}
-
-function toErrorText(error) {
-  return `${error.message} ${error.cause?.message} ${JSON.stringify(error)}`;
 }
 
 function findHit(hits, siteFileId) {

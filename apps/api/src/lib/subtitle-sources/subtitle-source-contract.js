@@ -72,6 +72,7 @@ import {SubtitleAliasSource} from './subtitle-alias-source.js';
  * @property {string|null} siteFileUrl
  * @property {number|null} catalogSeason
  * @property {number|null} catalogEpisode
+ * @property {boolean} [isSitePack]
  */
 
 /**

@@ -1,0 +1,161 @@
+{
+  "success": true,
+  "movie": {
+    "id": 9001,
+    "title": "Gölge Çağı",
+    "content_type": "series",
+    "imdb_id": "tt9900001",
+    "tmdb_id": "990001",
+    "search_method": "imdb_id"
+  },
+  "filters": {
+    "version_groups": ["WEB-DL", "WEB", "HDTV"]
+  },
+  "pagination": {
+    "current_page": 1,
+    "total_pages": 1,
+    "total_records": 5,
+    "limit": 20
+  },
+  "data": [
+    {
+      "id": "510001",
+      "language": "tr",
+      "season": 1,
+      "episode": "4",
+      "fps": "23.976",
+      "duration": "00:55:45",
+      "sure_bilgisi": "00:55:45",
+      "version_groups": ["WEB-DL"],
+      "release_groups": ["WEB-DL"],
+      "versions": [
+        {
+          "group": "NTb",
+          "file": "Golge.Cagi.S01E04.1080p.WEB-DL.DDP5.1.H.264-NTb"
+        }
+      ],
+      "releases": [
+        "Golge.Cagi.S01E04.1080p.WEB-DL.DDP5.1.H.264-NTb",
+        "Golge.Cagi.S01E04.720p.WEB-DL.H.264-NTb"
+      ],
+      "translator": "fixture-translator",
+      "uploader": "fixture-uploader",
+      "downloads": 120,
+      "date": "2026-10-02 21:15:00",
+      "is_package": 0,
+      "archive_url": "https://altyazidb.com/api/v1/download?sub_id=510001",
+      "stream_url": "https://altyazidb.com/api/v1/subtitle?sub_id=510001",
+      "download_url": "https://altyazidb.com/api/v1/subtitle?sub_id=510001",
+      "translator_note": null,
+      "hearing_impaired": 0,
+      "forced": 0,
+      "ai_ceviri": 0,
+      "foreign_parts": 0
+    },
+    {
+      "id": "510002",
+      "language": "en",
+      "season": 1,
+      "episode": "4",
+      "fps": "25",
+      "duration": "00:55:44",
+      "sure_bilgisi": "00:55:44",
+      "version_groups": ["WEB"],
+      "release_groups": ["WEB"],
+      "versions": [
+        {
+          "group": "FLUX",
+          "file": "Gölge.Çağı.S01E04.İlk.Işık.1080p.WEB.h264-FLUX"
+        }
+      ],
+      "releases": ["Gölge.Çağı.S01E04.İlk.Işık.1080p.WEB.h264-FLUX"],
+      "translator": "fixture-translator",
+      "uploader": "fixture-uploader",
+      "downloads": 7,
+      "date": "2026-10-03 09:40:00",
+      "is_package": 0,
+      "archive_url": "https://altyazidb.com/api/v1/download?sub_id=510002",
+      "stream_url": "https://altyazidb.com/api/v1/subtitle?sub_id=510002",
+      "download_url": "https://altyazidb.com/api/v1/subtitle?sub_id=510002",
+      "translator_note": "Senkron düzeltildi.",
+      "hearing_impaired": 1,
+      "forced": 0,
+      "ai_ceviri": 1,
+      "foreign_parts": 1
+    },
+    {
+      "id": "510003",
+      "language": "tr",
+      "season": 1,
+      "episode": "PAKET",
+      "fps": "23.976",
+      "duration": null,
+      "sure_bilgisi": null,
+      "version_groups": ["WEB-DL"],
+      "release_groups": ["WEB-DL"],
+      "versions": [
+        {
+          "group": "NTb",
+          "file": "Golge.Cagi.S01.1080p.WEB-DL.DDP5.1.H.264-NTb"
+        }
+      ],
+      "releases": [],
+      "translator": "fixture-translator",
+      "uploader": "fixture-uploader",
+      "downloads": 300,
+      "date": "2026-10-20 18:00:00",
+      "is_package": 1,
+      "archive_url": "https://altyazidb.com/api/v1/download?sub_id=510003",
+      "stream_url": "https://altyazidb.com/api/v1/subtitle?sub_id=510003",
+      "download_url": "https://altyazidb.com/api/v1/extract_ep?sub_id=510003&season=1&episode=4",
+      "translator_note": null,
+      "hearing_impaired": 0,
+      "forced": 1,
+      "ai_ceviri": 0,
+      "foreign_parts": 0
+    },
+    {
+      "id": "510004",
+      "language": "zz",
+      "season": 1,
+      "episode": "4",
+      "fps": "23.976",
+      "duration": null,
+      "sure_bilgisi": null,
+      "version_groups": ["WEB-DL"],
+      "release_groups": ["WEB-DL"],
+      "versions": [],
+      "releases": ["Golge.Cagi.S01E04.1080p.WEB-DL.DDP5.1.H.264-NTb"],
+      "translator": "fixture-translator",
+      "uploader": "fixture-uploader",
+      "downloads": 3,
+      "date": "2026-10-04 12:00:00",
+      "is_package": 0,
+      "archive_url": "https://altyazidb.com/api/v1/download?sub_id=510004",
+      "stream_url": "https://altyazidb.com/api/v1/subtitle?sub_id=510004",
+      "download_url": "https://altyazidb.com/api/v1/subtitle?sub_id=510004",
+      "translator_note": null,
+      "hearing_impaired": 0,
+      "forced": 0,
+      "ai_ceviri": 0,
+      "foreign_parts": 0
+    },
+    {
+      "id": "510005",
+      "language": "tr",
+      "season": 1,
+      "episode": "4",
+      "version_groups": ["HDTV"],
+      "release_groups": ["HDTV"],
+      "versions": [],
+      "releases": ["Golge.Cagi.S01E04.HDTV.x264-LOL"],
+      "translator": "fixture-translator",
+      "uploader": "fixture-uploader",
+      "date": null,
+      "archive_url": "https://altyazidb.com/api/v1/download?sub_id=510005",
+      "stream_url": "https://altyazidb.com/api/v1/subtitle?sub_id=510005",
+      "download_url": "https://altyazidb.com/api/v1/subtitle?sub_id=510005",
+      "translator_note": null
+    }
+  ]
+}

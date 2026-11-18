@@ -141,6 +141,10 @@ export function readSubtitleSourceFileName(headers) {
     : null;
 }
 
+export function readSubtitleSourceContentType(headers) {
+  return readHeader(headers, 'content-type');
+}
+
 export function toSubtitleSourceStatusError(
   {status, headers},
   {subtitleSource, credentialId = null},

@@ -21,11 +21,13 @@ import {
   readCappedBody,
   readSubtitleSourceResponse,
   readSubtitleSourceBodyBytes,
+  readSubtitleSourceContentType,
   readSubtitleSourceFileName,
   shouldReadSubtitleSourceBody,
   toSubtitleSourceError,
   toSubtitleSourceStatusError,
 } from '../../../src/lib/subtitle-sources/subtitle-source-request.js';
+import {toErrorText} from '../../helpers/caught-error.js';
 
 const RESPONSE_BYTES_MAX = 20971520;
 const RETRY_AFTER_DEFAULT_MS = 60000;
@@ -86,10 +88,6 @@ function findHeaderValues(headers, headerName) {
   return Object.entries(headers)
     .filter(([name]) => name.toLowerCase() === headerName)
     .map(([, headerValue]) => headerValue);
-}
-
-function toErrorText(error) {
-  return `${error.message} ${String(error.cause)} ${error.cause?.message} ${JSON.stringify(error)}`;
 }
 
 afterEach(() => {
@@ -1277,5 +1275,27 @@ describe('readSubtitleSourceFileName', () => {
     ['a malformed disposition', {'content-disposition': ';;;'}],
   ])('gives no file name for %s', (_, headers) => {
     expect(readSubtitleSourceFileName(headers)).toBeNull();
+  });
+});
+
+describe('readSubtitleSourceContentType', () => {
+  it('reads the content type', () => {
+    expect(
+      readSubtitleSourceContentType({
+        'content-type': 'application/json; charset=utf-8',
+      }),
+    ).toBe('application/json; charset=utf-8');
+  });
+
+  it('reads the first of repeated headers', () => {
+    expect(
+      readSubtitleSourceContentType({
+        'content-type': ['application/x-subrip', 'application/json'],
+      }),
+    ).toBe('application/x-subrip');
+  });
+
+  it('gives no content type without the header', () => {
+    expect(readSubtitleSourceContentType({})).toBeNull();
   });
 });
