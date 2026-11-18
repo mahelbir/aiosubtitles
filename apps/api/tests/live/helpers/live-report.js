@@ -1,4 +1,4 @@
-import {appendFile, mkdir} from 'node:fs/promises';
+import {appendFile, mkdir, writeFile} from 'node:fs/promises';
 import path from 'node:path';
 import {Enum} from 'enum-plus';
 import {dt} from '../../../src/lib/datetime.js';
@@ -19,13 +19,24 @@ const LIVE_REPORT_DIR = path.join(
   'live',
 );
 
-export async function recordLiveResult({serviceName, liveStatus, liveNote}) {
+async function prepareLiveReportPath(reportName) {
   await mkdir(LIVE_REPORT_DIR, {recursive: true});
+  return path.join(
+    LIVE_REPORT_DIR,
+    `${dt().format('YYYY-MM-DD')}-${reportName}.md`,
+  );
+}
+
+export async function recordLiveResult({serviceName, liveStatus, liveNote}) {
   await appendFile(
-    path.join(LIVE_REPORT_DIR, `${dt().format('YYYY-MM-DD')}-live.md`),
+    await prepareLiveReportPath('live'),
     `- ${dt().format('HH:mm:ss')} | ${serviceName} | ${liveStatus} | ${liveNote}\n`,
     'utf8',
   );
+}
+
+export async function writeLiveReport(reportName, reportText) {
+  await writeFile(await prepareLiveReportPath(reportName), reportText, 'utf8');
 }
 
 export function listMissingSecretNames(liveSecrets, secretNames) {
