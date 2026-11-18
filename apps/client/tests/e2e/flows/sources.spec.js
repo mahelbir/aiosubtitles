@@ -86,6 +86,11 @@ const SOURCE_HELP = [
     keyPageUrl: null,
     helpText: "No key needed. Requests share the server's limits.",
   },
+  {
+    subtitleSource: SubtitleSource.YIFY,
+    keyPageUrl: null,
+    helpText: "No key needed. Requests share the server's limits.",
+  },
 ];
 
 function getSourceSwitch(panel, label) {

@@ -6,6 +6,7 @@ import {opensubtitlesClient} from './opensubtitles/opensubtitles-client.js';
 import {opensubtitlesV3Client} from './opensubtitles-v3/opensubtitles-v3-client.js';
 import {subsourceClient} from './subsource/subsource-client.js';
 import {thesubtitledbClient} from './thesubtitledb/thesubtitledb-client.js';
+import {yifyClient} from './yify/yify-client.js';
 
 export function createSubtitleSourceRegistry(clients) {
   const sortedClients = clients.toSorted((leftClient, rightClient) =>
@@ -35,4 +36,5 @@ export const {getSubtitleSourceClient, listSubtitleSourceClients} =
     opensubtitlesV3Client,
     subsourceClient,
     thesubtitledbClient,
+    yifyClient,
   ]);

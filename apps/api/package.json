@@ -31,6 +31,7 @@
     "@repo/subtitle-core": "workspace:*",
     "@repo/tooling": "workspace:*",
     "background-job": "^2.0.0",
+    "cheerio": "^1.2.0",
     "close-with-grace": "^2.5.0",
     "content-disposition": "^3.0.0",
     "dayjs": "^1.11.23",

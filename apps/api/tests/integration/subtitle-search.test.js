@@ -24,6 +24,7 @@ import {SubtitleSourceBudgetScope} from '../../src/lib/subtitle-sources/subtitle
 import {
   SourceCredentialError,
   SourceRateLimitError,
+  SourceUnavailableError,
 } from '../../src/lib/subtitle-sources/subtitle-source-errors.js';
 import {
   readSearchCredentials,
@@ -958,6 +959,28 @@ describe('a live search and its stored hits', () => {
     expect(searchHits).toEqual([]);
     await expect(redis.get(cacheKey)).resolves.toBeNull();
     expect(await Subtitle.count()).toBe(0);
+  });
+
+  it('caches nothing when the source page can no longer be read', async () => {
+    const client = createFixtureSubtitleSourceClient({
+      searchSubtitles: vi.fn(async () => {
+        throw new SourceUnavailableError({
+          subtitleSource: SUBTITLE_SOURCE,
+          cause: new Error('Subtitle rows unreadable.'),
+        });
+      }),
+    });
+
+    const searchHits = await searchSubtitleSource({
+      client,
+      searchQuery: makeTurkishQuery(),
+      ...WITHOUT_CREDENTIALS,
+      nowMs: NOW_MS,
+    });
+    await drainPendingSearches();
+
+    expect(searchHits).toEqual([]);
+    await expect(redis.get(cacheKey)).resolves.toBeNull();
   });
 });
 

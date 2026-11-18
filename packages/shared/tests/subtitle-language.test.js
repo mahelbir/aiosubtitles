@@ -159,6 +159,7 @@ describe('toSubtitleLanguageCode', () => {
 
   it.each([
     ['Farsi', 'fas'],
+    ['Farsi/Persian', 'fas'],
     ['Norwegian Bokmål', 'nob'],
     ['Khmer', 'khm'],
     ['Sinhala', 'sin'],

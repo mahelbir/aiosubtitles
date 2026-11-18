@@ -7,6 +7,7 @@ const REGIONAL_LOCALE_TAGS = new Map([
 ]);
 const SITE_LANGUAGE_ALIASES = new Map([
   ['farsi', SubtitleLanguage.FAS],
+  ['farsi/persian', SubtitleLanguage.FAS],
   ['norwegian bokmål', SubtitleLanguage.NOB],
   ['khmer', SubtitleLanguage.KHM],
   ['sinhala', SubtitleLanguage.SIN],
