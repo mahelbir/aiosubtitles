@@ -194,13 +194,20 @@ describe('wyzieClient search', () => {
     const requestPaths = listRequestUrls(requestSubtitleSource).map(
       siteUrl => siteUrl.pathname,
     );
-    expect(requestPaths).toEqual(['/sources', '/search', '/search']);
-    const searchUrl = listRequestUrls(requestSubtitleSource)[1];
-    expect(searchUrl.searchParams.get('source').split(',').toSorted()).toEqual([
-      'charlie',
-      'xray',
+    expect(requestPaths).toEqual([
+      '/sources',
+      '/search',
+      '/search',
+      '/search',
+      '/search',
     ]);
-    expect(searchUrl.searchParams.get('key')).toBe(API_KEY_A);
+    const firstSearchUrls = listRequestUrls(requestSubtitleSource).slice(1, 3);
+    expect(
+      firstSearchUrls.map(searchUrl => searchUrl.searchParams.get('source')),
+    ).toEqual(['charlie', 'xray']);
+    for (const searchUrl of firstSearchUrls) {
+      expect(searchUrl.searchParams.get('key')).toBe(API_KEY_A);
+    }
   });
 
   it('reads the plan of a second key on its own', async () => {
@@ -581,7 +588,7 @@ describe('wyzieClient expired file links', () => {
     await client.searchSubtitles(movieQuery, credentialA);
     expect(
       listRequestUrls(requestSubtitleSource).map(siteUrl => siteUrl.pathname),
-    ).toEqual(['/sources', '/search', '/search']);
+    ).toEqual(['/sources', '/search', '/search', '/search', '/search']);
   });
 
   it('asks an unverified plan again only after a short wait, searching the default sources meanwhile', async () => {
@@ -600,15 +607,108 @@ describe('wyzieClient expired file links', () => {
         '/sources',
         '/search',
         '/search',
+        '/search',
+        '/search',
         '/sources',
+        '/search',
         '/search',
       ]);
       expect(
-        requestUrls[1].searchParams.get('source').split(',').toSorted(),
+        requestUrls
+          .slice(1, 3)
+          .map(searchUrl => searchUrl.searchParams.get('source')),
       ).toEqual(['charlie', 'xray']);
     } finally {
       vi.useRealTimers();
     }
+  });
+});
+
+describe('wyzieClient search per source', () => {
+  async function createSiteFailingOn(errorsByCodename) {
+    const fakeSite = await createFakeSite();
+    return vi.fn(async request => {
+      const siteUrl = new URL(request.url);
+      const codenameError =
+        siteUrl.pathname === '/search'
+          ? errorsByCodename[siteUrl.searchParams.get('source')]
+          : null;
+      if (codenameError) {
+        throw codenameError;
+      }
+      return fakeSite(request);
+    });
+  }
+
+  function listSearchedSources(requestSubtitleSource) {
+    return listRequestUrls(requestSubtitleSource)
+      .filter(siteUrl => siteUrl.pathname === '/search')
+      .map(siteUrl => siteUrl.searchParams.get('source'));
+  }
+
+  it('sends one search per codename, each with the key', async () => {
+    const requestSubtitleSource = await createFakeSite();
+    const {client} = createTestClient(requestSubtitleSource);
+    await client.searchSubtitles(
+      {...movieQuery, languageCodes: ['eng', 'heb']},
+      credentialA,
+    );
+    expect(listSearchedSources(requestSubtitleSource).toSorted()).toEqual([
+      'charlie',
+      'oscar',
+      'xray',
+    ]);
+    for (const siteUrl of listRequestUrls(requestSubtitleSource).filter(
+      ({pathname}) => pathname === '/search',
+    )) {
+      expect(siteUrl.searchParams.get('key')).toBe(API_KEY_A);
+    }
+  });
+
+  it('merges the hits of every codename', async () => {
+    const requestSubtitleSource = await createFakeSite();
+    const {client} = createTestClient(requestSubtitleSource);
+    const hits = await client.searchSubtitles(movieQuery, credentialA);
+    expect(hits.map(hit => hit.siteFileId)).toEqual([
+      'charlie:1955024019',
+      'charlie:2001002',
+      'xray:x-77031',
+    ]);
+  });
+
+  it('keeps the hits of the other codenames when one search fails', async () => {
+    const requestSubtitleSource = await createSiteFailingOn({
+      xray: new SourceRateLimitError({
+        subtitleSource: SubtitleSource.WYZIE,
+        retryAfterMs: 1000,
+        credentialId: credentialA.credentialId,
+      }),
+    });
+    const {client} = createTestClient(requestSubtitleSource);
+    const hits = await client.searchSubtitles(movieQuery, credentialA);
+    expect(hits.map(hit => hit.siteFileId)).toEqual([
+      'charlie:1955024019',
+      'charlie:2001002',
+    ]);
+  });
+
+  it('throws the first error when every codename search fails', async () => {
+    const firstError = new SourceRateLimitError({
+      subtitleSource: SubtitleSource.WYZIE,
+      retryAfterMs: 1000,
+      credentialId: credentialA.credentialId,
+    });
+    const requestSubtitleSource = await createSiteFailingOn({
+      charlie: firstError,
+      xray: new SourceUnavailableError({
+        subtitleSource: SubtitleSource.WYZIE,
+        cause: new Error('ECONNRESET'),
+      }),
+    });
+    const {client} = createTestClient(requestSubtitleSource);
+    await expect(client.searchSubtitles(movieQuery, credentialA)).rejects.toBe(
+      firstError,
+    );
   });
 });
 

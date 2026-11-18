@@ -72,6 +72,17 @@ export function createWyzieClient({
     return isPlanKnown ? availableCodenames : null;
   }
 
+  async function searchCodename({searchQuery, credential, codename, signal}) {
+    const codenames = [codename];
+    return wyzieMapping.toSearchHits(
+      await requestSubtitleSource({
+        ...wyzieMapping.buildSearchRequest(searchQuery, credential, codenames),
+        signal,
+      }),
+      {searchQuery, credential, codenames},
+    );
+  }
+
   async function requestFile(downloadUrl, credential, signal) {
     try {
       return await requestSubtitleSource({
@@ -114,18 +125,18 @@ export function createWyzieClient({
         searchQuery,
         await readAvailableCodenames(credential, signal),
       );
-      const searchRequest = wyzieMapping.buildSearchRequest(
-        searchQuery,
-        credential,
-        codenames,
+      const settledResults = await Promise.allSettled(
+        codenames.map(codename =>
+          searchCodename({searchQuery, credential, codename, signal}),
+        ),
       );
-      if (searchRequest === null) {
-        return [];
+      const fulfilledResults = settledResults.filter(
+        ({status}) => status === 'fulfilled',
+      );
+      if (settledResults.length > 0 && fulfilledResults.length === 0) {
+        throw settledResults[0].reason;
       }
-      return wyzieMapping.toSearchHits(
-        await requestSubtitleSource({...searchRequest, signal}),
-        {searchQuery, credential, codenames},
-      );
+      return fulfilledResults.flatMap(({value}) => value);
     },
     async downloadSubtitle(subtitleRef, credential, {signal} = {}) {
       const downloadUrl = wyzieMapping.findDownloadUrl(
