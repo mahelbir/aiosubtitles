@@ -4,12 +4,15 @@ import {parse as parseContentDisposition} from 'content-disposition';
 import {pickBy} from 'es-toolkit';
 import {castArray} from 'es-toolkit/compat';
 import {StatusCodes} from 'http-status-codes';
-import proxyAddr from 'proxy-addr';
 import {
   ADDON_MANIFEST_VERSION,
   ADDON_NAME,
 } from '@repo/shared/constants/app.js';
 import {httpUrlField} from '@repo/shared/schemas/common.js';
+import {
+  createPrivateHostError,
+  isBlockedAddress,
+} from './source-address-guard.js';
 import {
   SourceCredentialError,
   SourceRateLimitError,
@@ -54,14 +57,6 @@ const JSON_CONTENT_TYPE_PATTERN = /^application\/(?:[\w.-]+\+)?json\b/i;
 const BODY_KEEPING_REDIRECT_STATUSES = new Set([
   StatusCodes.TEMPORARY_REDIRECT,
   StatusCodes.PERMANENT_REDIRECT,
-]);
-const isPrivateAddress = proxyAddr.compile([
-  'loopback',
-  'linklocal',
-  'uniquelocal',
-  '0.0.0.0/8',
-  '100.64.0.0/10',
-  '::/128',
 ]);
 const HOSTNAME_DECORATION_PATTERN = /^\[|\]$|\.$/g;
 const DELAY_SECONDS_PATTERN = /^\d+$/;
@@ -123,9 +118,15 @@ export function isPrivateSubtitleSourceUrl(siteUrl) {
     '',
   );
   if (isIP(hostAddress)) {
-    return isPrivateAddress(hostAddress, 0);
+    return isBlockedAddress(hostAddress);
   }
   return !hostAddress.includes('.');
+}
+
+function assertPublicSubtitleSourceUrl(siteUrl) {
+  if (isPrivateSubtitleSourceUrl(siteUrl)) {
+    throw createPrivateHostError();
+  }
 }
 
 export function isSubtitleSourceFileUrl(siteFileUrl) {
@@ -281,9 +282,7 @@ export function buildRedirectRequest(previousRequest, locationHeader, status) {
   if (previousUrl.protocol === 'https:' && redirectUrl.protocol === 'http:') {
     throw new TypeError('Redirect from https to http.');
   }
-  if (isPrivateSubtitleSourceUrl(redirectUrl)) {
-    throw new TypeError('Redirect to a private host.');
-  }
+  assertPublicSubtitleSourceUrl(redirectUrl);
   const method = previousRequest.method.toUpperCase();
   const isGetSwitched =
     (status === StatusCodes.SEE_OTHER && method !== 'HEAD') ||
@@ -448,6 +447,7 @@ export async function requestRemoteResource({
   acceptedStatuses = [],
 }) {
   try {
+    assertPublicSubtitleSourceUrl(url);
     return await sendSubtitleSourceRequest(
       {
         subtitleSourceRequest: {url, method, headers, body},

@@ -966,6 +966,18 @@ describe('isPrivateSubtitleSourceUrl', () => {
     'https://169.254.169.254/latest',
     'https://100.64.0.1/file.zip',
     'https://100.127.255.254/file.zip',
+    'https://255.255.255.255/file.zip',
+    'https://224.0.0.1/file.zip',
+    'https://240.0.0.1/file.zip',
+    'https://[fd12::1]/file.zip',
+    'https://[fe80::1]/file.zip',
+    'https://[ff02::1]/file.zip',
+    'https://[::ffff:10.0.0.5]/file.zip',
+    'https://[::ffff:a9fe:a9fe]/latest',
+    'https://2130706433/file.zip',
+    'http://[64:ff9b::a9fe:a9fe]/latest',
+    'http://[2002:a9fe:a9fe::]/latest',
+    'http://[::ffff:0:7f00:1]/file.zip',
     'https://postgres:5432/',
     'https://localhost./file.zip',
   ])('marks %s as private', siteUrl => {
@@ -976,6 +988,8 @@ describe('isPrivateSubtitleSourceUrl', () => {
     'https://dl.subdl.test/7781.zip',
     'https://93.184.215.14/file.zip',
     'https://100.128.0.1/file.zip',
+    'https://[2606:4700:4700::1111]/file.zip',
+    'https://[::ffff:93.184.215.14]/file.zip',
   ])('lets %s through', siteUrl => {
     expect(isPrivateSubtitleSourceUrl(siteUrl)).toBe(false);
   });

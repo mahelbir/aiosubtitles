@@ -2,11 +2,13 @@ import {Readable} from 'node:stream';
 import {afterEach, describe, expect, it, vi} from 'vitest';
 import {Maxios} from '@mepkg/maxios';
 import {SubtitleSource} from '@repo/shared/constants/subtitle-source.js';
+import {createGuardedLookup} from '../../../src/lib/subtitle-sources/source-address-guard.js';
 import {SourceUnavailableError} from '../../../src/lib/subtitle-sources/subtitle-source-errors.js';
 import {
   requestRemoteResource,
   requestSubtitleSource,
 } from '../../../src/lib/subtitle-sources/subtitle-source-request.js';
+import {toErrorText} from '../../helpers/caught-error.js';
 
 const REMOTE_URL = 'https://catalog.test/meta/movie/tt0133093.json';
 
@@ -16,6 +18,12 @@ function answerOnce({status = 200, payload}) {
     headers: {'content-type': 'application/json'},
     data: Readable.from([Buffer.from(JSON.stringify(payload))]),
   });
+}
+
+function refuseEverySend() {
+  return vi
+    .spyOn(Maxios.prototype, 'request')
+    .mockRejectedValue(new Error('A request was sent.'));
 }
 
 afterEach(() => {
@@ -62,9 +70,59 @@ describe('requestRemoteResource', () => {
     ).rejects.toBeInstanceOf(SourceUnavailableError);
     expect(requestSpy).toHaveBeenCalledTimes(1);
   });
+
+  it.each([
+    'http://127.0.0.1/meta.json',
+    'https://[::ffff:7f00:1]/meta.json',
+    'https://169.254.169.254/latest/meta-data',
+    'https://[fd00::1]/meta.json',
+    'https://valkey:6379/',
+  ])('refuses the private first url %s without sending', async url => {
+    const requestSpy = refuseEverySend();
+
+    const error = await requestRemoteResource({
+      serviceName: 'kitsu',
+      url,
+    }).catch(caught => caught);
+
+    expect(error).toBeInstanceOf(SourceUnavailableError);
+    expect(error.serviceName).toBe('kitsu');
+    expect(toErrorText(error)).not.toContain(new URL(url).hostname);
+    expect(requestSpy).not.toHaveBeenCalled();
+  });
+
+  it('refuses a private first url with the code the address guard uses', async () => {
+    const requestSpy = refuseEverySend();
+    const {error: lookupError} = await new Promise(resolve => {
+      createGuardedLookup((hostname, options, callback) =>
+        callback(null, [{address: '10.0.0.5', family: 4}]),
+      )('inside.catalog.test', {all: true}, error => resolve({error}));
+    });
+
+    const error = await requestRemoteResource({
+      serviceName: 'kitsu',
+      url: 'https://10.0.0.5/meta.json',
+    }).catch(caught => caught);
+
+    expect(error.cause.message).toBe(lookupError.code);
+    expect(requestSpy).not.toHaveBeenCalled();
+  });
 });
 
 describe('requestSubtitleSource', () => {
+  it('refuses a private first url without sending', async () => {
+    const requestSpy = refuseEverySend();
+
+    const error = await requestSubtitleSource({
+      subtitleSource: SubtitleSource.THESUBTITLEDB,
+      url: 'http://192.168.1.10/file.zip',
+    }).catch(caught => caught);
+
+    expect(error).toBeInstanceOf(SourceUnavailableError);
+    expect(error.subtitleSource).toBe(SubtitleSource.THESUBTITLEDB);
+    expect(requestSpy).not.toHaveBeenCalled();
+  });
+
   it('passes the subtitle source as the service name', async () => {
     answerOnce({status: 500, payload: {}});
 
