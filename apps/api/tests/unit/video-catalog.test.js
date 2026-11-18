@@ -1,12 +1,16 @@
-import {describe, expect, it} from 'vitest';
+import {describe, expect, it, vi} from 'vitest';
 import {
   buildCatalogMetaRequest,
   parseCatalogRuntimeMs,
   toCatalogMeta,
 } from '../../src/lib/video-catalog/catalog-meta.js';
+import {CatalogService} from '../../src/lib/video-catalog/catalog-service.js';
 import {
+  buildKitsuMappingsRequest,
   buildKitsuMetaRequest,
+  loadKitsuSiteId,
   pickKitsuVideo,
+  toAnilistId,
   toKitsuMapping,
 } from '../../src/lib/video-catalog/kitsu-mapping.js';
 import {parseStremioVideoId} from '../../src/lib/video-catalog/parse-video-id.js';
@@ -192,5 +196,120 @@ describe('the Kitsu lookup', () => {
       catalogSeason: null,
       catalogEpisode: null,
     });
+  });
+});
+
+describe('the Kitsu mappings', () => {
+  const kitsuMappingsBody = {
+    data: [
+      {
+        id: '5001',
+        type: 'mappings',
+        attributes: {externalSite: 'myanimelist/anime', externalId: '52991'},
+      },
+      {
+        id: '5002',
+        type: 'mappings',
+        attributes: {externalSite: 'anilist/anime', externalId: '154587'},
+      },
+    ],
+  };
+  const fullPage = {
+    data: Array.from({length: 20}, (unused, index) => ({
+      id: String(6000 + index),
+      type: 'mappings',
+      attributes: {externalSite: 'myanimelist/anime', externalId: '52991'},
+    })),
+  };
+
+  it('asks Kitsu for the mappings of the anime', () => {
+    const mappingsRequest = buildKitsuMappingsRequest('46474');
+    const mappingsUrl = new URL(mappingsRequest.url);
+
+    expect(mappingsRequest.serviceName).toBe(CatalogService.KITSU);
+    expect(mappingsUrl.origin).toBe('https://kitsu.app');
+    expect(mappingsUrl.pathname).toBe('/api/edge/anime/46474/mappings');
+    expect(mappingsUrl.searchParams.get('page[limit]')).toBe('20');
+    expect(mappingsUrl.searchParams.get('page[offset]')).toBe('0');
+  });
+
+  it('reads the AniList anime id from the mappings', () => {
+    expect(toAnilistId(kitsuMappingsBody)).toBe(154587);
+  });
+
+  it('answers null when no mapping names AniList', () => {
+    expect(toAnilistId({data: [kitsuMappingsBody.data[0]]})).toBeNull();
+    expect(toAnilistId({data: []})).toBeNull();
+    expect(toAnilistId(null)).toBeNull();
+  });
+
+  it('answers null for an AniList mapping that is no number', () => {
+    expect(
+      toAnilistId({
+        data: [
+          {
+            id: '5002',
+            type: 'mappings',
+            attributes: {externalSite: 'anilist/anime', externalId: 'abc'},
+          },
+        ],
+      }),
+    ).toBeNull();
+  });
+
+  it('follows the mapping pages until the AniList mapping turns up', async () => {
+    const requestRemoteResource = vi
+      .fn()
+      .mockResolvedValueOnce({status: 200, headers: {}, body: fullPage})
+      .mockResolvedValueOnce({
+        status: 200,
+        headers: {},
+        body: kitsuMappingsBody,
+      });
+
+    await expect(
+      loadKitsuSiteId('46474', {
+        externalSite: 'anilist/anime',
+        requestRemoteResource,
+      }),
+    ).resolves.toBe('154587');
+    expect(requestRemoteResource).toHaveBeenCalledTimes(2);
+    expect(
+      new URL(requestRemoteResource.mock.calls[1][0].url).searchParams.get(
+        'page[offset]',
+      ),
+    ).toBe('20');
+  });
+
+  it('stops after three full mapping pages without the mapping', async () => {
+    const requestRemoteResource = vi.fn(async () => ({
+      status: 200,
+      headers: {},
+      body: fullPage,
+    }));
+
+    await expect(
+      loadKitsuSiteId('46474', {
+        externalSite: 'anilist/anime',
+        requestRemoteResource,
+      }),
+    ).resolves.toBeNull();
+    expect(requestRemoteResource).toHaveBeenCalledTimes(3);
+  });
+
+  it('stops at the first short page', async () => {
+    const requestRemoteResource = vi.fn(async () => ({
+      status: 200,
+      headers: {},
+      body: {data: [kitsuMappingsBody.data[0]]},
+    }));
+
+    await expect(
+      loadKitsuSiteId('46474', {
+        externalSite: 'anilist/anime',
+        requestRemoteResource,
+      }),
+    ).resolves.toBeNull();
+    expect(requestRemoteResource).toHaveBeenCalledTimes(1);
   });
 });

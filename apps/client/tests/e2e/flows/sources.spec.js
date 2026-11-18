@@ -115,6 +115,11 @@ const SOURCE_HELP = [
     helpText:
       'Requires your own token. Sign in, copy your install link, and paste it — the page accepts either the whole link or just the token and keeps only the token.',
   },
+  {
+    subtitleSource: SubtitleSource.JIMAKU,
+    keyPageUrl: 'https://jimaku.cc/account',
+    helpText: 'Requires an API key.',
+  },
 ];
 
 function getSourceSwitch(panel, label) {

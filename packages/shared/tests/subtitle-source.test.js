@@ -14,7 +14,7 @@ const SUBTITLE_SOURCES = [
   ['anisub', 'AniSub', 1, 'required', ['access-token'], 1],
   ['subdl', 'SubDL', 2, 'required', ['api-key'], 10],
   ['wyzie', 'Wyzie', 2, 'required', ['api-key'], 10],
-  ['jimaku', 'Jimaku', 2, 'none', [], 0],
+  ['jimaku', 'Jimaku', 2, 'required', ['api-key'], 1],
   [
     'stremio-community-subtitles',
     'Community Subtitles',

@@ -38,6 +38,7 @@ const EXPECTED_SECRET_NAMES = [
   'THESUBTITLEDB_API_KEY',
   'ANISUB_ACCESS_TOKEN',
   'STREMIO_COMMUNITY_SUBTITLES_TOKEN',
+  'JIMAKU_API_KEY',
 ];
 const FIXTURE_SECRETS = {
   OPENSUBTITLES_API_KEY: 'fake-opensubtitles-api-key',
@@ -51,6 +52,7 @@ const FIXTURE_SECRETS = {
   THESUBTITLEDB_API_KEY: 'fake-thesubtitledb-api-key',
   ANISUB_ACCESS_TOKEN: 'fake-anisub-access-token',
   STREMIO_COMMUNITY_SUBTITLES_TOKEN: 'fake-stremio-community-subtitles-token',
+  JIMAKU_API_KEY: 'fake-jimaku-api-key',
 };
 const FIXTURE_VALUES = [
   ...Object.values(FIXTURE_SECRETS),

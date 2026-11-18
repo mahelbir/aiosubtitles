@@ -82,9 +82,9 @@ export const SubtitleSource = Enum({
     value: 'jimaku',
     label: 'Jimaku',
     subtitleSourcePhase: 2,
-    credentialRequirement: CredentialRequirement.NONE,
-    credentialKinds: [],
-    credentialLimit: 0,
+    credentialRequirement: CredentialRequirement.REQUIRED,
+    credentialKinds: [CredentialKind.API_KEY],
+    credentialLimit: 1,
   },
   STREMIO_COMMUNITY_SUBTITLES: {
     value: 'stremio-community-subtitles',

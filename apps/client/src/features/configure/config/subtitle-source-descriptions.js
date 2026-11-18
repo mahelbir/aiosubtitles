@@ -58,4 +58,8 @@ export const SUBTITLE_SOURCE_DESCRIPTIONS = Object.freeze({
       'Requires your own token. Sign in, copy your install link, and paste it — the page accepts either the whole link or just the token and keeps only the token.',
     keyPageUrl: 'https://stremio-community-subtitles.top/configure',
   },
+  [SubtitleSource.JIMAKU]: {
+    helpText: 'Requires an API key.',
+    keyPageUrl: 'https://jimaku.cc/account',
+  },
 });

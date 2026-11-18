@@ -3,6 +3,7 @@ import {altyazidbClient} from './altyazidb/altyazidb-client.js';
 import {anisubClient} from './anisub/anisub-client.js';
 import {betaseriesClient} from './betaseries/betaseries-client.js';
 import {gestdownClient} from './gestdown/gestdown-client.js';
+import {jimakuClient} from './jimaku/jimaku-client.js';
 import {opensubtitlesClient} from './opensubtitles/opensubtitles-client.js';
 import {opensubtitlesV3Client} from './opensubtitles-v3/opensubtitles-v3-client.js';
 import {stremioCommunitySubtitlesClient} from './stremio-community-subtitles/stremio-community-subtitles-client.js';
@@ -38,6 +39,7 @@ export const {getSubtitleSourceClient, listSubtitleSourceClients} =
     anisubClient,
     betaseriesClient,
     gestdownClient,
+    jimakuClient,
     opensubtitlesClient,
     opensubtitlesV3Client,
     stremioCommunitySubtitlesClient,

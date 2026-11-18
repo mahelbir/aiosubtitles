@@ -1,0 +1,32 @@
+[
+  {
+    "url": "/entry/1234/download/%5BFixtureSubs%5D%20Sousou%20no%20Frieren%20-%2005.ass",
+    "name": "[FixtureSubs] Sousou no Frieren - 05.ass",
+    "size": 48213,
+    "last_modified": "2024-03-22T15:04:05Z"
+  },
+  {
+    "url": "/entry/1234/download/Sousou.no.Frieren.S01E05.WEB.ja.srt",
+    "name": "Sousou.no.Frieren.S01E05.WEB.ja.srt",
+    "size": 31877,
+    "last_modified": "2024-03-21T10:00:00Z"
+  },
+  {
+    "url": "/entry/1234/download/%5BFixtureSubs%5D%20Sousou%20no%20Frieren%20%2801-28%29.zip",
+    "name": "[FixtureSubs] Sousou no Frieren (01-28).zip",
+    "size": 912345,
+    "last_modified": "2024-03-20T09:00:00Z"
+  },
+  {
+    "url": "/entry/1234/download/Sousou%20no%20Frieren%20-%2005%20notes.txt",
+    "name": "Sousou no Frieren - 05 notes.txt",
+    "size": 120,
+    "last_modified": "2024-03-19T09:00:00Z"
+  },
+  {
+    "url": "https://elsewhere.example/entry/1234/download/stray.srt",
+    "name": "stray.srt",
+    "size": 100,
+    "last_modified": "2024-03-19T09:00:00Z"
+  }
+]

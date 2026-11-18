@@ -19,6 +19,7 @@ export const LIVE_SECRET_NAMES = Object.freeze([
   'THESUBTITLEDB_API_KEY',
   'ANISUB_ACCESS_TOKEN',
   'STREMIO_COMMUNITY_SUBTITLES_TOKEN',
+  'JIMAKU_API_KEY',
 ]);
 
 export function getLiveSecretsPath() {

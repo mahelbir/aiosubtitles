@@ -675,7 +675,7 @@ describe('credential edge cases', () => {
   it('refuses a credential for a source that takes none', () => {
     expect(
       getIssueMessages(updateUserConfigSchema, {
-        credentials: [getApiKeyCredential('jimaku', 'fixture-key')],
+        credentials: [getApiKeyCredential('gestdown', 'fixture-key')],
       }),
     ).toEqual(['This source does not take this kind of credential']);
   });
