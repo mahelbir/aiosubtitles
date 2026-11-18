@@ -1,7 +1,6 @@
 'use client';
 
 import {z} from 'zod';
-import {getCrossFieldCheck} from '@repo/shared/schemas/common.js';
 import {userConfigPasswordField} from '@repo/shared/schemas/user-config.js';
 import {FormDialog, FormPanelContent} from '@/components/form/form-panel';
 import {FormField} from '@/components/form/form-field';
@@ -9,6 +8,7 @@ import {SubmitButton} from '@/components/form/submit-button';
 import {TextInput} from '@/components/form/text-input';
 import {useAppForm} from '@/lib/form';
 import {useCreateUserConfig} from '../api';
+import {getRepeatPasswordCheck} from '../lib/repeat-password-check';
 import {writeUserConfigSessionToken} from '../lib/user-config-session';
 
 const setPasswordSchema = z
@@ -16,13 +16,7 @@ const setPasswordSchema = z
     password: userConfigPasswordField,
     repeatPassword: z.string(),
   })
-  .check(
-    getCrossFieldCheck(
-      ['password', 'repeatPassword'],
-      ({password, repeatPassword}) => password === repeatPassword,
-      {message: 'Passwords do not match', path: ['repeatPassword']},
-    ),
-  );
+  .check(getRepeatPasswordCheck('password', 'repeatPassword'));
 
 function SetPasswordForm({values, onCancel, onCreated}) {
   const createMutation = useCreateUserConfig({

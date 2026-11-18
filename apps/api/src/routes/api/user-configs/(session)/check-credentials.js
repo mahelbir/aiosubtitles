@@ -5,9 +5,9 @@ import {getSubtitleSourceRegistry} from '../../../_subtitle-source-registry.js';
 import {
   USER_CONFIG_API_ROUTE_CONFIG,
   checkCredentials,
-  loginRefusal,
   readMaskedUserConfig,
   readUserConfigWithCredentials,
+  userConfigGoneRefusal,
   userConfigParamsSchema,
 } from '../_user-config.js';
 
@@ -28,7 +28,7 @@ export default async function (fastify, opts) {
     async (request, reply) => {
       const {userConfigId} = request.params;
       const userConfig = await readUserConfigWithCredentials(userConfigId);
-      reply.abort(userConfig ? null : loginRefusal());
+      reply.abort(userConfig ? null : userConfigGoneRefusal());
       await checkCredentials({
         subtitleSourceRegistry,
         userConfigId,
@@ -36,7 +36,7 @@ export default async function (fastify, opts) {
         log: request.log,
       });
       const checked = await readMaskedUserConfig(request, userConfigId);
-      reply.abort(checked ? null : loginRefusal());
+      reply.abort(checked ? null : userConfigGoneRefusal());
       return reply.success(checked, 'Credentials checked.');
     },
   );

@@ -5,6 +5,7 @@ import {
   CredentialKind,
   CredentialStatus,
 } from '@repo/shared/constants/credential.js';
+import {ErrorCode} from '@repo/shared/constants/error-code.js';
 import {
   CredentialRequirement,
   SubtitleSource,
@@ -170,6 +171,7 @@ describe('opening a session', () => {
     ]);
     expect(readEnvelope(unknown).message).toBe(LOGIN_REFUSAL);
     expect(readEnvelope(wrong).message).toBe(readEnvelope(unknown).message);
+    expect(readEnvelope(wrong).data).toEqual(readEnvelope(unknown).data);
   });
 
   it('opens a session for the right password', async () => {
@@ -206,6 +208,10 @@ describe('opening a session', () => {
     ]);
     expect(readEnvelope(foreign).message).toBe(SESSION_REFUSAL);
     expect(readEnvelope(missing).message).toBe(SESSION_REFUSAL);
+    expect([
+      readEnvelope(foreign).data.errorCode,
+      readEnvelope(missing).data.errorCode,
+    ]).toEqual([ErrorCode.SESSION_EXPIRED, ErrorCode.SESSION_EXPIRED]);
   });
 });
 
@@ -452,6 +458,33 @@ describe('changing the password', () => {
       StatusCodes.OK,
     );
   });
+
+  it('refuses a wrong current password as a password refusal, not a lost session', async () => {
+    const {userConfig} = await seedUserConfig();
+    const sessionToken = await openSession(userConfig.id);
+
+    const response = await callUserConfigApi({
+      method: 'PUT',
+      url: `${USER_CONFIGS_URL}/${userConfig.id}/password`,
+      payload: {currentPassword: WRONG_PASSWORD, newPassword: 'battery staple'},
+      sessionToken,
+    });
+
+    expect(response.statusCode).toBe(StatusCodes.UNAUTHORIZED);
+    expect(readEnvelope(response).message).toBe(LOGIN_REFUSAL);
+    expect(readEnvelope(response).data.errorCode).toBe(
+      ErrorCode.PASSWORD_INCORRECT,
+    );
+    expect((await login(userConfig.id, PASSWORD)).statusCode).toBe(
+      StatusCodes.OK,
+    );
+    const read = await callUserConfigApi({
+      method: 'GET',
+      url: `${USER_CONFIGS_URL}/${userConfig.id}`,
+      sessionToken,
+    });
+    expect(read.statusCode).toBe(StatusCodes.OK);
+  });
 });
 
 describe('deleting a configuration', () => {
@@ -499,12 +532,15 @@ describe('refusing changes', () => {
 
     expect(response.statusCode).toBe(StatusCodes.UNAUTHORIZED);
     expect(readEnvelope(response).message).toBe(LOGIN_REFUSAL);
+    expect(readEnvelope(response).data.errorCode).toBe(
+      ErrorCode.PASSWORD_INCORRECT,
+    );
     expect(
       await UserConfig.findByPk(userConfig.id, {attributes: ['id']}),
     ).not.toBeNull();
   });
 
-  it('answers every session route on a configuration that is gone with the login refusal', async () => {
+  it('answers every session route on a configuration that is gone with the login refusal, as an expired session', async () => {
     const {userConfig} = await seedUserConfig();
     const sessionToken = await openSession(userConfig.id);
     await UserConfig.destroy({where: {id: userConfig.id}});
@@ -537,6 +573,9 @@ describe('refusing changes', () => {
         readEnvelope(response).message,
       ]),
     ).toEqual(Array(4).fill([StatusCodes.UNAUTHORIZED, LOGIN_REFUSAL]));
+    expect(
+      responses.map(response => readEnvelope(response).data.errorCode),
+    ).toEqual(Array(4).fill(ErrorCode.SESSION_EXPIRED));
   });
 
   it('refuses a foreign credential id and changes nothing', async () => {

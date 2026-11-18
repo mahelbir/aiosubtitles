@@ -1,4 +1,5 @@
 import fp from 'fastify-plugin';
+import {ErrorCode} from '@repo/shared/constants/error-code.js';
 import {config} from '../config/index.js';
 import {fingerprintPasswordHash, isSameSecret} from '../lib/crypto.js';
 import {unauthorized} from '../lib/errors.js';
@@ -44,7 +45,7 @@ export default fp(
         payload.sub === request.params.userConfigId?.toLowerCase() &&
         (await isPasswordUnchanged(payload));
       if (!isSessionValid) {
-        reply.abort(unauthorized(SESSION_REFUSAL));
+        reply.abort(unauthorized(SESSION_REFUSAL, ErrorCode.SESSION_EXPIRED));
       }
     }
     verifyUserConfigSession.openApiSecurity = [{bearerAuth: []}];

@@ -4,6 +4,7 @@ import {
   CredentialKind,
   CredentialStatus,
 } from '@repo/shared/constants/credential.js';
+import {ErrorCode} from '@repo/shared/constants/error-code.js';
 import {SubtitleSource} from '@repo/shared/constants/subtitle-source.js';
 import {getUuidField} from '@repo/shared/schemas/common.js';
 import {config} from '../../../config/index.js';
@@ -54,7 +55,11 @@ export const userConfigParamsSchema = z.object({
   userConfigId: getUuidField(),
 });
 
-export const loginRefusal = () => unauthorized(LOGIN_REFUSAL);
+export const loginRefusal = () =>
+  unauthorized(LOGIN_REFUSAL, ErrorCode.PASSWORD_INCORRECT);
+
+export const userConfigGoneRefusal = () =>
+  unauthorized(LOGIN_REFUSAL, ErrorCode.SESSION_EXPIRED);
 
 export function createPasswordAttemptCheck(fastify) {
   const [ipLimit, userConfigLimit] = [

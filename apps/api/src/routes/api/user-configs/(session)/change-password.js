@@ -11,6 +11,7 @@ import {readLockedPasswordHash} from '../../../../lib/user-config-password.js';
 import {
   USER_CONFIG_API_ROUTE_CONFIG,
   createPasswordAttemptCheck,
+  userConfigGoneRefusal,
   userConfigParamsSchema,
 } from '../_user-config.js';
 
@@ -33,14 +34,17 @@ export default async function (fastify) {
       const {userConfigId} = request.params;
       const {currentPassword, newPassword} = request.body;
       const passwordHash = await sequelize.transaction(async transaction => {
+        const currentPasswordHash = await readLockedPasswordHash(
+          userConfigId,
+          transaction,
+        );
         reply.abort(
-          await assertPasswordAttempt(request, {
-            password: currentPassword,
-            passwordHash: await readLockedPasswordHash(
-              userConfigId,
-              transaction,
-            ),
-          }),
+          currentPasswordHash === null
+            ? userConfigGoneRefusal()
+            : await assertPasswordAttempt(request, {
+                password: currentPassword,
+                passwordHash: currentPasswordHash,
+              }),
         );
         const newPasswordHash = hashPassword(newPassword);
         await UserConfig.update(

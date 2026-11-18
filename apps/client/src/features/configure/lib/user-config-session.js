@@ -1,5 +1,6 @@
 import {attempt} from 'es-toolkit';
 import {StatusCodes} from 'http-status-codes';
+import {ErrorCode} from '@repo/shared/constants/error-code.js';
 import {ApiError} from '@/lib/api-request';
 
 const SESSION_STORAGE_KEY_PREFIX = 'aiosubtitles-user-config-session:';
@@ -66,7 +67,7 @@ export function readUserConfigSessionNotice(userConfigId) {
 }
 
 export function isUserConfigSessionExpired(error) {
-  return error?.status === StatusCodes.UNAUTHORIZED;
+  return error?.errorCode === ErrorCode.SESSION_EXPIRED;
 }
 
 export async function requestWithUserConfigSession(userConfigId, request) {
@@ -74,7 +75,10 @@ export async function requestWithUserConfigSession(userConfigId, request) {
   if (!sessionToken) {
     throw new ApiError(
       readUserConfigSessionNotice(userConfigId) ?? MISSING_SESSION_MESSAGE,
-      {status: StatusCodes.UNAUTHORIZED},
+      {
+        status: StatusCodes.UNAUTHORIZED,
+        errorCode: ErrorCode.SESSION_EXPIRED,
+      },
     );
   }
   try {

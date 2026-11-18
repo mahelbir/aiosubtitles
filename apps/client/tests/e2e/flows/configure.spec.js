@@ -3,6 +3,7 @@ import {
   CredentialKind,
   CredentialStatus,
 } from '@repo/shared/constants/credential.js';
+import {ErrorCode} from '@repo/shared/constants/error-code.js';
 import {SubtitleLanguage} from '@repo/shared/constants/subtitle-language.js';
 import {SubtitleSource} from '@repo/shared/constants/subtitle-source.js';
 import {THESUBTITLEDB_VALID_API_KEY} from '../../../../api/tests/e2e/fixture-credentials.js';
@@ -66,7 +67,7 @@ function refuseNextSave(page, userConfigId) {
     isRefused = true;
     return route.fulfill({
       status: StatusCodes.UNAUTHORIZED,
-      json: getErrorEnvelope(SESSION_REFUSAL),
+      json: getErrorEnvelope(SESSION_REFUSAL, ErrorCode.SESSION_EXPIRED),
     });
   });
 }

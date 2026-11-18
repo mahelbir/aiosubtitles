@@ -3,16 +3,19 @@ import {StatusCodes} from 'http-status-codes';
 export class DenialError extends Error {
   statusCode;
 
-  /** @param {{message: string, statusCode?: number}} denied */
+  errorCode;
+
+  /** @param {{message: string, statusCode?: number, errorCode?: string|null}} denied */
   constructor(denied) {
     super(denied.message);
     this.name = 'DenialError';
     this.statusCode = denied.statusCode ?? StatusCodes.FORBIDDEN;
+    this.errorCode = denied.errorCode ?? null;
   }
 }
 
 /**
- * @param {{message: string, statusCode?: number}|null} denied
+ * @param {{message: string, statusCode?: number, errorCode?: string|null}|null} denied
  * @returns {void}
  */
 export function throwIfDenied(denied) {
@@ -26,9 +29,13 @@ export const forbidden = (message = 'Permission denied.') => ({
   statusCode: StatusCodes.FORBIDDEN,
 });
 
-export const unauthorized = (message = 'Invalid session.') => ({
+export const unauthorized = (
+  message = 'Invalid session.',
+  errorCode = null,
+) => ({
   message,
   statusCode: StatusCodes.UNAUTHORIZED,
+  errorCode,
 });
 
 export const conflict = (message = 'Record conflict.') => ({

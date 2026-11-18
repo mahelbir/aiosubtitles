@@ -3,8 +3,8 @@ import {userConfigSchema} from '@repo/shared/schemas/user-config.js';
 import {getSuccessEnvelopeSchema} from '../../../../lib/response.js';
 import {
   USER_CONFIG_API_ROUTE_CONFIG,
-  loginRefusal,
   readMaskedUserConfig,
+  userConfigGoneRefusal,
   userConfigParamsSchema,
 } from '../_user-config.js';
 
@@ -25,7 +25,7 @@ export default async function (fastify) {
         request,
         request.params.userConfigId,
       );
-      reply.abort(userConfig ? null : loginRefusal());
+      reply.abort(userConfig ? null : userConfigGoneRefusal());
       return reply.success(userConfig);
     },
   );

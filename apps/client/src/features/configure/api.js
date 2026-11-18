@@ -1,6 +1,7 @@
 import {env} from '@/config/env';
 import {requestApi} from '@/lib/api-request';
 import {useAppMutation, useAppQuery} from '@/lib/query';
+import {useLoadedUserConfig} from './hooks/use-loaded-user-config';
 import {
   isUserConfigSessionExpired,
   requestWithUserConfigSession,
@@ -128,26 +129,55 @@ export function useCreateUserConfigSession(options) {
   );
 }
 
+async function mutateWithUserConfigSession(userConfigId, request) {
+  try {
+    return await requestWithUserConfigSession(userConfigId, request);
+  } catch (error) {
+    if (isUserConfigSessionExpired(error)) {
+      return null;
+    }
+    throw error;
+  }
+}
+
 export function useUpdateUserConfig(userConfigId, options) {
   return useAppMutation(
     {
       isFormBound: true,
-      mutationFn: async values => {
-        try {
-          return await requestWithUserConfigSession(
-            userConfigId,
-            sessionToken =>
-              updateUserConfig({userConfigId, sessionToken, values}),
-          );
-        } catch (error) {
-          if (isUserConfigSessionExpired(error)) {
-            return null;
-          }
-          throw error;
-        }
-      },
+      mutationFn: values =>
+        mutateWithUserConfigSession(userConfigId, sessionToken =>
+          updateUserConfig({userConfigId, sessionToken, values}),
+        ),
       invalidates: userConfigKeys.detail(userConfigId),
     },
     options,
   );
+}
+
+function useLoadedUserConfigMutation(request, options) {
+  const {userConfigId, requestPassword} = useLoadedUserConfig();
+  return useAppMutation(
+    {
+      isFormBound: true,
+      gcTime: 0,
+      mutationFn: variables =>
+        mutateWithUserConfigSession(userConfigId, sessionToken =>
+          request({...variables, userConfigId, sessionToken}),
+        ),
+      onSuccess: result => {
+        if (result === null) {
+          requestPassword();
+        }
+      },
+    },
+    options,
+  );
+}
+
+export function useChangeUserConfigPassword(options) {
+  return useLoadedUserConfigMutation(changeUserConfigPassword, options);
+}
+
+export function useDeleteUserConfig(options) {
+  return useLoadedUserConfigMutation(deleteUserConfig, options);
 }

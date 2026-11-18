@@ -22,8 +22,9 @@ import {
   findFieldSection,
 } from '../config/configure-sections';
 import {useConfigureQuery} from '../hooks/use-configure-query';
+import {LoadedUserConfigContext} from '../hooks/use-loaded-user-config';
 import {useUserConfigSessionToken} from '../hooks/use-user-config-session';
-import {InstallSection, NewInstallSection} from './install-section';
+import {InstallSection, NewInstallSection} from './install/install-section';
 import {LanguagesSection} from './languages-section';
 import {PasswordDialog} from './password-dialog';
 import {SetPasswordDialog} from './set-password-dialog';
@@ -99,13 +100,14 @@ function ConfigureFormLayout({
         form={form}
         id={formId}
         aria-label="Subtitle settings"
+        hidden={activeSection === ConfigureSection.INSTALL}
         onBeforeSubmit={revealIssueSection}
       >
         <UnsavedChangesGuard />
         {activeSection === ConfigureSection.SOURCES && <SourcesSection />}
         {activeSection === ConfigureSection.LANGUAGES && <LanguagesSection />}
-        {activeSection === ConfigureSection.INSTALL && installSection}
       </Form>
+      {activeSection === ConfigureSection.INSTALL && installSection}
     </SettingsLayout>
   );
 }
@@ -179,7 +181,12 @@ export function LoadedConfigureForm({userConfig}) {
   };
 
   return (
-    <>
+    <LoadedUserConfigContext
+      value={{
+        userConfigId,
+        requestPassword: () => setIsPasswordDialogDismissed(false),
+      }}
+    >
       <ConfigureFormLayout
         form={form}
         formId={formId}
@@ -193,6 +200,6 @@ export function LoadedConfigureForm({userConfig}) {
           onSignedIn={retrySave}
         />
       )}
-    </>
+    </LoadedUserConfigContext>
   );
 }

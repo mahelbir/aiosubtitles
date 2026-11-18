@@ -1,5 +1,6 @@
 import {describe, expect, it} from 'vitest';
 import {StatusCodes} from 'http-status-codes';
+import {ErrorCode} from '@repo/shared/constants/error-code.js';
 import {fingerprintPasswordHash} from '../../src/lib/crypto.js';
 import {generateJwt} from '../../src/lib/jwt.js';
 import {USER_CONFIG_SESSION_TYPE} from '../../src/plugins/user-config-session.js';
@@ -183,6 +184,9 @@ describe('a session token', () => {
       expect(toRefusals(responses.flat())).toEqual(
         Array(5).fill([StatusCodes.UNAUTHORIZED, SESSION_REFUSAL]),
       );
+      expect(
+        responses.flat().map(response => readEnvelope(response).data.errorCode),
+      ).toEqual(Array(5).fill(ErrorCode.SESSION_EXPIRED));
     }
   });
 

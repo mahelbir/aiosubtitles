@@ -1,4 +1,5 @@
 import {escapeRegExp} from 'es-toolkit';
+import {StatusCodes} from 'http-status-codes';
 import {SUBTITLE_LANGUAGE_LIMIT_DEFAULT} from '@repo/shared/constants/user-config.js';
 import {getApiUrl} from './api.js';
 import {gotoWithQuery} from './page.js';
@@ -37,44 +38,80 @@ export async function callApi(
   request,
   method,
   path,
-  {sessionToken, data} = {},
+  {sessionToken, data, acceptedStatuses = []} = {},
 ) {
   const response = await request.fetch(getApiUrl(path), {
     method,
     data,
     headers: sessionToken ? {authorization: `Bearer ${sessionToken}`} : {},
   });
+  if (acceptedStatuses.includes(response.status())) {
+    return null;
+  }
   await expect(response, `${method} ${path}`).toBeOK();
   return (await response.json()).data;
 }
 
-export function openUserConfigSession(request, {userConfigId, password}) {
+export function openUserConfigSession(
+  request,
+  {userConfigId, password},
+  {acceptedStatuses} = {},
+) {
   return callApi(
     request,
     'POST',
     `${getUserConfigPath(userConfigId)}/sessions`,
     {
       data: {password},
+      acceptedStatuses,
     },
   );
 }
 
-async function deleteUserConfig(request, {userConfigId, password}) {
-  const {sessionToken} = await openUserConfigSession(request, {
-    userConfigId,
-    password,
-  });
-  await callApi(request, 'DELETE', getUserConfigPath(userConfigId), {
+function deleteWithSession(request, {userConfigId, password}, sessionToken) {
+  return callApi(request, 'DELETE', getUserConfigPath(userConfigId), {
     sessionToken,
     data: {password},
   });
 }
 
+async function deleteUserConfig(request, userConfig) {
+  const {sessionToken} = await openUserConfigSession(request, userConfig);
+  await deleteWithSession(request, userConfig, sessionToken);
+}
+
+async function deleteLeftUserConfig(request, userConfig, acceptedStatuses) {
+  const session = await openUserConfigSession(request, userConfig, {
+    acceptedStatuses,
+  });
+  if (session) {
+    await deleteWithSession(request, userConfig, session.sessionToken);
+  }
+}
+
 export const test = base.extend({
   userConfigs: [
-    async ({request}, use) => {
+    async ({request}, use, testInfo) => {
       const created = [];
+      const findCreated = userConfigId =>
+        created.find(entry => entry.userConfigId === userConfigId);
+      const forget = userConfigId => {
+        const index = created.findIndex(
+          entry => entry.userConfigId === userConfigId,
+        );
+        if (index !== -1) {
+          created.splice(index, 1);
+        }
+      };
       await use({
+        setPassword: ({userConfigId, password}) => {
+          findCreated(userConfigId).password = password;
+        },
+        forget,
+        remove: async userConfigId => {
+          await deleteUserConfig(request, findCreated(userConfigId));
+          forget(userConfigId);
+        },
         track: userConfig => {
           created.push(userConfig);
           return userConfig;
@@ -101,9 +138,7 @@ export const test = base.extend({
           return {...createdUserConfig, password};
         },
         changePassword: async ({userConfigId, sessionToken, newPassword}) => {
-          const userConfig = created.find(
-            entry => entry.userConfigId === userConfigId,
-          );
+          const userConfig = findCreated(userConfigId);
           const changed = await callApi(
             request,
             'PUT',
@@ -117,8 +152,14 @@ export const test = base.extend({
           return changed;
         },
       });
+      const acceptedStatuses =
+        testInfo.status === testInfo.expectedStatus
+          ? []
+          : [StatusCodes.UNAUTHORIZED];
       await Promise.all(
-        created.map(userConfig => deleteUserConfig(request, userConfig)),
+        created.map(userConfig =>
+          deleteLeftUserConfig(request, userConfig, acceptedStatuses),
+        ),
       );
     },
     {scope: 'test'},

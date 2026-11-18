@@ -1,4 +1,7 @@
 import {PageSection} from '@/components/common/page-section';
+import {ChangePasswordCard} from './change-password-card';
+import {DeleteConfigurationCard} from './delete-configuration-card';
+import {ManifestLinkCard} from './manifest-link-card';
 
 const INSTALL_TITLE = 'Install';
 
@@ -8,9 +11,11 @@ export function InstallSection({manifestUrl}) {
       title={INSTALL_TITLE}
       description="Add this link to Stremio to use your subtitle settings."
     >
-      <code className="rounded-lg border bg-muted px-3 py-2 font-mono text-sm break-all">
-        {manifestUrl}
-      </code>
+      <div className="flex flex-col gap-6">
+        <ManifestLinkCard manifestUrl={manifestUrl} />
+        <ChangePasswordCard />
+        <DeleteConfigurationCard />
+      </div>
     </PageSection>
   );
 }

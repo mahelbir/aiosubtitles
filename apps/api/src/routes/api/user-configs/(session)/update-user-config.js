@@ -15,9 +15,9 @@ import {
   assertSubtitleSourcesAvailable,
   checkCredentials,
   getCredentialPositions,
-  loginRefusal,
   readMaskedUserConfig,
   toCredentialRow,
+  userConfigGoneRefusal,
   userConfigParamsSchema,
 } from '../_user-config.js';
 
@@ -55,7 +55,7 @@ export default async function (fastify, opts) {
             {attributes: ['id'], where: {id: userConfigId}},
             transaction,
           );
-          reply.abort(userConfig ? null : loginRefusal());
+          reply.abort(userConfig ? null : userConfigGoneRefusal());
           await userConfig.update(preferences, {transaction});
           return credentials
             ? replaceCredentials({userConfigId, credentials, transaction})
@@ -69,7 +69,7 @@ export default async function (fastify, opts) {
         log: request.log,
       });
       const updated = await readMaskedUserConfig(request, userConfigId);
-      reply.abort(updated ? null : loginRefusal());
+      reply.abort(updated ? null : userConfigGoneRefusal());
       return reply.success(updated, 'Configuration saved.');
     },
   );
