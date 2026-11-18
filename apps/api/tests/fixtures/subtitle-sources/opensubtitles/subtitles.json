@@ -1,0 +1,219 @@
+{
+  "total_pages": 1,
+  "total_count": 7,
+  "per_page": 60,
+  "page": 1,
+  "data": [
+    {
+      "id": "9300001",
+      "type": "subtitle",
+      "attributes": {
+        "subtitle_id": "9300001",
+        "language": "tr",
+        "download_count": 5120,
+        "new_download_count": 310,
+        "hearing_impaired": false,
+        "hd": true,
+        "fps": 23.976,
+        "votes": 4,
+        "ratings": 9,
+        "from_trusted": true,
+        "foreign_parts_only": false,
+        "upload_date": "2024-02-11T10:15:00Z",
+        "ai_translated": false,
+        "nb_cd": 1,
+        "slug": "fixture-show-s01e02-tr",
+        "machine_translated": false,
+        "release": "Game.of.Thrones.S01E02.720p.HDTV.x264-CTU",
+        "comments": "",
+        "legacy_subtitle_id": 123456,
+        "legacy_uploader_id": 1001,
+        "uploader": {
+          "uploader_id": 501,
+          "name": "fixture-uploader",
+          "rank": "trusted"
+        },
+        "feature_details": {
+          "feature_id": 1001,
+          "feature_type": "Episode",
+          "year": 2011,
+          "title": "The Kingsroad",
+          "movie_name": "Game of Thrones - S01E02  The Kingsroad",
+          "imdb_id": 1668746,
+          "tmdb_id": 63057,
+          "season_number": 1,
+          "episode_number": 2,
+          "parent_imdb_id": 944947,
+          "parent_title": "Game of Thrones",
+          "parent_tmdb_id": 1399,
+          "parent_feature_id": 1000
+        },
+        "url": "https://www.opensubtitles.com/tr/subtitles/fixture-show-s01e02-tr",
+        "related_links": [],
+        "files": [
+          {
+            "file_id": 7001,
+            "cd_number": 1,
+            "file_name": "Game.of.Thrones.S01E02.720p.HDTV.x264-CTU.srt"
+          }
+        ],
+        "moviehash_match": true
+      }
+    },
+    {
+      "id": "9300002",
+      "type": "subtitle",
+      "attributes": {
+        "subtitle_id": "9300002",
+        "language": "tr",
+        "download_count": 88,
+        "hearing_impaired": false,
+        "fps": 25,
+        "from_trusted": false,
+        "foreign_parts_only": false,
+        "ai_translated": false,
+        "nb_cd": 2,
+        "machine_translated": false,
+        "release": "Game.of.Thrones.S01E02.DVDRip.XviD-CD",
+        "legacy_subtitle_id": 223456,
+        "files": [
+          {
+            "file_id": 7002,
+            "cd_number": 1,
+            "file_name": "Game.of.Thrones.S01E02.DVDRip.XviD-CD.cd1.srt"
+          },
+          {
+            "file_id": 7003,
+            "cd_number": 2,
+            "file_name": "Game.of.Thrones.S01E02.DVDRip.XviD-CD.cd2.srt"
+          }
+        ],
+        "moviehash_match": false
+      }
+    },
+    {
+      "id": "9300003",
+      "type": "subtitle",
+      "attributes": {
+        "subtitle_id": "9300003",
+        "language": "pt-br",
+        "download_count": 40,
+        "hearing_impaired": true,
+        "fps": 0,
+        "from_trusted": false,
+        "foreign_parts_only": false,
+        "ai_translated": true,
+        "nb_cd": 1,
+        "machine_translated": false,
+        "release": "Game.of.Thrones.S01E02.1080p.WEB-GROUP",
+        "legacy_subtitle_id": null,
+        "files": [
+          {
+            "file_id": 7004,
+            "cd_number": 1,
+            "file_name": "Game.of.Thrones.S01E02.1080p.WEB.ass"
+          }
+        ],
+        "moviehash_match": false
+      }
+    },
+    {
+      "id": "9300004",
+      "type": "subtitle",
+      "attributes": {
+        "subtitle_id": "9300004",
+        "language": "pt-pt",
+        "download_count": 12,
+        "hearing_impaired": false,
+        "fps": 25,
+        "from_trusted": false,
+        "foreign_parts_only": true,
+        "ai_translated": false,
+        "nb_cd": 1,
+        "machine_translated": true,
+        "release": "",
+        "legacy_subtitle_id": 323456,
+        "files": [
+          {
+            "file_id": 7005,
+            "cd_number": 1,
+            "file_name": "Game.of.Thrones.S01E02.ssa"
+          }
+        ],
+        "moviehash_match": false
+      }
+    },
+    {
+      "id": "9300005",
+      "type": "subtitle",
+      "attributes": {
+        "subtitle_id": "9300005",
+        "language": "ze",
+        "download_count": 3,
+        "hearing_impaired": false,
+        "fps": 0,
+        "from_trusted": false,
+        "foreign_parts_only": false,
+        "ai_translated": false,
+        "nb_cd": 1,
+        "machine_translated": false,
+        "release": "Game.of.Thrones.S01E02.Bilingual",
+        "legacy_subtitle_id": 423456,
+        "files": [
+          {
+            "file_id": 7006,
+            "cd_number": 1,
+            "file_name": "Game.of.Thrones.S01E02.Bilingual.srt"
+          }
+        ],
+        "moviehash_match": false
+      }
+    },
+    {
+      "id": "9300006",
+      "type": "subtitle",
+      "attributes": {
+        "subtitle_id": "9300006",
+        "language": "zh-cn",
+        "download_count": 9,
+        "hearing_impaired": false,
+        "fps": 0,
+        "from_trusted": false,
+        "foreign_parts_only": false,
+        "ai_translated": false,
+        "nb_cd": 0,
+        "machine_translated": false,
+        "release": "Game.of.Thrones.S01E02.NoFiles",
+        "legacy_subtitle_id": 523456,
+        "files": [],
+        "moviehash_match": false
+      }
+    },
+    {
+      "id": "9300007",
+      "type": "subtitle",
+      "attributes": {
+        "subtitle_id": "9300007",
+        "language": "zh-tw",
+        "download_count": 21,
+        "hearing_impaired": false,
+        "fps": 23.976,
+        "from_trusted": false,
+        "foreign_parts_only": false,
+        "ai_translated": false,
+        "nb_cd": 1,
+        "machine_translated": false,
+        "release": "S01E02",
+        "legacy_subtitle_id": 623456,
+        "files": [
+          {
+            "file_id": 7008,
+            "cd_number": 1,
+            "file_name": "Game of Thrones S01E02 (VO+STFR.EN)_track4_chi"
+          }
+        ],
+        "moviehash_match": false
+      }
+    }
+  ]
+}

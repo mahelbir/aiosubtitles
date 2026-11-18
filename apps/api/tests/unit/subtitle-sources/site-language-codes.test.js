@@ -1,9 +1,47 @@
 import {describe, expect, it} from 'vitest';
 import {SubtitleLanguage} from '@repo/shared/constants/subtitle-language.js';
 import {
+  SiteLanguageCodeStyle,
   fromSiteLanguageCode,
   toSiteLanguageCodes,
 } from '../../../src/lib/subtitle-sources/site-language-codes.js';
+
+describe('toSiteLanguageCodes in the locale style', () => {
+  it('asks a regional language by its locale tag in place of its ISO code', () => {
+    expect(
+      toSiteLanguageCodes(
+        ['pob', 'por', 'zho', 'spa', 'tur'],
+        SiteLanguageCodeStyle.LOCALE,
+      ),
+    ).toEqual(['pt-br', 'pt-pt', 'zh-cn', 'es', 'tr']);
+  });
+
+  it('skips a language with neither a locale tag nor its own ISO code', () => {
+    expect(toSiteLanguageCodes(['spl'], SiteLanguageCodeStyle.LOCALE)).toEqual(
+      [],
+    );
+  });
+
+  it('reads the locale tags back', () => {
+    expect(fromSiteLanguageCode('pt-br')).toBe('pob');
+    expect(fromSiteLanguageCode('pt-pt')).toBe('por');
+    expect(fromSiteLanguageCode('zh-cn')).toBe('zho');
+    expect(fromSiteLanguageCode('zh-tw')).toBe('zho');
+  });
+
+  it('round-trips the codes it sends for every subtitle language', () => {
+    for (const languageCode of SubtitleLanguage.values) {
+      for (const siteLanguageCode of toSiteLanguageCodes(
+        [languageCode],
+        SiteLanguageCodeStyle.LOCALE,
+      )) {
+        expect(fromSiteLanguageCode(siteLanguageCode), languageCode).toBe(
+          languageCode,
+        );
+      }
+    }
+  });
+});
 
 describe('fromSiteLanguageCode', () => {
   it.each([

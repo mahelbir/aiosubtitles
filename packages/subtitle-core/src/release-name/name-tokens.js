@@ -20,9 +20,9 @@ const RELEASE_FILE_EXTENSION_SET = new Set(RELEASE_FILE_EXTENSIONS);
 const COMBINING_DOT_ABOVE = String.fromCodePoint(0x0307);
 const TOKEN_SEPARATOR = /[^\p{L}\p{N}]+/u;
 
-const dropFileExtension = releaseName => {
+export const dropFileExtension = releaseName => {
   const extensionStart = releaseName.lastIndexOf('.');
-  const fileExtension = releaseName.slice(extensionStart + 1);
+  const fileExtension = releaseName.slice(extensionStart + 1).toLowerCase();
   return extensionStart >= 0 && RELEASE_FILE_EXTENSION_SET.has(fileExtension)
     ? releaseName.slice(0, extensionStart)
     : releaseName;
