@@ -54,7 +54,7 @@ const tabsTriggerVariants = cva("", {
       default: "",
       menu: "text-foreground/70",
       animated: "z-0 h-9 shrink-0 rounded-xl border-none bg-transparent px-3.5 text-muted-foreground data-active:bg-transparent data-active:text-foreground dark:data-active:border-transparent dark:data-active:bg-transparent",
-      destructive: "text-destructive hover:text-destructive data-active:text-destructive dark:text-destructive dark:hover:text-destructive dark:data-active:text-destructive",
+      destructive: "text-destructive-text hover:text-destructive-text data-active:text-destructive-text dark:text-destructive-text dark:hover:text-destructive-text dark:data-active:text-destructive-text",
     },
   },
   defaultVariants: {

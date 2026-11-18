@@ -17,7 +17,7 @@ const alertDialogMediaVariants = cva(
         blue: "bg-blue/10 text-blue dark:bg-blue/20",
         sky: "bg-sky/10 text-sky dark:bg-sky/20",
         destructive:
-          "bg-destructive/10 text-destructive dark:bg-destructive/20",
+          "bg-destructive/10 text-destructive-text dark:bg-destructive/20",
       },
     },
     defaultVariants: {

@@ -12,15 +12,52 @@ export function expectPageTitle(page, title) {
   return expect(page).toHaveTitle(new RegExp(`^${escapeRegExp(title)}( |$)`));
 }
 
-export function readTokenColor(page, token) {
-  return page.evaluate(name => {
+export function readCssColor(page, value) {
+  return page.evaluate(color => {
     const probe = document.createElement('span');
-    probe.style.color = `var(${name})`;
+    probe.style.color = color;
     document.body.append(probe);
-    const {color} = getComputedStyle(probe);
+    const computed = getComputedStyle(probe).color;
     probe.remove();
-    return color;
-  }, token);
+    return computed;
+  }, value);
+}
+
+export function readTokenColor(page, token) {
+  return readCssColor(page, `var(${token})`);
+}
+
+export function readContrastRatio(locator) {
+  return locator.evaluate(element => {
+    const canvas = document.createElement('canvas');
+    canvas.width = 1;
+    canvas.height = 1;
+    const context = canvas.getContext('2d', {willReadFrequently: true});
+    const paint = color => {
+      context.fillStyle = color;
+      context.fillRect(0, 0, 1, 1);
+      return [...context.getImageData(0, 0, 1, 1).data.slice(0, 3)];
+    };
+    const layers = [];
+    for (let node = element; node; node = node.parentElement) {
+      layers.unshift(getComputedStyle(node).backgroundColor);
+    }
+    const background = ['white', ...layers].map(paint).at(-1);
+    const text = paint(getComputedStyle(element).color);
+    const luminance = channels => {
+      const [red, green, blue] = channels.map(channel => {
+        const value = channel / 255;
+        return value <= 0.03928
+          ? value / 12.92
+          : ((value + 0.055) / 1.055) ** 2.4;
+      });
+      return 0.2126 * red + 0.7152 * green + 0.0722 * blue;
+    };
+    const [lighter, darker] = [luminance(text), luminance(background)].sort(
+      (first, second) => second - first,
+    );
+    return (lighter + 0.05) / (darker + 0.05);
+  });
 }
 
 export function clickButton(page, name) {

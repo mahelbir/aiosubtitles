@@ -1,10 +1,10 @@
 import {APP_THEME, THEME_COLORS} from '../../../src/config/theme.js';
 import {FIXTURES} from '../fixtures/registry.js';
 import {expectFixtureState, openFixture} from '../lib/fixture-page.js';
+import {readContrastRatio, readCssColor, readTokenColor} from '../lib/page.js';
 import {expect, test} from '../lib/test.js';
 
 const API_BOUND_FIXTURES = new Set(['app-error', 'boundaries']);
-
 function getRoot(page) {
   return page.locator('html');
 }
@@ -120,6 +120,54 @@ test.describe('dark only', () => {
     await page.emulateMedia({colorScheme: 'light'});
 
     await expectDarkTheme(page);
+  });
+
+  for (const section of ['On the page', 'In a card']) {
+    test(`destructive text reads at 4.5:1 or more ${section.toLowerCase()}`, async ({
+      page,
+    }) => {
+      await openFixture(page, 'theme');
+      const region = page.getByRole('region', {name: section});
+      const samples = [
+        region.getByText('Name', {exact: true}),
+        region.getByText('Name is required.'),
+        region.getByText('Download failed'),
+        region.getByText('The source did not answer.'),
+        region.getByRole('button', {name: 'Delete'}),
+        region.getByText('Invalid', {exact: true}),
+      ];
+
+      for (const sample of samples) {
+        expect
+          .soft(await readContrastRatio(sample), await sample.textContent())
+          .toBeGreaterThanOrEqual(4.5);
+      }
+    });
+  }
+
+  test('the Delete button keeps its dark red fill under the alert text colour', async ({
+    page,
+  }) => {
+    await openFixture(page, 'theme');
+    const region = page.getByRole('region', {name: 'On the page'});
+    const button = region.getByRole('button', {name: 'Delete'});
+    const alert = region
+      .getByRole('alert')
+      .filter({hasText: 'Download failed'});
+    const [destructiveColor, darkRed, tintColor, alertColor] =
+      await Promise.all([
+        readTokenColor(page, '--destructive'),
+        readCssColor(page, 'hsl(0 62.8% 30.6%)'),
+        readCssColor(
+          page,
+          'color-mix(in oklab, var(--destructive) 20%, transparent)',
+        ),
+        alert.evaluate(element => getComputedStyle(element).color),
+      ]);
+
+    expect(destructiveColor).toBe(darkRed);
+    await expect(button).toHaveCSS('background-color', tintColor);
+    await expect(button).toHaveCSS('color', alertColor);
   });
 
   test('no theme toggle is rendered', async ({page}) => {

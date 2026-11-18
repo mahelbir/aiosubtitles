@@ -8,7 +8,7 @@ import {readTokenColor} from '../lib/page.js';
 import {expect, test} from '../lib/test.js';
 
 const PRESETS = [
-  {name: 'error', section: 'Hata', token: '--destructive'},
+  {name: 'error', section: 'Hata', token: '--destructive-text'},
   {name: 'warning', section: 'Uyarı', token: '--warning'},
 ];
 

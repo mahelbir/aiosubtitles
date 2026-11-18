@@ -455,7 +455,7 @@ test.describe('sources', () => {
         exact: true,
       }),
     ).toBeVisible();
-    const destructiveColor = await readTokenColor(page, '--destructive');
+    const destructiveColor = await readTokenColor(page, '--destructive-text');
     const tabMenuItems = await openTabMenuItems(page);
     await expect(
       tabMenuItems.getByText(THESUBTITLEDB, {exact: true}),
