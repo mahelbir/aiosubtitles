@@ -1,0 +1,48 @@
+{
+  "subtitles": [
+    {
+      "id": "8200001",
+      "url": "https://subs5.strem.io/en/download/subencoding-stremio-utf8/src-api/file/6200001",
+      "SubEncoding": "CP1252",
+      "lang": "ger",
+      "m": "i",
+      "g": "12",
+      "subtitleFileName": "Fixture.Movie.ger.srt",
+      "movieReleaseName": "Fixture Movie (1999)",
+      "fpsMilli": 25000,
+      "season": 0,
+      "episode": 0
+    },
+    {
+      "id": "8200002",
+      "url": "https://subs5.strem.io/en/download/subencoding-stremio-utf8/src-api/file/6200002",
+      "SubEncoding": "CP1252",
+      "lang": "pob",
+      "m": "i",
+      "g": "2",
+      "subtitleFileName": "Fixture.Movie.1999.DVDRip-GRP.srt",
+      "movieReleaseName": "Fixture.Movie.1999.DVDRip-GRP",
+      "releaseGroup": "GRP",
+      "releaseFormat": "DVD",
+      "fpsMilli": 23976,
+      "season": 0,
+      "episode": 0
+    },
+    {
+      "id": "8200003",
+      "url": "https://subs5.strem.io/en/download/subencoding-stremio-utf8/src-api/file/6200003?senc=cp1250",
+      "SubEncoding": "CP1250",
+      "lang": "hrv",
+      "m": "i",
+      "g": "5",
+      "subtitleFileName": "Fixture.Movie.txt",
+      "movieReleaseName": "Fixture Movie (1999)",
+      "fpsMilli": 23976,
+      "season": 0,
+      "episode": 0
+    }
+  ],
+  "cacheMaxAge": 14400,
+  "staleRevalidate": 43200,
+  "staleError": 86400
+}

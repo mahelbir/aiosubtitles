@@ -2,6 +2,7 @@ import {isNil} from 'es-toolkit';
 import {StatusCodes} from 'http-status-codes';
 import {CredentialStatus} from '@repo/shared/constants/credential.js';
 import {SubtitleSource} from '@repo/shared/constants/subtitle-source.js';
+import {VideoType} from '@repo/shared/constants/video-type.js';
 import {SubtitleFileExtension} from '@repo/subtitle-core/constants/subtitle-core-enums.js';
 import {
   fromSiteLanguageCode,
@@ -32,7 +33,6 @@ const CREDENTIAL_STATUS_BY_STATUS = new Map([
   [StatusCodes.FORBIDDEN, CredentialStatus.INVALID],
   [StatusCodes.TOO_MANY_REQUESTS, CredentialStatus.LIMITED],
 ]);
-const MOVIE_VIDEO_TYPE = 'movie';
 
 function isSiteFileId(siteFileId) {
   return Number.isSafeInteger(siteFileId) && siteFileId > 0;
@@ -59,7 +59,7 @@ function buildRequest(sitePath, credential, requestOptions = {}) {
 
 function buildLookupPath({videoType, imdbId, catalogSeason, catalogEpisode}) {
   const titlePath = `/v1/by-imdb/${encodeURIComponent(imdbId)}`;
-  if (videoType === MOVIE_VIDEO_TYPE) {
+  if (videoType === VideoType.MOVIE) {
     return titlePath;
   }
   if (isNil(catalogSeason) || isNil(catalogEpisode)) {

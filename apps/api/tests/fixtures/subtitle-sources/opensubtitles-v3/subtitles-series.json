@@ -1,0 +1,103 @@
+{
+  "subtitles": [
+    {
+      "id": "7100001",
+      "url": "https://subs5.strem.io/en/download/subencoding-stremio-utf8/src-api/file/9100001",
+      "SubEncoding": "CP1252",
+      "lang": "pob",
+      "m": "i",
+      "g": "2",
+      "subtitleFileName": "Show.S01E01.720p.HDTV.x264-GRP.srt",
+      "movieReleaseName": "Show.S01E01.720p.HDTV.x264-GRP",
+      "releaseGroup": "GRP",
+      "releaseFormat": "HDTV",
+      "fpsMilli": 23976,
+      "season": 1,
+      "episode": 1
+    },
+    {
+      "id": "7100002",
+      "url": "https://subs5.strem.io/en/download/subencoding-stremio-utf8/src-api/file/9100002",
+      "SubEncoding": "CP1254",
+      "lang": "tur",
+      "m": "i",
+      "g": "1",
+      "subtitleFileName": "Show.S01E01.1080p.WEB-DL.tr.srt",
+      "movieReleaseName": "Show.S01E01.1080p.WEB-DL-NTb",
+      "releaseGroup": "NTb",
+      "fpsMilli": 25000,
+      "season": 1,
+      "episode": 1
+    },
+    {
+      "id": "7100003",
+      "url": "https://subs5.strem.io/en/download/subencoding-stremio-utf8/src-api/file/9100003",
+      "SubEncoding": "CP1252",
+      "lang": "ger",
+      "m": "i",
+      "g": "1",
+      "subtitleFileName": "Show.S01E01.DVDRip.ger.srt",
+      "movieReleaseName": "Show.S01E01.DVDRip",
+      "releaseFormat": "DVD",
+      "fpsMilli": 23976,
+      "season": 1,
+      "episode": 1
+    },
+    {
+      "id": "7100004",
+      "url": "https://subs5.strem.io/en/download/subencoding-stremio-utf8/src-api/file/9100004?senc=cp1250",
+      "SubEncoding": "CP1250",
+      "lang": "cze",
+      "m": "i",
+      "g": "4",
+      "subtitleFileName": "Show.S01E01.cz.srt",
+      "movieReleaseName": "Show.S01E01.BluRay.x264-REL",
+      "releaseGroup": "REL",
+      "releaseFormat": "BluRay",
+      "fpsMilli": 23976,
+      "season": 1,
+      "episode": 1
+    },
+    {
+      "id": "7100005",
+      "url": "https://subs5.strem.io/en/download/subencoding-stremio-utf8/src-api/file/9100005",
+      "SubEncoding": "CP1254",
+      "lang": "tur",
+      "m": "i",
+      "g": "3",
+      "subtitleFileName": "Show 1x01.srt",
+      "season": 1,
+      "episode": 1
+    },
+    {
+      "id": "7100006",
+      "url": "https://subs5.strem.io/en/download/subencoding-stremio-utf8/src-api/file/9100006",
+      "SubEncoding": "CP1252",
+      "lang": "pob",
+      "m": "i",
+      "g": "1",
+      "subtitleFileName": "Show.S01E01",
+      "movieReleaseName": "Show.S01E01",
+      "releaseOther": "Pilot",
+      "fpsMilli": 24000,
+      "season": 1,
+      "episode": 1
+    },
+    {
+      "id": "7100007",
+      "url": "https://subs5.strem.io/en/download/subencoding-stremio-utf8/src-api/file/9100007",
+      "SubEncoding": "CP1252",
+      "lang": "qqq",
+      "m": "i",
+      "g": "1",
+      "subtitleFileName": "Show.S01E01.srt",
+      "movieReleaseName": "Show.S01E01",
+      "fpsMilli": 23976,
+      "season": 1,
+      "episode": 1
+    }
+  ],
+  "cacheMaxAge": 172800,
+  "staleRevalidate": 518400,
+  "staleError": 1036800
+}

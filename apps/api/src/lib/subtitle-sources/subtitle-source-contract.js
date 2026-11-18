@@ -15,7 +15,7 @@ import {SubtitleAliasSource} from './subtitle-alias-source.js';
 /**
  * @typedef {object} SubtitleSearchQuery
  * @property {string} videoId
- * @property {'movie'|'series'} videoType
+ * @property {string} videoType
  * @property {string|null} imdbId
  * @property {string|null} kitsuId
  * @property {number|null} catalogSeason
@@ -115,7 +115,7 @@ import {SubtitleAliasSource} from './subtitle-alias-source.js';
  * @property {(credential: SubtitleSourceCredential, callOptions?: SubtitleSourceCallOptions) => Promise<CredentialCheck>} [readQuota]
  */
 
-const SITE_FILE_ID_LENGTH_MAX = 512;
+export const SITE_FILE_ID_LENGTH_MAX = 512;
 const RELEASE_NAMES_MAX = 20;
 const RELEASE_NAME_LENGTH_MAX = 512;
 const INTEGER_COLUMN_MAX = 2147483647;
