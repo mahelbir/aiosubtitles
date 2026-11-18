@@ -441,6 +441,19 @@ importers:
       melperjs:
         specifier: ^17.4.0
         version: 17.4.0
+    devDependencies:
+      '@aiostreams/release-parser':
+        specifier: ^1.0.1
+        version: 1.0.1
+      '@ctrl/video-filename-parser':
+        specifier: ^5.13.1
+        version: 5.13.1
+      parsium-media:
+        specifier: ^1.1.0
+        version: 1.1.0
+      yaml:
+        specifier: ^2.9.1
+        version: 2.9.1
 
   packages/shared:
     dependencies:
@@ -501,6 +514,9 @@ importers:
         version: 17.4.0
 
 packages:
+
+  '@aiostreams/release-parser@1.0.1':
+    resolution: {integrity: sha512-gWkU+TOtOCHa28lR7pYUtEpi5XLAVzedfotrehdLjaAUnYFwRewG10DwdPWjAmY1Xn5i2+VNXxa5C/eWZhhREQ==}
 
   '@alloc/quick-lru@5.3.0':
     resolution: {integrity: sha512-U4+70Pc5ZS9osnCBCE5Jha/ciHM+Yp+CNMNC/7HvYbNRk1Ldd+f7qO65W5qfhu/TCv+/ozljlXXe9Nj8419DMA==}
@@ -675,6 +691,10 @@ packages:
   '@cospired/i18n-iso-languages@4.2.0':
     resolution: {integrity: sha512-vy8cq1176MTxVwB1X9niQjcIYOH29F8Huxtx8hLmT5Uz3l1ztGDGri8KN/4zE7LV2mCT7JrcAoNV/I9yb+lNUw==}
     engines: {node: ^12.22.0 || ^14.17.0 || >=16.0.0}
+
+  '@ctrl/video-filename-parser@5.13.1':
+    resolution: {integrity: sha512-h9cKWOMVq17Kn0OkWWi6r+ljDIRYrfaNEFJqUXybxaOiTvSPhvWm0ZOtqhJqapjf40JjAuY9iHKV6J/hzCyz3Q==}
+    engines: {node: '>=22'}
 
   '@dotenvx/dotenvx@1.75.1':
     resolution: {integrity: sha512-/BITOC9dmS/edY2zQwZNicQ059O6RKabtQfyEafV0nGtfYRNHYy1DIPiYVcov40+tob9hfmBnbR963dS+EQ1DQ==}
@@ -3928,6 +3948,11 @@ packages:
     resolution: {integrity: sha512-TXfryirbmq34y8QBwgqCVLi+8oA3oWx2eAnSn62ITyEhEYaWRlVZ2DvMM9eZbMs/RfxPu/PK/aBLyGj4IrqMHw==}
     engines: {node: '>=18'}
 
+  parsium-media@1.1.0:
+    resolution: {integrity: sha512-LqQqTPzUW3UxEu3IJaluyRpuCbhjJVW5QNqsTcX6XC1nJCDYXZKenISWY/oC+GTAIgFzs+hsfchb/8GhKSwxwQ==}
+    engines: {node: '>=22'}
+    hasBin: true
+
   path-browserify@1.0.1:
     resolution: {integrity: sha512-b7uo2UCUOYZcnF/3ID0lulOJi/bafxa1xPe7ZPsammBSpjSWQkjNxlt635YGS2MiR9GjvuXCtz2emr3jbsz98g==}
 
@@ -5134,6 +5159,8 @@ packages:
 
 snapshots:
 
+  '@aiostreams/release-parser@1.0.1': {}
+
   '@alloc/quick-lru@5.3.0': {}
 
   '@babel/code-frame@7.29.7':
@@ -5352,6 +5379,8 @@ snapshots:
   '@bcoe/v8-coverage@1.0.2': {}
 
   '@cospired/i18n-iso-languages@4.2.0': {}
+
+  '@ctrl/video-filename-parser@5.13.1': {}
 
   '@dotenvx/dotenvx@1.75.1':
     dependencies:
@@ -8774,6 +8803,8 @@ snapshots:
       callsites: 3.1.0
 
   parse-ms@4.0.0: {}
+
+  parsium-media@1.1.0: {}
 
   path-browserify@1.0.1: {}
 

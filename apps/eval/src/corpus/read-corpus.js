@@ -1,4 +1,5 @@
-import {readFile} from 'node:fs/promises';
+import {readJsonFile} from '../json-file.js';
+import {getLabelReleaseNames} from './frozen-lists.js';
 import {createFrozenStore} from './frozen-store.js';
 import {parseListUrlIdentity} from './list-url.js';
 import {parseRowId} from './parse-row-id.js';
@@ -12,9 +13,6 @@ export class CorpusShapeError extends Error {
     this.name = 'CorpusShapeError';
   }
 }
-
-const readJsonFile = async filePath =>
-  JSON.parse(await readFile(filePath, 'utf8'));
 
 const readVideoRecords = async atlasRoot => {
   const recordLists = await Promise.all(
@@ -34,15 +32,12 @@ const toVideo = ({stream, videoIdentity, videoRecord}) => ({
   durationSeconds: videoRecord?.durationSeconds ?? null,
 });
 
-const toPoolRows = ({caseCode, poolList, orionList, listBlob}) => {
+const toPoolRows = ({caseCode, poolList, orionList, listEntryById}) => {
   if (poolList.length !== orionList.rowIds.length) {
     throw new CorpusShapeError(
       `${caseCode}: poolList and the Orion rowIds differ in length.`,
     );
   }
-  const listEntryById = new Map(
-    listBlob.subtitles.map(listEntry => [listEntry.id, listEntry]),
-  );
   return poolList.map((poolEntry, servedIndex) => {
     const rowId = orionList.rowIds[servedIndex];
     const listEntry = listEntryById.get(rowId);
@@ -56,7 +51,19 @@ const toPoolRows = ({caseCode, poolList, orionList, listBlob}) => {
   });
 };
 
-const toCandidate = ({caseCode, caseCandidate, localCandidate}) => {
+const parseLabelledRowId = (rowId, listEntry) => {
+  const parsedRowId = parseRowId(rowId);
+  return typeof listEntry?.label === 'string'
+    ? {...parsedRowId, releaseNames: getLabelReleaseNames(listEntry.label)}
+    : parsedRowId;
+};
+
+const toCandidate = ({
+  caseCode,
+  caseCandidate,
+  localCandidate,
+  listEntryById,
+}) => {
   if (!localCandidate) {
     throw new CorpusShapeError(
       `${caseCode}: a case.json candidate is missing from local.json.`,
@@ -66,7 +73,10 @@ const toCandidate = ({caseCode, caseCandidate, localCandidate}) => {
     candidateId: caseCandidate.id,
     expectedClass: caseCandidate.expectedClass ?? null,
     rowId: localCandidate.rowId,
-    parsedRowId: parseRowId(localCandidate.rowId),
+    parsedRowId: parseLabelledRowId(
+      localCandidate.rowId,
+      listEntryById.get(localCandidate.rowId),
+    ),
     candidateKey: localCandidate.candidateKey ?? null,
     rawSha256: localCandidate.rawSha256 ?? null,
     trackSha256: localCandidate.trackSha256 ?? null,
@@ -92,6 +102,9 @@ const readEvalCase = async ({
   ]);
   const orionList = localJson.lists[POOL_LIST_NAME];
   const listBlob = await frozenStore.readJsonBlob(orionList.sha256);
+  const listEntryById = new Map(
+    listBlob.subtitles.map(listEntry => [listEntry.id, listEntry]),
+  );
   return {
     caseCode,
     truthAuditStatus: caseJson.truthAudit.status,
@@ -106,13 +119,14 @@ const readEvalCase = async ({
       caseCode,
       poolList: caseJson.poolList,
       orionList,
-      listBlob,
+      listEntryById,
     }),
     candidates: caseJson.candidates.map(caseCandidate =>
       toCandidate({
         caseCode,
         caseCandidate,
         localCandidate: localJson.candidates[caseCandidate.id],
+        listEntryById,
       }),
     ),
   };

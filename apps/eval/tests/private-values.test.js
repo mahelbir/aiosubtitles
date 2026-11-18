@@ -1,5 +1,9 @@
 import {beforeAll, describe, expect, it} from 'vitest';
-import {getPrivateValues} from '../src/corpus/private-values.js';
+import {
+  getPrivateValues,
+  readOwnPrivateValues,
+  readReportPrivateValues,
+} from '../src/corpus/private-values.js';
 import {readCorpus} from '../src/corpus/read-corpus.js';
 import {
   FIXTURE_PRIVATE_VALUES,
@@ -45,5 +49,56 @@ describe('getPrivateValues', () => {
   it('lists each value once and skips missing ones', () => {
     expect(new Set(privateValues).size).toBe(privateValues.length);
     expect(privateValues.every(privateValue => privateValue)).toBe(true);
+  });
+});
+
+describe('readOwnPrivateValues', () => {
+  let ownPrivateValues;
+
+  beforeAll(async () => {
+    ownPrivateValues = await readOwnPrivateValues({
+      atlasRoot: ATLAS_FIXTURE_ROOT,
+    });
+  });
+
+  it('collects the names, ids and labels of every frozen list, referenced or not', () => {
+    expect(ownPrivateValues).toEqual(
+      expect.arrayContaining([
+        'Fixture Unreferenced Film (12)',
+        '[OpenSubtitles] ✓ Ücretsiz | Fixture Unreferenced Film (12)',
+        'Fixture.Show.S01E01.WEB',
+        'Fixture.Show.S01E01.HDTV',
+      ]),
+    );
+  });
+
+  it('collects every video file name, including those outside the cases', () => {
+    expect(ownPrivateValues).toEqual(
+      expect.arrayContaining([
+        'Fixture.Other.Video.mkv',
+        'Fixture.Show.S01E01.720p.TWIN.mkv',
+        'Fixture.Film.2019.1080p.mp4',
+      ]),
+    );
+  });
+
+  it('lists each value once', () => {
+    expect(new Set(ownPrivateValues).size).toBe(ownPrivateValues.length);
+  });
+});
+
+describe('readReportPrivateValues', () => {
+  it('joins the corpus values and the own-name values', async () => {
+    const reportPrivateValues = await readReportPrivateValues({
+      atlasRoot: ATLAS_FIXTURE_ROOT,
+    });
+    expect(reportPrivateValues).toEqual(
+      expect.arrayContaining([
+        ...FIXTURE_PRIVATE_VALUES,
+        'Fixture Unreferenced Film (12)',
+        'Fixture.Other.Video.mkv',
+      ]),
+    );
+    expect(new Set(reportPrivateValues).size).toBe(reportPrivateValues.length);
   });
 });

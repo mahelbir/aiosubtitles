@@ -1,0 +1,15 @@
+? __default__
+: type: movie
+
+? Ref.Movie.2001.Limited.DVDRip-GRP
+: title: Ref Movie
+  year: 2001
+  edition: Limited
+  source: DVD
+  release_group: GRP
+
+? Ref.Movie.2002.Unrated.Directors.Cut.BluRay-GRP
+: title: Ref Movie
+  year: 2002
+  edition: [Unrated, Director's Cut]
+  source: Blu-ray

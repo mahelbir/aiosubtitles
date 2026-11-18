@@ -11,5 +11,11 @@
     "enum-plus": "^3.4.0",
     "es-toolkit": "^1.53.1",
     "melperjs": "^17.4.0"
+  },
+  "devDependencies": {
+    "@aiostreams/release-parser": "^1.0.1",
+    "@ctrl/video-filename-parser": "^5.13.1",
+    "parsium-media": "^1.1.0",
+    "yaml": "^2.9.1"
   }
 }

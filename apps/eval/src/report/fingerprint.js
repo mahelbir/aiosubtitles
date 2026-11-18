@@ -1,4 +1,3 @@
-import {execFileSync} from 'node:child_process';
 import {readFile} from 'node:fs/promises';
 import {sha256} from 'melperjs/node';
 import {atlasPaths} from '../corpus/atlas-paths.js';
@@ -8,13 +7,16 @@ import {
   METRICS_PATH,
   SUBTITLE_CORE_SOURCE_TREE_PATH,
 } from '../eval-paths.js';
+import {runGit} from '../git-command.js';
 import {computeMetricsDigest} from '../metrics-lock.js';
 
-const readCommittedTree = treePath =>
-  execFileSync('git', ['rev-parse', `HEAD:${treePath}`], {
-    cwd: EVAL_APP_ROOT,
-    encoding: 'utf8',
-  }).trim();
+const SOURCE_TREE_PATHS = [
+  EVAL_SOURCE_TREE_PATH,
+  SUBTITLE_CORE_SOURCE_TREE_PATH,
+];
+
+const readCommittedTree = (repositoryRoot, treePath) =>
+  runGit(repositoryRoot, ['rev-parse', `HEAD:${treePath}`]);
 
 export const computeCorpusFingerprint = async ({atlasRoot, caseCodes}) => {
   const [indexBytes, metricsBytes, ...caseBytes] = await Promise.all([
@@ -36,7 +38,18 @@ export const computeCorpusFingerprint = async ({atlasRoot, caseCodes}) => {
   };
 };
 
-export const getCodeFingerprint = () => ({
-  evalSourceTree: readCommittedTree(EVAL_SOURCE_TREE_PATH),
-  subtitleCoreSourceTree: readCommittedTree(SUBTITLE_CORE_SOURCE_TREE_PATH),
+export const getCodeFingerprint = ({repositoryRoot = EVAL_APP_ROOT} = {}) => ({
+  evalSourceTree: readCommittedTree(repositoryRoot, EVAL_SOURCE_TREE_PATH),
+  subtitleCoreSourceTree: readCommittedTree(
+    repositoryRoot,
+    SUBTITLE_CORE_SOURCE_TREE_PATH,
+  ),
+  hasUncommittedChanges:
+    runGit(repositoryRoot, [
+      'status',
+      '--porcelain',
+      '--untracked-files=all',
+      '--',
+      ...SOURCE_TREE_PATHS.map(treePath => `:(top)${treePath}`),
+    ]) !== '',
 });
