@@ -7,6 +7,7 @@ import {
   emailField,
   getBaseUrlField,
   getCrossFieldCheck,
+  getCrossFieldIssueCheck,
   getDateRangeCheck,
   getEnumField,
   getIdentifierField,
@@ -487,6 +488,65 @@ describe('getCrossFieldCheck', () => {
       'unrecognized_keys',
       'custom',
     ]);
+  });
+});
+
+describe('getCrossFieldIssueCheck', () => {
+  const schema = z
+    .object({
+      names: z.array(z.string()),
+      limit: z.number().nonnegative(),
+      note: z.string(),
+    })
+    .check(
+      getCrossFieldIssueCheck(['names', 'limit'], value =>
+        value.names
+          .map((name, index) => [name, index])
+          .filter(([name]) => name.length > value.limit)
+          .map(([, index]) => ({
+            message: 'too long',
+            path: ['names', index],
+          })),
+      ),
+    );
+
+  it('reports one issue per finding, each at its own path', () => {
+    const result = schema.safeParse({
+      names: ['ab', 'abcd', 'a', 'abcde'],
+      limit: 2,
+      note: '',
+    });
+    expect(
+      result.error.issues.map(({code, message, path}) => [code, message, path]),
+    ).toEqual([
+      ['custom', 'too long', ['names', 1]],
+      ['custom', 'too long', ['names', 3]],
+    ]);
+  });
+
+  it('passes when it finds nothing', () => {
+    expect(schema.safeParse({names: ['ab'], limit: 2, note: ''}).success).toBe(
+      true,
+    );
+  });
+
+  it('stays silent while a key it reads is invalid', () => {
+    const result = schema.safeParse({names: ['abcd'], limit: -1, note: ''});
+    expect(result.error.issues.map(issue => issue.path)).toEqual([['limit']]);
+  });
+
+  it('still runs when only a field it does not read is invalid', () => {
+    const result = schema.safeParse({names: ['abcd'], limit: 2, note: 7});
+    expect(result.error.issues.map(issue => issue.path)).toEqual([
+      ['note'],
+      ['names', 0],
+    ]);
+  });
+
+  it('reports a value that is not an object instead of throwing', () => {
+    expect(
+      schema.safeParse(null).error.issues.map(issue => issue.code),
+    ).toEqual(['invalid_type']);
   });
 });
 

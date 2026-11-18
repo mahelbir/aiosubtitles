@@ -106,13 +106,25 @@ export const isoDateField = z.iso.date('Invalid date');
 
 export const isoDateTimeField = z.iso.datetime('Invalid date');
 
+function getCrossFieldWhen(keys) {
+  return ({value, issues}) =>
+    isPlainObject(value) &&
+    !issues.some(issue => keys.includes(issue.path?.[0]));
+}
+
 export function getCrossFieldCheck(keys, isSatisfied, params) {
-  return z.refine(isSatisfied, {
-    ...params,
-    when: ({value, issues}) =>
-      isPlainObject(value) &&
-      !issues.some(issue => keys.includes(issue.path?.[0])),
-  });
+  return z.refine(isSatisfied, {...params, when: getCrossFieldWhen(keys)});
+}
+
+export function getCrossFieldIssueCheck(keys, getIssues) {
+  return z.superRefine(
+    (value, context) => {
+      for (const issue of getIssues(value)) {
+        context.addIssue({code: 'custom', input: value, ...issue});
+      }
+    },
+    {when: getCrossFieldWhen(keys)},
+  );
 }
 
 export function getDateRangeCheck(fromKey = 'from', toKey = 'to') {
