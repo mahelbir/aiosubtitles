@@ -1,3 +1,4 @@
+import {escapeRegExp} from 'es-toolkit';
 import {SUBTITLE_LANGUAGE_LIMIT_DEFAULT} from '@repo/shared/constants/user-config.js';
 import {getApiUrl} from './api.js';
 import {gotoWithQuery} from './page.js';
@@ -148,6 +149,11 @@ export function openConfigure(page, query) {
   return gotoWithQuery(page, CONFIGURE_PATH, query);
 }
 
+export async function openSignedIn(page, userConfig, query = {}) {
+  await writeSessionToken(page, userConfig);
+  await openConfigure(page, {userConfigId: userConfig.userConfigId, ...query});
+}
+
 export function getMain(page) {
   return page.getByRole('main');
 }
@@ -182,19 +188,36 @@ export function getPasswordDialog(page) {
   return page.getByRole('dialog').filter({has: getPasswordField(page)});
 }
 
+export function getLabelPattern(label) {
+  return new RegExp(`^${escapeRegExp(label)}(?: \\(|$)`);
+}
+
+export function getAddLanguageButton(page) {
+  return getMain(page).getByRole('button', {name: 'Add language', exact: true});
+}
+
+export function getLanguagePickers(page) {
+  return getMain(page).getByRole('combobox');
+}
+
+export function getLanguageOption(page, label) {
+  return page.getByRole('option', {name: getLabelPattern(label)});
+}
+
+export async function openNextLanguagePicker(page, search) {
+  await getAddLanguageButton(page).click();
+  await getLanguagePickers(page).last().click();
+  await page.keyboard.type(search);
+}
+
 export async function addLanguage(page, label) {
-  const main = getMain(page);
-  await main.getByRole('button', {name: 'Add language', exact: true}).click();
-  await main.getByRole('combobox').last().click();
-  await page.keyboard.type(label);
-  await page.getByRole('option', {name: label, exact: true}).click();
+  await openNextLanguagePicker(page, label);
+  await getLanguageOption(page, label).click();
   await expect(getLanguage(page, label)).toBeVisible();
 }
 
 export function getLanguage(page, label) {
-  return getMain(page)
-    .getByRole('combobox')
-    .filter({hasText: new RegExp(`^${label}$`)});
+  return getLanguagePickers(page).filter({hasText: getLabelPattern(label)});
 }
 
 export async function submitPassword(scope, password) {

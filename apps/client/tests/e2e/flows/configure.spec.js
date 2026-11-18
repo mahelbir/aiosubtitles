@@ -36,10 +36,10 @@ import {
   getUserConfigPath,
   getVisibleSaveButton,
   openConfigure,
+  openSignedIn,
   readSessionToken,
   submitPassword,
   test,
-  writeSessionToken,
 } from '../lib/user-configs.js';
 
 const PASSWORD = 'correct horse';
@@ -55,11 +55,6 @@ function isOverlapping(first, second) {
     first.y < second.y + second.height &&
     second.y < first.y + first.height
   );
-}
-
-async function openSignedIn(page, userConfig, query = {}) {
-  await writeSessionToken(page, userConfig);
-  await openConfigure(page, {userConfigId: userConfig.userConfigId, ...query});
 }
 
 function refuseNextSave(page, userConfigId) {

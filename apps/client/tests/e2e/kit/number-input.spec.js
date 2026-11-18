@@ -8,6 +8,7 @@ import {expect, test} from '../lib/test.js';
 
 const FIRST_FORM = 'Birinci form';
 const POSITIVE_MESSAGE = 'Fiyat sıfırdan büyük olmalı';
+const QUANTITY_MESSAGE = 'Adet en fazla 5 olabilir';
 
 async function clear(field) {
   await field.press('ControlOrMeta+A');
@@ -144,6 +145,46 @@ test.describe('number input', () => {
     await expect(message).toBeVisible();
     await expect(price).toHaveAttribute('aria-invalid', 'true');
     await expect(price).toHaveAccessibleDescription(POSITIVE_MESSAGE);
+  });
+
+  test('leaves an entry above the maximum for the schema to report', async ({
+    page,
+  }) => {
+    const quantity = getFormField(page, FIRST_FORM, 'Adet');
+
+    await quantity.pressSequentially('9');
+    await quantity.press('Tab');
+
+    await expect(quantity).toHaveValue('9');
+    await expect(
+      getForm(page, FIRST_FORM).getByText(QUANTITY_MESSAGE),
+    ).toBeVisible();
+    await expectFixtureState(page).toMatchObject({
+      first: {quantity: {value: 9, error: QUANTITY_MESSAGE}},
+    });
+  });
+
+  test('refuses the minus key yet keeps an overflow', async ({page}) => {
+    const quantity = getFormField(page, FIRST_FORM, 'Adet');
+
+    await quantity.pressSequentially('-');
+    await expect(quantity).toHaveValue('');
+    await quantity.pressSequentially('12');
+    await quantity.press('Tab');
+
+    await expect(quantity).toHaveValue('12');
+    await expect(
+      getForm(page, FIRST_FORM).getByText(QUANTITY_MESSAGE),
+    ).toBeVisible();
+  });
+
+  test('keeps stepping inside the range', async ({page}) => {
+    const quantity = getFormField(page, FIRST_FORM, 'Adet');
+
+    await quantity.pressSequentially('5');
+    await quantity.press('ArrowUp');
+
+    await expect(quantity).toHaveValue('5');
   });
 
   test('keeps the amount while the addon toggles', async ({page}) => {

@@ -1,5 +1,7 @@
 'use client';
 
+import {useSelector} from '@tanstack/react-form';
+import {isEqual} from 'es-toolkit';
 import {SubtitleLanguage} from '@repo/shared/constants/subtitle-language.js';
 import {
   SUBTITLE_LANGUAGE_LIMIT_MAX,
@@ -12,14 +14,42 @@ import {FormField} from '@/components/form/form-field';
 import {FormGrid} from '@/components/form/form-grid';
 import {NumberInput} from '@/components/form/number-input';
 import {SelectInput} from '@/components/form/select-input';
+import {useFormContext} from '@/lib/form-context';
 import {getIntlFormatter} from '@/lib/intl';
 import {optionSource} from '@/lib/option-source';
+import {isSameText} from '@/lib/search';
 
-const languageSource = optionSource.fixed(
-  SubtitleLanguage.toList().toSorted((first, second) =>
-    getIntlFormatter(Intl.Collator).compare(first.label, second.label),
-  ),
+function toLanguageLabel(label, nativeName) {
+  return isSameText(label, nativeName) ? label : `${label} (${nativeName})`;
+}
+
+const languageOptions = SubtitleLanguage.toList({
+  extra: ({label, raw}) => ({label: toLanguageLabel(label, raw.nativeName)}),
+}).toSorted((first, second) =>
+  getIntlFormatter(Intl.Collator).compare(first.label, second.label),
 );
+
+function LanguagePicker({name, index}) {
+  const form = useFormContext();
+  const otherCodes = useSelector(
+    form.store,
+    state => state.values.languageCodes.toSpliced(index, 1),
+    {compare: isEqual},
+  );
+  const source = optionSource.fixed(
+    languageOptions.filter(option => !otherCodes.includes(option.value)),
+  );
+
+  return (
+    <FormField name={name} className="min-w-0 flex-1">
+      <SelectInput
+        label={`Language ${index + 1}`}
+        source={source}
+        placeholder="Choose a language…"
+      />
+    </FormField>
+  );
+}
 
 export function LanguagesSection() {
   return (
@@ -36,13 +66,7 @@ export function LanguagesSection() {
           >
             {({name, index}) => (
               <div className="flex items-end gap-2">
-                <FormField name={name} className="min-w-0 flex-1">
-                  <SelectInput
-                    label={`Language ${index + 1}`}
-                    source={languageSource}
-                    placeholder="Choose a language…"
-                  />
-                </FormField>
+                <LanguagePicker name={name} index={index} />
                 <ArrayItemActions />
               </div>
             )}

@@ -26,6 +26,7 @@ const firstFormSchema = z.object({
   discount: z.number().optional(),
   discountType: z.enum(DISCOUNT_TYPES.map(type => type.value)),
   stock: z.number().int().nullable(),
+  quantity: z.number().max(5, 'Adet en fazla 5 olabilir').optional(),
 });
 
 const secondFormSchema = z.object({
@@ -43,6 +44,7 @@ export function NumberInputFixture() {
       discount: undefined,
       discountType: 'percent',
       stock: null,
+      quantity: undefined,
     },
     onSubmit: ({value}) => setSubmitted(value),
   });
@@ -71,6 +73,9 @@ export function NumberInputFixture() {
           </FormField>
           <FormField name="stock">
             <NumberInput label="Stok" isNullable />
+          </FormField>
+          <FormField name="quantity">
+            <NumberInput label="Adet" min={1} max={5} />
           </FormField>
         </FormGrid>
         <div className="flex flex-wrap gap-2">

@@ -1,5 +1,6 @@
 'use client';
 
+import {mergeProps} from '@base-ui/react/merge-props';
 import {identity} from 'es-toolkit';
 import {env} from '@/config/env';
 import {useFieldContext, useFieldControl} from '@/lib/form-context';
@@ -11,6 +12,8 @@ import {
   NumberField as NumberFieldRoot,
   NumberFieldInput,
 } from '@/components/ui/number-field';
+
+const MINUS_SIGNS = new Set(['-', '−', '－', '‒', '–', '—', '﹣']);
 
 function AddonControl({addon, ...props}) {
   return (
@@ -38,6 +41,11 @@ export function NumberField({
 }) {
   const {field, controlId, error, messageId, describedBy, handleBlur} =
     useFieldControl({help, props});
+  const refuseMinusSign = event => {
+    if (min >= 0 && MINUS_SIGNS.has(event.key)) {
+      event.preventDefault();
+    }
+  };
 
   return (
     <Field className={className} data-invalid={Boolean(error)}>
@@ -50,13 +58,14 @@ export function NumberField({
         onValueChange={onValueChange}
         min={min}
         max={max}
+        allowOutOfRange
         step={step}
         format={{useGrouping: false, ...formatOptions}}
       >
         <Control
           autoComplete="off"
           placeholder={placeholder}
-          {...props}
+          {...mergeProps(props, {onKeyDown: refuseMinusSign})}
           onBlur={handleBlur}
           aria-invalid={Boolean(error)}
           aria-describedby={describedBy}
