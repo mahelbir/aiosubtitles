@@ -17,6 +17,10 @@ export function applyScopes() {
       [UserConfig.credentialsInclude.association, 'credentialPosition', 'ASC'],
     ],
   });
+  Subtitle.addScope('withStoredFile', {
+    attributes: Subtitle.downloadAttributes,
+    include: [Subtitle.subtitleFileInclude],
+  });
 }
 
 export function applyAssociations() {

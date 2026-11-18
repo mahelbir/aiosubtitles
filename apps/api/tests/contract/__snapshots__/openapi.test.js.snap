@@ -2604,6 +2604,89 @@ exports[`OpenAPI document > matches the recorded contract 1`] = `
         ],
       },
     },
+    "/{userConfigId}/subtitle-files/{videoId}/{urlCode}.{fileExtension}": {
+      "get": {
+        "parameters": [
+          {
+            "in": "path",
+            "name": "userConfigId",
+            "required": true,
+            "schema": {
+              "type": "string",
+            },
+          },
+          {
+            "in": "path",
+            "name": "videoId",
+            "required": true,
+            "schema": {
+              "maxLength": 128,
+              "pattern": "^(tt\\d+(:\\d+){0,2}|kitsu:\\d+(:\\d+)?)$",
+              "type": "string",
+            },
+          },
+          {
+            "in": "path",
+            "name": "urlCode",
+            "required": true,
+            "schema": {
+              "pattern": "^[\\da-f]{64}$",
+              "type": "string",
+            },
+          },
+          {
+            "in": "path",
+            "name": "fileExtension",
+            "required": true,
+            "schema": {
+              "enum": [
+                "srt",
+                "ass",
+              ],
+              "type": "string",
+            },
+          },
+        ],
+        "responses": {
+          "200": {
+            "description": "Default Response",
+          },
+        },
+        "tags": [
+          "default",
+        ],
+      },
+    },
+    "/{userConfigId}/subtitle-notices/{noticeName}.srt": {
+      "get": {
+        "parameters": [
+          {
+            "in": "path",
+            "name": "userConfigId",
+            "required": true,
+            "schema": {
+              "type": "string",
+            },
+          },
+          {
+            "in": "path",
+            "name": "noticeName",
+            "required": true,
+            "schema": {
+              "type": "string",
+            },
+          },
+        ],
+        "responses": {
+          "200": {
+            "description": "Default Response",
+          },
+        },
+        "tags": [
+          "default",
+        ],
+      },
+    },
   },
 }
 `;

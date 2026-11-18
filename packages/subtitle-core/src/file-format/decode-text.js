@@ -200,6 +200,9 @@ const detectLegacyEncoding = (bytes, languageCodeHint) => {
     : LEGACY_ENCODING_FALLBACK;
 };
 
+export const decodeSubtitleBytesAs = (bytes, encoding) =>
+  trimEnd(decodeAs(bytes, encoding), NULL_CHARACTER);
+
 export const decodeSubtitleBytes = (bytes, {languageCodeHint} = {}) => {
   const byteOrderMark = findByteOrderMark(bytes);
   const markedEncoding =

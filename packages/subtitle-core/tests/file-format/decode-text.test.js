@@ -2,7 +2,10 @@ import iconv from 'iconv-lite';
 import {describe, expect, it} from 'vitest';
 import {SubtitleLanguage} from '@repo/shared/constants/subtitle-language.js';
 import {computeContentKey} from '../../src/file-format/content-key.js';
-import {decodeSubtitleBytes} from '../../src/file-format/decode-text.js';
+import {
+  decodeSubtitleBytes,
+  decodeSubtitleBytesAs,
+} from '../../src/file-format/decode-text.js';
 import {parseSubtitleText} from '../../src/file-format/parse-subtitle.js';
 import {
   buildSrtText,
@@ -342,5 +345,18 @@ describe('decodeSubtitleBytes', () => {
     const bytes = new Uint8Array(iconv.encode(srt, 'win1254'));
 
     expect(decodeSubtitleBytes(bytes).text).toBe(srt);
+  });
+});
+
+describe('decodeSubtitleBytesAs', () => {
+  it('decodes stored bytes with their recorded encoding', () => {
+    const srt = turkishSrtFixture();
+    const bytes = Buffer.concat([
+      iconv.encode(srt, 'win1254'),
+      Buffer.alloc(4),
+    ]);
+    const {encoding} = decodeSubtitleBytes(bytes);
+
+    expect(decodeSubtitleBytesAs(bytes, encoding)).toBe(srt);
   });
 });

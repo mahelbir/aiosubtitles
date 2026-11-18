@@ -3,7 +3,7 @@ import {StatusCodes} from 'http-status-codes';
 import {SubtitleSource} from '@repo/shared/constants/subtitle-source.js';
 import {subtitleSourceOptionSchema} from '@repo/shared/schemas/user-config.js';
 import {getSuccessEnvelopeSchema} from '../../lib/response.js';
-import {getSubtitleSourceRegistry} from './_subtitle-source-registry.js';
+import {getSubtitleSourceRegistry} from '../_subtitle-source-registry.js';
 
 const SUBTITLE_SOURCES_RATE_LIMITS = [{max: 30, timeWindow: 60000}];
 

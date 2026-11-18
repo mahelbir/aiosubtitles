@@ -9,7 +9,7 @@ import {UserConfig} from '../../../db/models/user-config.js';
 import {uuidV4} from '../../../lib/common.js';
 import {hashPassword} from '../../../lib/crypto.js';
 import {getSuccessEnvelopeSchema} from '../../../lib/response.js';
-import {getSubtitleSourceRegistry} from '../_subtitle-source-registry.js';
+import {getSubtitleSourceRegistry} from '../../_subtitle-source-registry.js';
 import {
   assertSubtitleSourcesAvailable,
   checkCredentials,

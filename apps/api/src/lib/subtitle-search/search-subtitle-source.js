@@ -1,11 +1,7 @@
-import {CredentialStatus} from '@repo/shared/constants/credential.js';
-import {markCredentialStatus} from '../credential-secret.js';
 import {createLogger} from '../logger.js';
-import {
-  SourceCredentialError,
-  SourceRateLimitError,
-} from '../subtitle-sources/subtitle-source-errors.js';
 import {persistSearchHits} from '../subtitle-store/persist-search-hits.js';
+import {recordSubtitleSourceFailure} from '../record-subtitle-source-failure.js';
+import {toCandidateCredentials} from '../subtitle-source-credentials.js';
 import {
   acquireSearchLock,
   readSearchCacheEntries,
@@ -14,11 +10,7 @@ import {
   waitForSearchLocks,
   writeSearchCacheEntries,
 } from './subtitle-search-cache.js';
-import {
-  openSubtitleSourceBreaker,
-  readSubtitleSourceBreaker,
-} from './subtitle-source-breaker.js';
-import {toBudgetRecoveryWindowMs} from './subtitle-source-budget.js';
+import {readSubtitleSourceBreaker} from './subtitle-source-breaker.js';
 
 const logger = createLogger('subtitle-search');
 const pendingSearches = new Set();
@@ -57,6 +49,7 @@ async function runSubtitleSourceSearch({
   client,
   searchQuery,
   credentials,
+  hasConfiguredCredential,
   signal,
   nowMs = Date.now(),
 }) {
@@ -83,9 +76,13 @@ async function runSubtitleSourceSearch({
   const cachedHits = searchCacheEntries.flatMap(
     searchCacheEntry => searchCacheEntry?.searchResults ?? [],
   );
+  const candidateCredentials = toCandidateCredentials({
+    credentials,
+    hasConfiguredCredential,
+    canUseWithoutCredential: client.canSearchWithoutCredential(),
+  });
   const canSearch =
-    !subtitleSourceBreaker.isOpen &&
-    (credentials.length > 0 || client.canSearchWithoutCredential());
+    !subtitleSourceBreaker.isOpen && candidateCredentials.length > 0;
   if (!canSearch) {
     return cachedHits;
   }
@@ -103,7 +100,13 @@ async function runSubtitleSourceSearch({
     keepUnsettledLocks(staleLocks, nowMs),
     keepUnsettledLocks(missingLocks, nowMs),
   ]);
-  const liveOptions = {client, searchQuery, credentials, nowMs, readNowMs};
+  const liveOptions = {
+    client,
+    searchQuery,
+    candidateCredentials,
+    nowMs,
+    readNowMs,
+  };
   if (wonStaleLocks.lockedSearches.length > 0) {
     void trackPending(
       runLiveSearch({
@@ -192,7 +195,7 @@ async function waitForLockedSearches(lockedSearches, {signal, nowMs}) {
 async function runLiveSearch({
   client,
   searchQuery,
-  credentials,
+  candidateCredentials,
   nowMs,
   readNowMs,
   lockedSearches,
@@ -205,7 +208,7 @@ async function runLiveSearch({
     const searchHits = await searchWithCredentials({
       client,
       searchQuery: {...searchQuery, languageCodes},
-      credentials,
+      candidateCredentials,
       readNowMs,
     });
     if (searchHits === null) {
@@ -239,45 +242,24 @@ async function runLiveSearch({
 async function searchWithCredentials({
   client,
   searchQuery,
-  credentials,
+  candidateCredentials,
   readNowMs,
 }) {
-  const candidateCredentials = client.canSearchWithoutCredential()
-    ? [...credentials, null]
-    : credentials;
   for (const credential of candidateCredentials) {
     try {
       return await client.searchSubtitles(searchQuery, credential);
     } catch (error) {
-      const rejectedStatus = credential && toRejectedCredentialStatus(error);
-      if (rejectedStatus) {
-        await markCredentialStatus({
-          credentialId: credential.credentialId,
-          credentialStatus: rejectedStatus,
-        });
+      const isCredentialRejected = await recordSubtitleSourceFailure({
+        client,
+        error,
+        nowMs: readNowMs(),
+      });
+      if (isCredentialRejected) {
         continue;
-      }
-      if (error instanceof SourceRateLimitError) {
-        await openSubtitleSourceBreaker({
-          subtitleSource: client.subtitleSource,
-          retryAfterMs: error.retryAfterMs,
-          nowMs: readNowMs(),
-          recoveryWindowMs: toBudgetRecoveryWindowMs(client.downloadBudgets),
-        });
       }
       logSearchFailure(client.subtitleSource, error, 'Source search failed.');
       return null;
     }
-  }
-  return null;
-}
-
-function toRejectedCredentialStatus(error) {
-  if (error instanceof SourceCredentialError) {
-    return CredentialStatus.INVALID;
-  }
-  if (error instanceof SourceRateLimitError && error.credentialId) {
-    return CredentialStatus.LIMITED;
   }
   return null;
 }

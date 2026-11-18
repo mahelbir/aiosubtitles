@@ -9,7 +9,7 @@ import {UserConfigCredential} from '../../../../db/models/user-config-credential
 import {UserConfig} from '../../../../db/models/user-config.js';
 import {sealCredentialSecret} from '../../../../lib/credential-secret.js';
 import {getSuccessEnvelopeSchema} from '../../../../lib/response.js';
-import {getSubtitleSourceRegistry} from '../../_subtitle-source-registry.js';
+import {getSubtitleSourceRegistry} from '../../../_subtitle-source-registry.js';
 import {
   USER_CONFIG_API_ROUTE_CONFIG,
   assertSubtitleSourcesAvailable,

@@ -4,6 +4,7 @@ import {SubtitleFileExtension} from '@repo/subtitle-core/constants/subtitle-core
 import {sequelize} from '../index.js';
 import {BaseModel} from '../base-model.js';
 import {dbUtils} from '../utils.js';
+import {SubtitleFile} from './subtitle-file.js';
 
 const URL_CODE_LENGTH = 64;
 
@@ -19,7 +20,25 @@ const optionalInteger = {
   defaultValue: null,
 };
 
-export class Subtitle extends BaseModel {}
+export class Subtitle extends BaseModel {
+  static downloadAttributes = [
+    'id',
+    'urlCode',
+    'subtitleSource',
+    'siteFileId',
+    'archiveEntryPath',
+    'fileExtension',
+    'siteLanguageCode',
+    'siteFps',
+    'siteFileUrl',
+    'isSitePack',
+  ];
+  static subtitleFileInclude = {
+    association: 'subtitleFile',
+    attributes: SubtitleFile.embeddedAttributes,
+    required: false,
+  };
+}
 
 Subtitle.init(
   {

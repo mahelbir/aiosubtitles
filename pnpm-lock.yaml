@@ -329,6 +329,9 @@ importers:
       fflate:
         specifier: ^0.8.3
         version: 0.8.3
+      iconv-lite:
+        specifier: ^0.7.3
+        version: 0.7.3
       pino-pretty:
         specifier: ^13.2.0
         version: 13.2.0

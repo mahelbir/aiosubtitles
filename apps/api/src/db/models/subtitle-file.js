@@ -18,7 +18,16 @@ export const SubtitleFileOrigin = Enum({
   WYZIE: {value: 'wyzie'},
 });
 
-export class SubtitleFile extends BaseModel {}
+export class SubtitleFile extends BaseModel {
+  static embeddedAttributes = [
+    'subtitleId',
+    'fileContent',
+    'fileFormat',
+    'fileEncoding',
+    'cueCount',
+    'fileInvalidReasons',
+  ];
+}
 
 SubtitleFile.init(
   {

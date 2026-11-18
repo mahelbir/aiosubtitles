@@ -121,6 +121,7 @@ export const SubtitleNotice = Enum({
   OPENSUBTITLES_ACCOUNT: {
     value: 'opensubtitles-account',
     label: 'Add an OpenSubtitles account to see {hiddenSubtitleCount} more',
+    noticeFileText: 'Add an OpenSubtitles account to see more subtitles.',
   },
 });
 

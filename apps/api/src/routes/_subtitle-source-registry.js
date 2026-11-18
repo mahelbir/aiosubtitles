@@ -1,7 +1,7 @@
 import {
   getSubtitleSourceClient,
   listSubtitleSourceClients,
-} from '../../lib/subtitle-sources/subtitle-source-clients.js';
+} from '../lib/subtitle-sources/subtitle-source-clients.js';
 
 const SHIPPED_SUBTITLE_SOURCE_REGISTRY = {
   getSubtitleSourceClient,

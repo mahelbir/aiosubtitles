@@ -6,7 +6,6 @@ import {
 import {SubtitleSource} from '@repo/shared/constants/subtitle-source.js';
 import {config} from '../../src/config/index.js';
 import {Subtitle} from '../../src/db/models/subtitle.js';
-import {UserConfigCredential} from '../../src/db/models/user-config-credential.js';
 import {markCredentialStatus} from '../../src/lib/credential-secret.js';
 import {
   drainPendingSearches,
@@ -26,7 +25,10 @@ import {
   SourceCredentialError,
   SourceRateLimitError,
 } from '../../src/lib/subtitle-sources/subtitle-source-errors.js';
-import {readUsableCredentials} from '../../src/lib/subtitle-store/user-config-credentials.js';
+import {
+  readSearchCredentials,
+  readUsableCredentials,
+} from '../../src/lib/subtitle-source-credentials.js';
 import {userConfigCache} from '../../src/lib/user-config-cache.js';
 import {redis} from '../../src/redis/index.js';
 import {createUserConfig} from '../helpers/factories.js';
@@ -36,6 +38,7 @@ import {
   makeSubtitleSourceCredential,
   makeSubtitleSourceHit,
 } from '../helpers/subtitle-source-factories.js';
+import {readCredentialStatuses} from '../helpers/user-config-factories.js';
 
 const SUBTITLE_SOURCE = SubtitleSource.THESUBTITLEDB;
 const NOW_MS = Date.UTC(2026, 10, 18, 12, 0, 0);
@@ -43,6 +46,7 @@ const STALE_MS = NOW_MS + config.subtitleSearchCacheFreshTtl * 1000 + 1;
 const BUDGET_WINDOW_MS = 60000;
 const BUDGET_WINDOW = Math.floor(NOW_MS / BUDGET_WINDOW_MS);
 const RETRY_AFTER_MS = 120000;
+const WITHOUT_CREDENTIALS = {credentials: [], hasConfiguredCredential: false};
 
 const subtitleSourceBudget = {
   budgetScope: SubtitleSourceBudgetScope.SUBTITLE_SOURCE,
@@ -68,17 +72,6 @@ function makeApiKeyCredential(apiKey) {
   };
 }
 
-async function readCredentialStatuses(credentialIds) {
-  const credentials = await UserConfigCredential.findAll({
-    attributes: ['id', 'credentialStatus'],
-    where: {id: credentialIds},
-    raw: true,
-  });
-  return Object.fromEntries(
-    credentials.map(({id, credentialStatus}) => [id, credentialStatus]),
-  );
-}
-
 async function spendTimes(times, spendOptions) {
   const spends = [];
   for (let spendIndex = 0; spendIndex < times; spendIndex += 1) {
@@ -102,13 +95,13 @@ describe('searchSubtitleSource', () => {
     const liveHits = await searchSubtitleSource({
       client,
       searchQuery,
-      credentials: [],
+      ...WITHOUT_CREDENTIALS,
       nowMs: NOW_MS,
     });
     const cachedHits = await searchSubtitleSource({
       client,
       searchQuery,
-      credentials: [],
+      ...WITHOUT_CREDENTIALS,
       nowMs: NOW_MS + 1000,
     });
     await drainPendingSearches();
@@ -133,20 +126,20 @@ describe('searchSubtitleSource', () => {
     await searchSubtitleSource({
       client,
       searchQuery,
-      credentials: [],
+      ...WITHOUT_CREDENTIALS,
       nowMs: NOW_MS,
     });
     const staleAnswers = await Promise.all([
       searchSubtitleSource({
         client,
         searchQuery,
-        credentials: [],
+        ...WITHOUT_CREDENTIALS,
         nowMs: STALE_MS,
       }),
       searchSubtitleSource({
         client,
         searchQuery,
-        credentials: [],
+        ...WITHOUT_CREDENTIALS,
         nowMs: STALE_MS,
       }),
     ]);
@@ -158,7 +151,7 @@ describe('searchSubtitleSource', () => {
       searchSubtitleSource({
         client,
         searchQuery,
-        credentials: [],
+        ...WITHOUT_CREDENTIALS,
         nowMs: STALE_MS,
       }),
     ).resolves.toEqual([refreshedHit]);
@@ -177,18 +170,19 @@ describe('searchSubtitleSource', () => {
       client,
       searchQuery: makeTurkishQuery(),
       credentials: [makeSubtitleSourceCredential()],
+      hasConfiguredCredential: true,
       nowMs: NOW_MS,
     });
     const staleHits = await searchSubtitleSource({
       client,
       searchQuery: makeTurkishQuery(),
-      credentials: [],
+      ...WITHOUT_CREDENTIALS,
       nowMs: STALE_MS,
     });
     const missingHits = await searchSubtitleSource({
       client,
       searchQuery: makeSearchQuery({languageCodes: ['eng']}),
-      credentials: [],
+      ...WITHOUT_CREDENTIALS,
       nowMs: STALE_MS,
     });
     await drainPendingSearches();
@@ -210,13 +204,13 @@ describe('searchSubtitleSource', () => {
       searchSubtitleSource({
         client,
         searchQuery,
-        credentials: [],
+        ...WITHOUT_CREDENTIALS,
         nowMs: NOW_MS,
       }),
       searchSubtitleSource({
         client,
         searchQuery,
-        credentials: [],
+        ...WITHOUT_CREDENTIALS,
         nowMs: NOW_MS,
       }),
     ];
@@ -232,7 +226,7 @@ describe('searchSubtitleSource', () => {
       searchSubtitleSource({
         client,
         searchQuery,
-        credentials: [],
+        ...WITHOUT_CREDENTIALS,
         nowMs: NOW_MS,
       }),
     ).resolves.toEqual([searchHit]);
@@ -257,7 +251,7 @@ describe('searchSubtitleSource', () => {
     const limitedHits = await searchSubtitleSource({
       client,
       searchQuery,
-      credentials: [],
+      ...WITHOUT_CREDENTIALS,
       nowMs: NOW_MS,
     });
     expect(limitedHits).toEqual([]);
@@ -268,7 +262,7 @@ describe('searchSubtitleSource', () => {
     const skippedHits = await searchSubtitleSource({
       client,
       searchQuery,
-      credentials: [],
+      ...WITHOUT_CREDENTIALS,
       nowMs: NOW_MS + 119000,
     });
     expect(skippedHits).toEqual([]);
@@ -277,7 +271,7 @@ describe('searchSubtitleSource', () => {
     const reopenedHits = await searchSubtitleSource({
       client,
       searchQuery,
-      credentials: [],
+      ...WITHOUT_CREDENTIALS,
       nowMs: NOW_MS + 121000,
     });
     expect(reopenedHits).toEqual([searchHit]);
@@ -315,6 +309,7 @@ describe('searchSubtitleSource', () => {
       client,
       searchQuery: makeTurkishQuery(),
       credentials,
+      hasConfiguredCredential: true,
       nowMs: NOW_MS,
     });
     await drainPendingSearches();
@@ -336,6 +331,83 @@ describe('searchSubtitleSource', () => {
     });
   });
 
+  it('never searches keyless for a user whose only key is invalid', async () => {
+    const {userConfig, userConfigCredentials} = await createUserConfig({
+      credentials: [makeApiKeyCredential('invalid-api-key')],
+    });
+    await markCredentialStatus({
+      credentialId: userConfigCredentials[0].id,
+      credentialStatus: CredentialStatus.INVALID,
+    });
+    const client = createFixtureSubtitleSourceClient({
+      credentialKinds: [CredentialKind.API_KEY],
+      searchSubtitles: vi.fn(async () => [makeSubtitleSourceHit()]),
+    });
+
+    const searchHits = await searchSubtitleSource({
+      client,
+      searchQuery: makeTurkishQuery(),
+      ...readSearchCredentials({
+        cachedUserConfig: await userConfigCache.get(userConfig.id),
+        client,
+      }),
+      nowMs: NOW_MS,
+    });
+    await drainPendingSearches();
+
+    expect(searchHits).toEqual([]);
+    expect(client.searchSubtitles).not.toHaveBeenCalled();
+  });
+
+  it('searches keyless for a user without a key for the source', async () => {
+    const searchHit = makeSubtitleSourceHit();
+    const {userConfig} = await createUserConfig({
+      credentials: [
+        {
+          subtitleSource: SubtitleSource.OPENSUBTITLES,
+          credentialKind: CredentialKind.API_KEY,
+          credentialSecret: {apiKey: 'other-source-api-key'},
+        },
+      ],
+    });
+    const client = createFixtureSubtitleSourceClient({
+      credentialKinds: [CredentialKind.API_KEY],
+      searchSubtitles: vi.fn(async () => [searchHit]),
+    });
+
+    const searchHits = await searchSubtitleSource({
+      client,
+      searchQuery: makeTurkishQuery(),
+      ...readSearchCredentials({
+        cachedUserConfig: await userConfigCache.get(userConfig.id),
+        client,
+      }),
+      nowMs: NOW_MS,
+    });
+    await drainPendingSearches();
+
+    expect(searchHits).toEqual([searchHit]);
+    expect(client.searchSubtitles).toHaveBeenCalledTimes(1);
+    expect(client.searchSubtitles.mock.calls[0][1]).toBeNull();
+  });
+
+  it('searches nothing when a caller leaves out whether the user configured a key', async () => {
+    const client = createFixtureSubtitleSourceClient({
+      searchSubtitles: vi.fn(async () => [makeSubtitleSourceHit()]),
+    });
+
+    const searchHits = await searchSubtitleSource({
+      client,
+      searchQuery: makeTurkishQuery(),
+      credentials: [],
+      nowMs: NOW_MS,
+    });
+    await drainPendingSearches();
+
+    expect(searchHits).toEqual([]);
+    expect(client.searchSubtitles).not.toHaveBeenCalled();
+  });
+
   it('keeps every user config id out of the search keys', async () => {
     const {userConfig, userConfigCredentials} = await createUserConfig({
       credentials: [makeApiKeyCredential('viewer-api-key')],
@@ -355,6 +427,7 @@ describe('searchSubtitleSource', () => {
       client,
       searchQuery: makeTurkishQuery(),
       credentials,
+      hasConfiguredCredential: true,
       nowMs: NOW_MS,
     });
     await spendSubtitleSourceBudget({
@@ -526,7 +599,7 @@ describe('the search lock', () => {
     const waitingSearch = searchSubtitleSource({
       client,
       searchQuery: makeTurkishQuery(),
-      credentials: [],
+      ...WITHOUT_CREDENTIALS,
       nowMs: NOW_MS,
     });
     await vi.waitFor(async () => {
@@ -567,7 +640,7 @@ describe('the search lock', () => {
     const searchHits = await searchSubtitleSource({
       client,
       searchQuery: makeTurkishQuery(),
-      credentials: [],
+      ...WITHOUT_CREDENTIALS,
       signal: AbortSignal.timeout(300),
       nowMs: NOW_MS,
     });
@@ -746,7 +819,7 @@ describe('the budget recovery window', () => {
     await searchSubtitleSource({
       client,
       searchQuery: makeTurkishQuery(),
-      credentials: [],
+      ...WITHOUT_CREDENTIALS,
       nowMs: NOW_MS,
     });
     return spendTimes(spendCount, {
@@ -824,7 +897,7 @@ describe('a live search and its stored hits', () => {
     const searchHits = await searchSubtitleSource({
       client,
       searchQuery: makeTurkishQuery(),
-      credentials: [],
+      ...WITHOUT_CREDENTIALS,
       nowMs: NOW_MS,
     });
 
@@ -845,7 +918,7 @@ describe('a live search and its stored hits', () => {
     const searchHits = await searchSubtitleSource({
       client,
       searchQuery: makeTurkishQuery(),
-      credentials: [],
+      ...WITHOUT_CREDENTIALS,
       nowMs: NOW_MS,
     });
     await drainPendingSearches();
@@ -883,10 +956,9 @@ describe('credential rotation', () => {
     const searchHits = await searchSubtitleSource({
       client,
       searchQuery: makeTurkishQuery(),
-      credentials: readUsableCredentials({
+      ...readSearchCredentials({
         cachedUserConfig: await userConfigCache.get(userConfig.id),
-        subtitleSource: SUBTITLE_SOURCE,
-        credentialKinds: [CredentialKind.API_KEY],
+        client,
       }),
       nowMs: NOW_MS,
     });
@@ -903,7 +975,7 @@ describe('credential rotation', () => {
     ).resolves.toEqual({isOpen: false, budgetFactor: 1});
   });
 
-  it('searches without a key when every key is rejected and the source allows it', async () => {
+  it('never searches without a key once every key is rejected, even when the source allows it', async () => {
     const searchHit = makeSubtitleSourceHit();
     const rejectedCredential = makeSubtitleSourceCredential();
     const client = createFixtureSubtitleSourceClient({
@@ -922,12 +994,110 @@ describe('credential rotation', () => {
       client,
       searchQuery: makeTurkishQuery(),
       credentials: [rejectedCredential],
+      hasConfiguredCredential: true,
       nowMs: NOW_MS,
     });
 
-    expect(searchHits).toEqual([searchHit]);
-    expect(client.searchSubtitles).toHaveBeenCalledTimes(2);
-    expect(client.searchSubtitles.mock.lastCall[1]).toBeNull();
+    expect(searchHits).toEqual([]);
+    expect(client.searchSubtitles).toHaveBeenCalledTimes(1);
+    expect(client.searchSubtitles.mock.lastCall[1]).toBe(rejectedCredential);
+  });
+});
+
+describe('OpenSubtitles search credentials', () => {
+  function makeOpensubtitlesCredential(credentialKind, credentialSecret) {
+    return {
+      subtitleSource: SubtitleSource.OPENSUBTITLES,
+      credentialKind,
+      credentialSecret,
+    };
+  }
+
+  const accountCredential = makeOpensubtitlesCredential(
+    CredentialKind.ACCOUNT,
+    {username: 'account-user', password: 'account-password'},
+  );
+
+  async function searchOpensubtitles(credentials) {
+    const {userConfig, userConfigCredentials} = await createUserConfig({
+      credentials,
+    });
+    return {
+      userConfig,
+      userConfigCredentials,
+      runSearch: async () => {
+        const client = createFixtureSubtitleSourceClient({
+          subtitleSource: SubtitleSource.OPENSUBTITLES,
+          credentialKinds: [CredentialKind.ACCOUNT, CredentialKind.API_KEY],
+          searchSubtitles: vi.fn(async () => [
+            makeSubtitleSourceHit({
+              subtitleSource: SubtitleSource.OPENSUBTITLES,
+            }),
+          ]),
+        });
+        const searchHits = await searchSubtitleSource({
+          client,
+          searchQuery: makeTurkishQuery(),
+          ...readSearchCredentials({
+            cachedUserConfig: await userConfigCache.get(userConfig.id),
+            client,
+          }),
+          nowMs: NOW_MS,
+        });
+        await drainPendingSearches();
+        return {client, searchHits};
+      },
+    };
+  }
+
+  it('never searches with the app key when the user own key is invalid', async () => {
+    const {userConfigCredentials, runSearch} = await searchOpensubtitles([
+      accountCredential,
+      makeOpensubtitlesCredential(CredentialKind.API_KEY, {
+        apiKey: 'invalid-api-key',
+      }),
+    ]);
+    await markCredentialStatus({
+      credentialId: userConfigCredentials[1].id,
+      credentialStatus: CredentialStatus.INVALID,
+    });
+
+    const {client, searchHits} = await runSearch();
+
+    expect(searchHits).toEqual([]);
+    expect(client.searchSubtitles).not.toHaveBeenCalled();
+  });
+
+  it('searches with the user own key before any account', async () => {
+    const {userConfigCredentials, runSearch} = await searchOpensubtitles([
+      accountCredential,
+      makeOpensubtitlesCredential(CredentialKind.API_KEY, {
+        apiKey: 'own-api-key',
+      }),
+    ]);
+
+    const {client} = await runSearch();
+
+    expect(client.searchSubtitles).toHaveBeenCalledTimes(1);
+    expect(client.searchSubtitles.mock.calls[0][1]).toMatchObject({
+      credentialId: userConfigCredentials[1].id,
+      credentialKind: CredentialKind.API_KEY,
+      apiKey: 'own-api-key',
+    });
+  });
+
+  it('searches with an account when the user has no key', async () => {
+    const {userConfigCredentials, runSearch} = await searchOpensubtitles([
+      accountCredential,
+    ]);
+
+    const {client} = await runSearch();
+
+    expect(client.searchSubtitles).toHaveBeenCalledTimes(1);
+    expect(client.searchSubtitles.mock.calls[0][1]).toMatchObject({
+      credentialId: userConfigCredentials[0].id,
+      credentialKind: CredentialKind.ACCOUNT,
+    });
   });
 });
 

@@ -1,7 +1,7 @@
 import {StatusCodes} from 'http-status-codes';
 import {userConfigSchema} from '@repo/shared/schemas/user-config.js';
 import {getSuccessEnvelopeSchema} from '../../../../lib/response.js';
-import {getSubtitleSourceRegistry} from '../../_subtitle-source-registry.js';
+import {getSubtitleSourceRegistry} from '../../../_subtitle-source-registry.js';
 import {
   USER_CONFIG_API_ROUTE_CONFIG,
   checkCredentials,

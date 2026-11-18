@@ -58,7 +58,7 @@ export async function spendSubtitleSourceBudget({
   client,
   credentialId,
   isBackground,
-  nowMs,
+  nowMs = Date.now(),
 }) {
   const declaredBudgets = client.downloadBudgets.filter(
     ({budgetScope}) =>

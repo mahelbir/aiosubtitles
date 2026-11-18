@@ -1,4 +1,4 @@
-const MAX_VIDEO_ID_LENGTH = 128;
+export const VIDEO_ID_LENGTH_MAX = 128;
 const NON_PCHAR_PATTERN = /[^A-Za-z0-9\-._~!$&'()*+,;=:@]/gu;
 const NON_ASCII_PATTERN = /\P{ASCII}/u;
 
@@ -9,7 +9,7 @@ const isVideoIdTooLong = (videoId, encodedVideoId) => {
   const measuredVideoId = NON_ASCII_PATTERN.test(videoId)
     ? encodedVideoId
     : videoId;
-  return measuredVideoId.length > MAX_VIDEO_ID_LENGTH;
+  return measuredVideoId.length > VIDEO_ID_LENGTH_MAX;
 };
 
 export const buildSubtitleUrl = ({
