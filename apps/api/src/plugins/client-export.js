@@ -15,6 +15,11 @@ const PAGE_CONTENT_TYPE = 'text/html; charset=utf-8';
 const HASHED_ASSET_DIR = path.join('_next', 'static');
 const HASHED_ASSET_CACHE_CONTROL = 'public, max-age=31536000, immutable';
 const ASSET_CACHE_CONTROL = 'public, max-age=0';
+const CONFIGURE_PAGE_RATE_LIMIT_GROUP = 'configure-page';
+const CONFIGURE_PAGE_RATE_LIMIT_IP_MAX = 60;
+const CONFIGURE_PAGE_RATE_LIMITS = [
+  {max: CONFIGURE_PAGE_RATE_LIMIT_IP_MAX, timeWindow: config.rateLimitWindow},
+];
 
 export default fp(
   async function clientExportPlugin(
@@ -64,14 +69,21 @@ export default fp(
       for (const page of pages) {
         scope.get(
           `${basePath}${page.url}`,
-          {schema: {hide: true}, config: {clientCsp: page.csp}},
+          {
+            schema: {hide: true},
+            config: {
+              clientCsp: page.csp,
+              rateLimitGroup: CONFIGURE_PAGE_RATE_LIMIT_GROUP,
+              rateLimits: CONFIGURE_PAGE_RATE_LIMITS,
+            },
+          },
           async (request, reply) =>
             reply.type(PAGE_CONTENT_TYPE).send(page.html),
         );
       }
     });
   },
-  {name: 'client-export'},
+  {name: 'client-export', dependencies: ['rate-limit']},
 );
 
 async function readPages(root) {

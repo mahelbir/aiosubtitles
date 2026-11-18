@@ -4,6 +4,8 @@ import {
   ADDON_MANIFEST_VERSION,
   ADDON_NAME,
 } from '@repo/shared/constants/app.js';
+import {config} from '../../config/index.js';
+import {RateLimitKey} from '../../lib/rate-limit.js';
 import {AddonVideoType} from './_addon-video-type.js';
 import {readCachedUserConfig} from './_cached-user-config.js';
 
@@ -44,8 +46,21 @@ const MANIFEST_SCHEMA = {
   },
 };
 
+const MANIFEST_RATE_LIMIT_IP_MAX = 30;
+
+const MANIFEST_RATE_LIMIT_USER_CONFIG_MAX = 10;
+
 const ADDON_ROUTE_CONFIG = {
   isAddonRoute: true,
+  rateLimitGroup: 'manifest',
+  rateLimits: [
+    {max: MANIFEST_RATE_LIMIT_IP_MAX, timeWindow: config.rateLimitWindow},
+    {
+      key: RateLimitKey.USER_CONFIG,
+      max: MANIFEST_RATE_LIMIT_USER_CONFIG_MAX,
+      timeWindow: config.rateLimitWindow,
+    },
+  ],
   replyAddonFallback: (request, reply) => reply.send(GENERAL_MANIFEST),
 };
 

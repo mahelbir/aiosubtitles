@@ -1,6 +1,5 @@
 import {afterEach, describe, expect, it, vi} from 'vitest';
 import {StatusCodes} from 'http-status-codes';
-import {config} from '../../src/config/index.js';
 import {uuidV4} from '../../src/lib/common.js';
 import {userConfigCache} from '../../src/lib/user-config-cache.js';
 import {getTestApp, getTestAppBasePath} from '../helpers/app.js';
@@ -8,6 +7,8 @@ import {readEnvelope} from '../helpers/assertions.js';
 import {createUserConfig} from '../helpers/factories.js';
 
 const STREMIO_ORIGIN = 'https://web.stremio.com';
+
+const MANIFEST_RATE_LIMIT_IP_MAX = 30;
 
 const GENERAL_MANIFEST = {
   id: 'com.mahmuthanelbir.aiosubtitles',
@@ -106,7 +107,7 @@ describe('the manifest', () => {
 
   it('answers a refused window with 429', async () => {
     const responses = [];
-    for (let attempt = 0; attempt <= config.rateLimitIpMax; attempt += 1) {
+    for (let attempt = 0; attempt <= MANIFEST_RATE_LIMIT_IP_MAX; attempt += 1) {
       responses.push(await get('/manifest.json', {origin: STREMIO_ORIGIN}));
     }
     const refused = responses.at(-1);

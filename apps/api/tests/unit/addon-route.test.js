@@ -1,8 +1,10 @@
 import {afterEach, describe, expect, it} from 'vitest';
-import Fastify from 'fastify';
+import Fastify, {LogController} from 'fastify';
 import addonRoutePlugin, {
   createAddonRouteTable,
 } from '../../src/plugins/addon-route.js';
+
+const ADDON_USER_CONFIG_ID = '3f2b8c1e-7d4a-4e9b-9c1d-2a6f8e0b5c47';
 
 let app = null;
 
@@ -38,6 +40,40 @@ describe('the addon-route plugin', () => {
 
   it('leaves a route that is not an addon route alone', async () => {
     await expect(bootWith({})).resolves.toBeDefined();
+  });
+
+  it('writes an addon request by its route pattern and placeholder path', async () => {
+    const logLines = [];
+    app = Fastify({
+      logger: {level: 'debug', stream: {write: line => logLines.push(line)}},
+      logController: new LogController({disableRequestLogging: false}),
+    });
+    await app.register(addonRoutePlugin);
+    app.get(
+      '/:userConfigId/subtitles/:videoId.json',
+      {
+        config: {
+          isAddonRoute: true,
+          replyAddonFallback: (request, reply) => reply.send({}),
+        },
+      },
+      async () => ({}),
+    );
+    app.get('/__fixtures__/plain/:userConfigId', async () => ({}));
+
+    await app.inject(`/${ADDON_USER_CONFIG_ID}/subtitles/tt0133093.json`);
+    await app.inject(`/__fixtures__/plain/${ADDON_USER_CONFIG_ID}`);
+    const requestLines = logLines
+      .map(line => JSON.parse(line))
+      .filter(({msg}) => msg === 'incoming request');
+
+    expect(requestLines.map(({req}) => req.url)).toEqual([
+      '/:userConfigId/subtitles/:videoId.json',
+      `/__fixtures__/plain/${ADDON_USER_CONFIG_ID}`,
+    ]);
+    expect(requestLines[0].req.path).toBe(
+      '/:userConfigId/subtitles/tt0133093.json',
+    );
   });
 
   it('logs a failed addon route by its error name only', async () => {

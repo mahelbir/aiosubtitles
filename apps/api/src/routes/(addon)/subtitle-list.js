@@ -3,6 +3,7 @@ import {StatusCodes} from 'http-status-codes';
 import {buildNoticeRow} from '@repo/subtitle-core/stremio-row/build-notice-row.js';
 import {buildStremioSubtitles} from '@repo/subtitle-core/stremio-row/build-stremio-subtitles.js';
 import {config} from '../../config/index.js';
+import {RateLimitKey} from '../../lib/rate-limit.js';
 import {
   drainPendingSearches,
   searchSubtitleSource,
@@ -72,6 +73,18 @@ const SUBTITLE_LIST_RESPONSE_SCHEMA = {
 
 const SUBTITLE_LIST_ROUTE_CONFIG = {
   isAddonRoute: true,
+  rateLimitGroup: 'subtitle-list',
+  rateLimits: [
+    {
+      max: config.subtitleListRateLimitIpMax,
+      timeWindow: config.rateLimitWindow,
+    },
+    {
+      key: RateLimitKey.USER_CONFIG,
+      max: config.subtitleListRateLimitUserConfigMax,
+      timeWindow: config.rateLimitWindow,
+    },
+  ],
   replyAddonFallback: (request, reply) => sendEmptySubtitleList(reply),
   onRateLimited: (request, result, reply) => sendEmptySubtitleList(reply),
 };

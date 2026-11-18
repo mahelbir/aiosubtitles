@@ -4,6 +4,9 @@ import {StatusCodes, getReasonPhrase} from 'http-status-codes';
 
 const ROUTE_PARAM_PATTERN = /(:\w+)/;
 const ADDON_ORIGIN = '*';
+const USER_CONFIG_SEGMENT = ':userConfigId';
+const QUERY_SEPARATOR = '?';
+const PATH_SEPARATOR = '/';
 const URL_FRAMEWORK_ERROR_CODES = new Set([
   'FST_ERR_BAD_URL',
   'FST_ERR_MAX_PARAM_LENGTH',
@@ -53,10 +56,14 @@ export default fp(
         throw new Error('An addon route needs a replyAddonFallback.');
       }
       addonRouteTable?.addAddonRoute({url: route.url, replyAddonFallback});
+      route.logSerializers = {
+        ...route.logSerializers,
+        req: serializeAddonRequest,
+      };
       route.errorHandler = (err, request, reply) => {
         const logLevel = err.validation ? 'debug' : 'error';
         request.log[logLevel](
-          {errorName: err.name, code: err.code},
+          {url: request.routeOptions.url, errorName: err.name, code: err.code},
           'Addon route failed',
         );
         return replyAddonFallback(request, reply.code(StatusCodes.OK));
@@ -65,6 +72,33 @@ export default fp(
   },
   {name: 'addon-route'},
 );
+
+export function serializeAddonRequest(request) {
+  return {
+    method: request.method,
+    url: request.routeOptions.url,
+    ...(request.log?.isLevelEnabled?.('debug')
+      ? {path: toPlaceholderPath(request)}
+      : {}),
+    version: request.headers?.['accept-version'],
+    host: request.host,
+    remoteAddress: request.clientIp,
+    remotePort: request.socket?.remotePort,
+  };
+}
+
+function toPlaceholderPath(request) {
+  const [rawPath] = request.url.split(QUERY_SEPARATOR);
+  const routeSegments = request.routeOptions.url.split(PATH_SEPARATOR);
+  return rawPath
+    .split(PATH_SEPARATOR)
+    .map((pathSegment, segmentIndex) =>
+      routeSegments[segmentIndex] === USER_CONFIG_SEGMENT
+        ? USER_CONFIG_SEGMENT
+        : pathSegment,
+    )
+    .join(PATH_SEPARATOR);
+}
 
 function readFrameworkErrorName({code, statusCode}) {
   return getReasonPhrase(

@@ -63,6 +63,7 @@ const NOTICE_TEXT = 'Add an OpenSubtitles account to see more subtitles.';
 const V3_FILE_URL = 'https://subs5.strem.io/en/download/file/123456';
 const ARCHIVE_ENTRY_BYTES_PAST_CAP = 60 * 1024 * 1024;
 const WINDOWS_1254_SMALL_S_CEDILLA = 0xfe;
+const CONFIG_LOOKUPS_PER_FILE_REQUEST = 2;
 
 const MOVIE_SRT = [
   '1\n00:00:01,000 --> 00:00:03,000\nMerhaba dünya.\n',
@@ -309,7 +310,9 @@ async function readBindings(subtitleId) {
 
 async function waitForDownloadCallers(configLookup, callerCount) {
   await vi.waitFor(() => {
-    expect(configLookup.mock.settledResults).toHaveLength(callerCount);
+    expect(configLookup.mock.settledResults).toHaveLength(
+      callerCount * CONFIG_LOOKUPS_PER_FILE_REQUEST,
+    );
   });
   await new Promise(resolve => {
     setImmediate(resolve);
