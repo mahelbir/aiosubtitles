@@ -4,8 +4,6 @@ import {SubtitleSourceBudgetScope} from '../subtitle-source-contract.js';
 import {requestSubtitleSource} from '../subtitle-source-request.js';
 import {anisubMapping} from './anisub-mapping.js';
 
-const ANONYMOUS_DOWNLOAD_WINDOW = 60000;
-const ANONYMOUS_DOWNLOAD_MAX = 60;
 const CREDENTIAL_DOWNLOAD_WINDOW = 86400000;
 const CREDENTIAL_DOWNLOAD_MAX = 1000;
 
@@ -25,18 +23,13 @@ export const anisubClient = {
   isSearchHashSensitive: false,
   downloadBudgets: [
     {
-      budgetScope: SubtitleSourceBudgetScope.SUBTITLE_SOURCE,
-      windowMs: ANONYMOUS_DOWNLOAD_WINDOW,
-      requestMax: ANONYMOUS_DOWNLOAD_MAX,
-    },
-    {
       budgetScope: SubtitleSourceBudgetScope.CREDENTIAL,
       windowMs: CREDENTIAL_DOWNLOAD_WINDOW,
       requestMax: CREDENTIAL_DOWNLOAD_MAX,
     },
   ],
-  canSearchWithoutCredential: () => true,
-  canDownloadWithoutCredential: () => true,
+  canSearchWithoutCredential: () => false,
+  canDownloadWithoutCredential: () => false,
   async searchSubtitles(searchQuery, credential, {signal} = {}) {
     const searchRequest = anisubMapping.buildSearchRequest(searchQuery);
     if (searchRequest === null) {
@@ -48,19 +41,11 @@ export const anisubClient = {
     );
   },
   async downloadSubtitle(subtitleRef, credential, {signal} = {}) {
-    const integrationRequest = anisubMapping.buildIntegrationDownloadRequest(
-      subtitleRef,
-      credential,
-    );
     const fileResponse = await requestSubtitleSource({
-      ...(integrationRequest ??
-        anisubMapping.buildDownloadRequest(subtitleRef)),
+      ...anisubMapping.buildIntegrationDownloadRequest(subtitleRef, credential),
       signal,
     });
-    const fileLink =
-      integrationRequest === null
-        ? anisubMapping.toFileDownloadLink(fileResponse)
-        : anisubMapping.toDownloadLink(fileResponse, credential);
+    const fileLink = anisubMapping.toDownloadLink(fileResponse, credential);
     return fileLink === null
       ? anisubMapping.toDownload(fileResponse)
       : requestLinkedFile(fileLink, signal);

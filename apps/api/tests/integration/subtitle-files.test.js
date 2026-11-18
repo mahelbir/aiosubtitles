@@ -112,9 +112,8 @@ const opensubtitlesV3Client = createFixtureSubtitleSourceClient({
   downloadSubtitle: vi.fn(),
 });
 
-const thesubtitledbClient = createFixtureSubtitleSourceClient({
-  subtitleSource: SubtitleSource.THESUBTITLEDB,
-  credentialKinds: [CredentialKind.API_KEY],
+const yifyClient = createFixtureSubtitleSourceClient({
+  subtitleSource: SubtitleSource.YIFY,
   downloadSubtitle: vi.fn(),
 });
 
@@ -129,7 +128,7 @@ const altyazidbClient = createFixtureSubtitleSourceClient({
 const fixtureClients = [
   opensubtitlesClient,
   opensubtitlesV3Client,
-  thesubtitledbClient,
+  yifyClient,
   altyazidbClient,
 ];
 
@@ -186,7 +185,10 @@ function renderAsSrt(fileText, fileNameHint) {
 }
 
 async function storeHit(videoId, hitOverrides = {}) {
-  const searchHit = makeSubtitleSourceHit(hitOverrides);
+  const searchHit = makeSubtitleSourceHit({
+    subtitleSource: SubtitleSource.YIFY,
+    ...hitOverrides,
+  });
   await persistSearchHits({videoId, searchHits: [searchHit]});
   return {
     searchHit,
@@ -348,7 +350,7 @@ describe('the subtitle file route', () => {
   it('downloads a keyless file once and stores its raw bytes', async () => {
     const {userConfig} = await createUserConfig();
     const {searchHit, urlCode} = await storeHit(MOVIE_ID);
-    thesubtitledbClient.downloadSubtitle.mockResolvedValue(
+    yifyClient.downloadSubtitle.mockResolvedValue(
       toDownload(MOVIE_SRT, {fileNameHint: 'movie.srt'}),
     );
 
@@ -361,11 +363,10 @@ describe('the subtitle file route', () => {
 
     expectFile(response, {body: MOVIE_SRT});
     expect(response.headers['access-control-allow-origin']).toBe('*');
-    expect(thesubtitledbClient.downloadSubtitle).toHaveBeenCalledTimes(1);
-    const [subtitleRef, credential] =
-      thesubtitledbClient.downloadSubtitle.mock.calls[0];
+    expect(yifyClient.downloadSubtitle).toHaveBeenCalledTimes(1);
+    const [subtitleRef, credential] = yifyClient.downloadSubtitle.mock.calls[0];
     expect(subtitleRef).toMatchObject({
-      subtitleSource: SubtitleSource.THESUBTITLEDB,
+      subtitleSource: SubtitleSource.YIFY,
       siteFileId: searchHit.siteFileId,
       siteFileUrl: null,
       catalogSeason: null,
@@ -387,9 +388,7 @@ describe('the subtitle file route', () => {
   it('serves a stored file without reading the configuration', async () => {
     const {userConfig} = await createUserConfig();
     const {urlCode} = await storeHit(MOVIE_ID);
-    thesubtitledbClient.downloadSubtitle.mockResolvedValue(
-      toDownload(MOVIE_SRT),
-    );
+    yifyClient.downloadSubtitle.mockResolvedValue(toDownload(MOVIE_SRT));
     const firstResponse = await getSubtitleFile({
       userConfigId: userConfig.id,
       videoId: MOVIE_ID,
@@ -407,7 +406,7 @@ describe('the subtitle file route', () => {
     configLookup.mockRestore();
     expectFile(storedResponse, {body: MOVIE_SRT});
     expect(configLookup).not.toHaveBeenCalled();
-    expect(thesubtitledbClient.downloadSubtitle).toHaveBeenCalledTimes(1);
+    expect(yifyClient.downloadSubtitle).toHaveBeenCalledTimes(1);
   });
 
   it('renders an ASS source as SRT for a .srt url and keeps ASS for .ass', async () => {
@@ -415,7 +414,7 @@ describe('the subtitle file route', () => {
     const {urlCode} = await storeHit(MOVIE_ID, {
       fileExtension: SubtitleFileExtension.ASS,
     });
-    thesubtitledbClient.downloadSubtitle.mockResolvedValue(
+    yifyClient.downloadSubtitle.mockResolvedValue(
       toDownload(MOVIE_ASS, {fileNameHint: 'movie.ass'}),
     );
 
@@ -436,7 +435,7 @@ describe('the subtitle file route', () => {
     expect(srtResponse.body).toContain('Merhaba dünya.');
     expect(srtResponse.body).not.toContain('Dialogue:');
     expectFile(assResponse, {body: MOVIE_ASS, contentType: ASS_CONTENT_TYPE});
-    expect(thesubtitledbClient.downloadSubtitle).toHaveBeenCalledTimes(1);
+    expect(yifyClient.downloadSubtitle).toHaveBeenCalledTimes(1);
   });
 
   it('converts a Windows-1254 file to UTF-8', async () => {
@@ -445,7 +444,7 @@ describe('the subtitle file route', () => {
     expect(legacyBytes.toString('utf8')).not.toBe(TURKISH_SRT);
     const {userConfig} = await createUserConfig();
     const {urlCode} = await storeHit(MOVIE_ID);
-    thesubtitledbClient.downloadSubtitle.mockResolvedValue(
+    yifyClient.downloadSubtitle.mockResolvedValue(
       toDownload(new Uint8Array(legacyBytes), {fileNameHint: 'turkish.srt'}),
     );
 
@@ -828,9 +827,7 @@ describe('an OpenSubtitles download', () => {
 describe('a download for another source', () => {
   it('still downloads a keyless file for an unknown configuration', async () => {
     const {urlCode} = await storeHit(MOVIE_ID);
-    thesubtitledbClient.downloadSubtitle.mockResolvedValue(
-      toDownload(MOVIE_SRT),
-    );
+    yifyClient.downloadSubtitle.mockResolvedValue(toDownload(MOVIE_SRT));
 
     const response = await getSubtitleFile({
       userConfigId: uuidV4(),
@@ -839,23 +836,23 @@ describe('a download for another source', () => {
     });
 
     expectFile(response, {body: MOVIE_SRT});
-    expect(thesubtitledbClient.downloadSubtitle.mock.calls[0][1]).toBeNull();
+    expect(yifyClient.downloadSubtitle.mock.calls[0][1]).toBeNull();
   });
 
-  it('never downloads keyless for a user whose only key is invalid', async () => {
+  it('never downloads from a key-required source for a user whose only key is invalid', async () => {
     const {userConfig, userConfigCredentials} = await createUserConfig({
       credentials: [
-        makeApiKeyCredential(SubtitleSource.THESUBTITLEDB, 'invalid-api-key'),
+        makeApiKeyCredential(SubtitleSource.ALTYAZIDB, 'invalid-api-key'),
       ],
     });
     await markCredentialStatus({
       credentialId: userConfigCredentials[0].id,
       credentialStatus: CredentialStatus.INVALID,
     });
-    const {urlCode} = await storeHit(MOVIE_ID);
-    thesubtitledbClient.downloadSubtitle.mockResolvedValue(
-      toDownload(MOVIE_SRT),
-    );
+    const {urlCode} = await storeHit(MOVIE_ID, {
+      subtitleSource: SubtitleSource.ALTYAZIDB,
+    });
+    altyazidbClient.downloadSubtitle.mockResolvedValue(toDownload(MOVIE_SRT));
 
     const response = await getSubtitleFile({
       userConfigId: userConfig.id,
@@ -864,23 +861,25 @@ describe('a download for another source', () => {
     });
 
     expectMessage(response, SubtitleMessage.SUBTITLE_DOWNLOAD_FAILED);
-    expect(thesubtitledbClient.downloadSubtitle).not.toHaveBeenCalled();
+    expect(altyazidbClient.downloadSubtitle).not.toHaveBeenCalled();
   });
 
-  it('never falls back to keyless when the user key fails', async () => {
+  it('fails without a keyless retry when the user key of a key-required source fails', async () => {
     const {userConfig, userConfigCredentials} = await createUserConfig({
       credentials: [
-        makeApiKeyCredential(SubtitleSource.THESUBTITLEDB, 'failing-api-key'),
+        makeApiKeyCredential(SubtitleSource.ALTYAZIDB, 'failing-api-key'),
       ],
     });
-    const {urlCode} = await storeHit(MOVIE_ID);
-    thesubtitledbClient.downloadSubtitle.mockImplementation(
+    const {urlCode} = await storeHit(MOVIE_ID, {
+      subtitleSource: SubtitleSource.ALTYAZIDB,
+    });
+    altyazidbClient.downloadSubtitle.mockImplementation(
       async (subtitleRef, credential) => {
         if (credential === null) {
           return toDownload(MOVIE_SRT);
         }
         throw new SourceUnavailableError({
-          subtitleSource: SubtitleSource.THESUBTITLEDB,
+          subtitleSource: SubtitleSource.ALTYAZIDB,
         });
       },
     );
@@ -892,7 +891,7 @@ describe('a download for another source', () => {
     });
 
     expectMessage(response, SubtitleMessage.SUBTITLE_DOWNLOAD_FAILED);
-    expect(downloadCredentialIds(thesubtitledbClient)).toEqual([
+    expect(downloadCredentialIds(altyazidbClient)).toEqual([
       userConfigCredentials[0].id,
     ]);
   });
@@ -951,11 +950,9 @@ describe('a download for another source', () => {
   it('skips a source whose breaker is open', async () => {
     const {userConfig} = await createUserConfig();
     const {urlCode} = await storeHit(MOVIE_ID);
-    thesubtitledbClient.downloadSubtitle.mockResolvedValue(
-      toDownload(MOVIE_SRT),
-    );
+    yifyClient.downloadSubtitle.mockResolvedValue(toDownload(MOVIE_SRT));
     await openSubtitleSourceBreaker({
-      subtitleSource: SubtitleSource.THESUBTITLEDB,
+      subtitleSource: SubtitleSource.YIFY,
       retryAfterMs: 120000,
       nowMs: Date.now(),
     });
@@ -967,16 +964,14 @@ describe('a download for another source', () => {
     });
 
     expectMessage(response, SubtitleMessage.SUBTITLE_DOWNLOAD_FAILED);
-    expect(thesubtitledbClient.downloadSubtitle).not.toHaveBeenCalled();
+    expect(yifyClient.downloadSubtitle).not.toHaveBeenCalled();
   });
 
   it('fetches a file once for two concurrent requests', async () => {
     const {userConfig} = await createUserConfig();
     const {urlCode} = await storeHit(MOVIE_ID);
     const sourceAnswer = Promise.withResolvers();
-    thesubtitledbClient.downloadSubtitle.mockImplementation(
-      () => sourceAnswer.promise,
-    );
+    yifyClient.downloadSubtitle.mockImplementation(() => sourceAnswer.promise);
     const request = {userConfigId: userConfig.id, videoId: MOVIE_ID, urlCode};
     const configLookup = vi.spyOn(userConfigCache, 'get');
 
@@ -986,7 +981,7 @@ describe('a download for another source', () => {
     ]);
     await waitForDownloadCallers(configLookup, 2);
     await vi.waitFor(() => {
-      expect(thesubtitledbClient.downloadSubtitle).toHaveBeenCalledTimes(1);
+      expect(yifyClient.downloadSubtitle).toHaveBeenCalledTimes(1);
     });
     sourceAnswer.resolve(toDownload(MOVIE_SRT));
     const [firstResponse, secondResponse] = await responses;
@@ -994,7 +989,7 @@ describe('a download for another source', () => {
 
     expectFile(firstResponse, {body: MOVIE_SRT});
     expectFile(secondResponse, {body: MOVIE_SRT});
-    expect(thesubtitledbClient.downloadSubtitle).toHaveBeenCalledTimes(1);
+    expect(yifyClient.downloadSubtitle).toHaveBeenCalledTimes(1);
     expect(await SubtitleFile.count()).toBe(1);
   });
 
@@ -1058,7 +1053,7 @@ describe('a download for another source', () => {
   it('answers download-failed for an error page and keeps its row', async () => {
     const {userConfig} = await createUserConfig();
     const {urlCode} = await storeHit(MOVIE_ID);
-    thesubtitledbClient.downloadSubtitle.mockResolvedValue(
+    yifyClient.downloadSubtitle.mockResolvedValue(
       toDownload('<!DOCTYPE html><html><body>Server error</body></html>'),
     );
     const request = {userConfigId: userConfig.id, videoId: MOVIE_ID, urlCode};
@@ -1068,7 +1063,7 @@ describe('a download for another source', () => {
 
     expectMessage(firstResponse, SubtitleMessage.SUBTITLE_DOWNLOAD_FAILED);
     expectMessage(secondResponse, SubtitleMessage.SUBTITLE_DOWNLOAD_FAILED);
-    expect(thesubtitledbClient.downloadSubtitle).toHaveBeenCalledTimes(1);
+    expect(yifyClient.downloadSubtitle).toHaveBeenCalledTimes(1);
     const subtitle = await findSubtitleByUrlCode(urlCode);
     const storedFile = await SubtitleFile.findByPk(subtitle.id, {
       attributes: ['subtitleId', 'isFileValid'],
@@ -1087,7 +1082,7 @@ describe('a download for another source', () => {
     });
 
     expectMessage(response, SubtitleMessage.SUBTITLE_DOWNLOAD_FAILED);
-    expect(thesubtitledbClient.downloadSubtitle).not.toHaveBeenCalled();
+    expect(yifyClient.downloadSubtitle).not.toHaveBeenCalled();
   });
 
   it('never caches a user config id beside the video or the file', async () => {
@@ -1139,7 +1134,7 @@ describe('an archive download', () => {
       videoId: secondEpisodeId,
       searchHits: [searchHit],
     });
-    thesubtitledbClient.downloadSubtitle.mockResolvedValue(
+    yifyClient.downloadSubtitle.mockResolvedValue(
       toDownload(
         zipSync({
           'Show.S01E01.720p.WEB.srt': strToU8(FIRST_EPISODE_SRT),
@@ -1162,16 +1157,14 @@ describe('an archive download', () => {
 
     expectFile(firstResponse, {body: FIRST_EPISODE_SRT});
     expectFile(secondResponse, {body: SECOND_EPISODE_SRT});
-    expect(thesubtitledbClient.downloadSubtitle).toHaveBeenCalledTimes(1);
-    expect(thesubtitledbClient.downloadSubtitle.mock.calls[0][0]).toMatchObject(
-      {
-        subtitleSource: SubtitleSource.THESUBTITLEDB,
-        siteFileId: 'pack-1',
-        catalogSeason: 1,
-        catalogEpisode: 1,
-        isSitePack: true,
-      },
-    );
+    expect(yifyClient.downloadSubtitle).toHaveBeenCalledTimes(1);
+    expect(yifyClient.downloadSubtitle.mock.calls[0][0]).toMatchObject({
+      subtitleSource: SubtitleSource.YIFY,
+      siteFileId: 'pack-1',
+      catalogSeason: 1,
+      catalogEpisode: 1,
+      isSitePack: true,
+    });
     const packSubtitle = await findSubtitleByUrlCode(urlCode);
     expect(await readBindings(packSubtitle.id)).toEqual([
       {
@@ -1188,7 +1181,7 @@ describe('an archive download', () => {
         archiveEntryPath =>
           findSubtitleByUrlCode(
             computeUrlCode({
-              subtitleSource: SubtitleSource.THESUBTITLEDB,
+              subtitleSource: SubtitleSource.YIFY,
               siteFileId: 'pack-1',
               archiveEntryPath,
             }),
@@ -1197,7 +1190,7 @@ describe('an archive download', () => {
     );
     for (const innerSubtitle of innerSubtitles) {
       expect(innerSubtitle).toMatchObject({
-        subtitleSource: SubtitleSource.THESUBTITLEDB,
+        subtitleSource: SubtitleSource.YIFY,
         siteFileId: 'pack-1',
       });
       expect(await readStoredFile(innerSubtitle.id)).not.toBeNull();
@@ -1211,7 +1204,7 @@ describe('an archive download', () => {
       siteFileId: 'pack-2',
       isSitePack: true,
     });
-    thesubtitledbClient.downloadSubtitle.mockResolvedValue(
+    yifyClient.downloadSubtitle.mockResolvedValue(
       toDownload(
         zipSync({'Show.S01E01.720p.WEB.srt': strToU8(FIRST_EPISODE_SRT)}),
       ),
@@ -1241,7 +1234,7 @@ describe('an archive download', () => {
     expect(
       await findSubtitleByUrlCode(
         computeUrlCode({
-          subtitleSource: SubtitleSource.THESUBTITLEDB,
+          subtitleSource: SubtitleSource.YIFY,
           siteFileId: 'pack-2',
           archiveEntryPath: 'S01E01.srt',
         }),
@@ -1251,7 +1244,7 @@ describe('an archive download', () => {
     expect(await readBindings(packSubtitle.id)).toEqual([
       {videoId: episodeId, boundArchiveEntryPath: 'Show.S01E01.720p.WEB.srt'},
     ]);
-    expect(thesubtitledbClient.downloadSubtitle).toHaveBeenCalledTimes(1);
+    expect(yifyClient.downloadSubtitle).toHaveBeenCalledTimes(1);
   });
 
   it('answers the download-failed message for a pack without the episode', async () => {
@@ -1261,7 +1254,7 @@ describe('an archive download', () => {
       siteFileId: 'pack-3',
       isSitePack: true,
     });
-    thesubtitledbClient.downloadSubtitle.mockResolvedValue(
+    yifyClient.downloadSubtitle.mockResolvedValue(
       toDownload(
         zipSync({
           'S01E01.srt': strToU8(FIRST_EPISODE_SRT),
@@ -1277,7 +1270,7 @@ describe('an archive download', () => {
     });
 
     expectMessage(response, SubtitleMessage.SUBTITLE_DOWNLOAD_FAILED);
-    expect(thesubtitledbClient.downloadSubtitle).toHaveBeenCalledTimes(1);
+    expect(yifyClient.downloadSubtitle).toHaveBeenCalledTimes(1);
     const packSubtitle = await findSubtitleByUrlCode(urlCode);
     expect(await readBindings(packSubtitle.id)).toEqual([]);
   });
@@ -1289,7 +1282,7 @@ describe('an archive download', () => {
       siteFileId: 'pack-4',
       isSitePack: true,
     });
-    thesubtitledbClient.downloadSubtitle.mockResolvedValue(
+    yifyClient.downloadSubtitle.mockResolvedValue(
       toDownload(FIRST_EPISODE_SRT, {extractedEntryPath: 'S01E04'}),
     );
 
@@ -1300,12 +1293,14 @@ describe('an archive download', () => {
     });
 
     expectFile(response, {body: FIRST_EPISODE_SRT});
-    expect(thesubtitledbClient.downloadSubtitle.mock.calls[0][0]).toMatchObject(
-      {catalogSeason: 1, catalogEpisode: 4, isSitePack: true},
-    );
+    expect(yifyClient.downloadSubtitle.mock.calls[0][0]).toMatchObject({
+      catalogSeason: 1,
+      catalogEpisode: 4,
+      isSitePack: true,
+    });
     const innerSubtitle = await findSubtitleByUrlCode(
       computeUrlCode({
-        subtitleSource: SubtitleSource.THESUBTITLEDB,
+        subtitleSource: SubtitleSource.YIFY,
         siteFileId: 'pack-4',
         archiveEntryPath: 'S01E04',
       }),
@@ -1325,7 +1320,7 @@ describe('an archive download', () => {
       siteFileId: 'pack-6',
       isSitePack: true,
     });
-    thesubtitledbClient.downloadSubtitle.mockResolvedValue(
+    yifyClient.downloadSubtitle.mockResolvedValue(
       toDownload(
         zipSync({
           'S01E01.srt': strToU8(FIRST_EPISODE_SRT),
@@ -1340,7 +1335,7 @@ describe('an archive download', () => {
 
     expectMessage(firstResponse, SubtitleMessage.SUBTITLE_DOWNLOAD_FAILED);
     expectMessage(secondResponse, SubtitleMessage.SUBTITLE_DOWNLOAD_FAILED);
-    expect(thesubtitledbClient.downloadSubtitle).toHaveBeenCalledTimes(1);
+    expect(yifyClient.downloadSubtitle).toHaveBeenCalledTimes(1);
   });
 
   it('cuts each episode of a pack for concurrent requests', async () => {
@@ -1356,17 +1351,15 @@ describe('an archive download', () => {
       searchHits: [searchHit],
     });
     const sourceAnswer = Promise.withResolvers();
-    thesubtitledbClient.downloadSubtitle.mockImplementation(
-      async subtitleRef => {
-        await sourceAnswer.promise;
-        return toDownload(
-          subtitleRef.catalogEpisode === 5
-            ? FIRST_EPISODE_SRT
-            : SECOND_EPISODE_SRT,
-          {extractedEntryPath: `S01E0${subtitleRef.catalogEpisode}`},
-        );
-      },
-    );
+    yifyClient.downloadSubtitle.mockImplementation(async subtitleRef => {
+      await sourceAnswer.promise;
+      return toDownload(
+        subtitleRef.catalogEpisode === 5
+          ? FIRST_EPISODE_SRT
+          : SECOND_EPISODE_SRT,
+        {extractedEntryPath: `S01E0${subtitleRef.catalogEpisode}`},
+      );
+    });
     const configLookup = vi.spyOn(userConfigCache, 'get');
 
     const responses = Promise.all([
@@ -1388,7 +1381,7 @@ describe('an archive download', () => {
 
     expectFile(firstResponse, {body: FIRST_EPISODE_SRT});
     expectFile(secondResponse, {body: SECOND_EPISODE_SRT});
-    expect(thesubtitledbClient.downloadSubtitle).toHaveBeenCalledTimes(2);
+    expect(yifyClient.downloadSubtitle).toHaveBeenCalledTimes(2);
   });
 
   it('answers download-failed for a pack whose download is one plain file', async () => {
@@ -1397,7 +1390,7 @@ describe('an archive download', () => {
       siteFileId: 'pack-8',
       isSitePack: true,
     });
-    thesubtitledbClient.downloadSubtitle.mockResolvedValue(
+    yifyClient.downloadSubtitle.mockResolvedValue(
       toDownload(FIRST_EPISODE_SRT),
     );
 
@@ -1417,7 +1410,7 @@ describe('an archive download', () => {
       siteFileId: 'pack-9',
       isSitePack: true,
     });
-    thesubtitledbClient.downloadSubtitle.mockResolvedValue(
+    yifyClient.downloadSubtitle.mockResolvedValue(
       toDownload(zipSync({'S01E01.srt': strToU8(FIRST_EPISODE_SRT)})),
     );
 
@@ -1428,7 +1421,7 @@ describe('an archive download', () => {
     });
 
     expectMessage(response, SubtitleMessage.SUBTITLE_DOWNLOAD_FAILED);
-    expect(thesubtitledbClient.downloadSubtitle).not.toHaveBeenCalled();
+    expect(yifyClient.downloadSubtitle).not.toHaveBeenCalled();
     const packSubtitle = await findSubtitleByUrlCode(urlCode);
     expect(await readBindings(packSubtitle.id)).toEqual([]);
   });
@@ -1436,7 +1429,7 @@ describe('an archive download', () => {
   it('refuses an archive whose entries inflate past the cap', async () => {
     const {userConfig} = await createUserConfig();
     const {urlCode} = await storeHit(MOVIE_ID);
-    thesubtitledbClient.downloadSubtitle.mockResolvedValue(
+    yifyClient.downloadSubtitle.mockResolvedValue(
       toDownload(
         zipSync({'movie.srt': new Uint8Array(ARCHIVE_ENTRY_BYTES_PAST_CAP)}),
       ),
@@ -1449,7 +1442,7 @@ describe('an archive download', () => {
     });
 
     expectMessage(response, SubtitleMessage.SUBTITLE_DOWNLOAD_FAILED);
-    expect(thesubtitledbClient.downloadSubtitle).toHaveBeenCalledTimes(1);
+    expect(yifyClient.downloadSubtitle).toHaveBeenCalledTimes(1);
     expect(await SubtitleFile.count()).toBe(0);
   });
 
@@ -1470,9 +1463,7 @@ describe('an archive download', () => {
     async (archiveName, buildArchive) => {
       const {userConfig} = await createUserConfig();
       const {urlCode} = await storeHit(MOVIE_ID);
-      thesubtitledbClient.downloadSubtitle.mockResolvedValue(
-        toDownload(buildArchive()),
-      );
+      yifyClient.downloadSubtitle.mockResolvedValue(toDownload(buildArchive()));
 
       const response = await getSubtitleFile({
         userConfigId: userConfig.id,
@@ -1481,7 +1472,7 @@ describe('an archive download', () => {
       });
 
       expectMessage(response, SubtitleMessage.SUBTITLE_DOWNLOAD_FAILED);
-      expect(thesubtitledbClient.downloadSubtitle).toHaveBeenCalledTimes(1);
+      expect(yifyClient.downloadSubtitle).toHaveBeenCalledTimes(1);
       expect(await SubtitleFile.count()).toBe(0);
     },
   );

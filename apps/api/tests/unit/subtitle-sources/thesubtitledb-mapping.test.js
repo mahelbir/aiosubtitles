@@ -40,7 +40,7 @@ describe('thesubtitledbMapping.buildSearchRequest', () => {
   it('asks one episode in the user languages', () => {
     const searchRequest = thesubtitledbMapping.buildSearchRequest(
       episodeQuery,
-      null,
+      keyCredential,
     );
     const searchUrl = new URL(searchRequest.url);
     expect(searchUrl.origin).toBe('https://api.thesubtitledb.org');
@@ -52,14 +52,14 @@ describe('thesubtitledbMapping.buildSearchRequest', () => {
       method: 'GET',
       responseType: 'json',
       acceptedStatuses: [],
-      credentialId: null,
+      credentialId: keyCredential.credentialId,
     });
   });
 
   it('asks a movie by its imdb id alone', () => {
     const searchRequest = thesubtitledbMapping.buildSearchRequest(
       makeSearchQuery({imdbId: 'tt0111161', languageCodes: ['eng']}),
-      null,
+      keyCredential,
     );
     const searchUrl = new URL(searchRequest.url);
     expect(searchUrl.pathname).toBe('/v1/by-imdb/tt0111161');
@@ -67,13 +67,7 @@ describe('thesubtitledbMapping.buildSearchRequest', () => {
     expect(searchUrl.searchParams.get('limit')).toBe('100');
   });
 
-  it('leaves the app User-Agent to the shared default and sends no key without one', () => {
-    expect(
-      thesubtitledbMapping.buildSearchRequest(episodeQuery, null).headers,
-    ).toEqual({});
-  });
-
-  it('sends a key as a bearer token, never in the url', () => {
+  it('sends the key as a bearer token, never in the url, and leaves the app User-Agent to the shared default', () => {
     const searchRequest = thesubtitledbMapping.buildSearchRequest(
       episodeQuery,
       keyCredential,
@@ -89,7 +83,7 @@ describe('thesubtitledbMapping.buildSearchRequest', () => {
     const searchUrl = new URL(
       thesubtitledbMapping.buildSearchRequest(
         makeSearchQuery({languageCodes: ['pob', 'spa']}),
-        null,
+        keyCredential,
       ).url,
     );
     expect(searchUrl.searchParams.get('lang')).toBe('pb,es,sp');
@@ -117,7 +111,7 @@ describe('thesubtitledbMapping.buildSearchRequest', () => {
             'swe',
           ],
         }),
-        null,
+        keyCredential,
       ).url,
     );
     expect(searchUrl.searchParams.get('lang').split(',')).toHaveLength(16);
@@ -127,7 +121,7 @@ describe('thesubtitledbMapping.buildSearchRequest', () => {
     expect(
       thesubtitledbMapping.buildSearchRequest(
         {...episodeQuery, catalogEpisode: null},
-        null,
+        keyCredential,
       ),
     ).toBeNull();
   });
@@ -143,7 +137,7 @@ describe('thesubtitledbMapping.buildSearchRequest', () => {
           catalogSeason: 1,
           catalogEpisode: 1,
         }),
-        null,
+        keyCredential,
       ),
     ).toBeNull();
   });
@@ -166,7 +160,7 @@ describe('thesubtitledbMapping.toSearchHits', () => {
       isForced: null,
       isMachineTranslated: false,
       isUploaderTrusted: null,
-      isQuotaCostly: false,
+      isQuotaCostly: true,
       siteDownloadCount: null,
       siteFps: null,
       siteFileUrl: null,
@@ -323,21 +317,19 @@ describe('thesubtitledbMapping.buildDownloadRequest', () => {
 
   it('asks the counted download route for bytes and follows its redirect', () => {
     expect(
-      thesubtitledbMapping.buildDownloadRequest(subtitleRef, null),
+      thesubtitledbMapping.buildDownloadRequest(subtitleRef, keyCredential),
     ).toEqual(
       expect.objectContaining({
         subtitleSource: SubtitleSource.THESUBTITLEDB,
         url: 'https://api.thesubtitledb.org/get/42',
         method: 'GET',
-        headers: {},
         responseType: 'bytes',
         acceptedStatuses: [],
-        credentialId: null,
       }),
     );
   });
 
-  it('sends a key and counts the download against it', () => {
+  it('sends the key and counts the download against it', () => {
     const downloadRequest = thesubtitledbMapping.buildDownloadRequest(
       subtitleRef,
       keyCredential,

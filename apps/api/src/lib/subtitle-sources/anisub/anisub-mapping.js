@@ -139,7 +139,7 @@ function toSearchHit(siteSubtitle, languageCodes) {
     isForced: null,
     isMachineTranslated: null,
     isUploaderTrusted: null,
-    isQuotaCostly: null,
+    isQuotaCostly: true,
     siteDownloadCount: null,
     siteFps: null,
     siteFileUrl: siteSubtitle.url,
@@ -218,9 +218,6 @@ function findDownloadEpisode(siteEpisode, {catalogEpisode, isSitePack}) {
 }
 
 function buildIntegrationDownloadRequest(subtitleRef, credential) {
-  if (!credential?.accessToken) {
-    return null;
-  }
   const siteFileTarget = readSiteFileTarget(subtitleRef.siteFileUrl);
   if (siteFileTarget === null) {
     throw toUnavailableError(
@@ -344,7 +341,6 @@ export const anisubMapping = {
   toDownload,
   buildIntegrationDownloadRequest,
   toDownloadLink,
-  toFileDownloadLink,
   buildCredentialCheckRequest,
   toCredentialCheck,
   buildQuotaRequest,

@@ -4,8 +4,6 @@ import {SubtitleSourceBudgetScope} from '../subtitle-source-contract.js';
 import {requestSubtitleSource} from '../subtitle-source-request.js';
 import {thesubtitledbMapping} from './thesubtitledb-mapping.js';
 
-const ANONYMOUS_DOWNLOAD_WINDOW = 3600000;
-const ANONYMOUS_DOWNLOAD_MAX = 1000;
 const CREDENTIAL_DOWNLOAD_WINDOW = 86400000;
 const CREDENTIAL_DOWNLOAD_MAX = 100000;
 
@@ -15,18 +13,13 @@ export const thesubtitledbClient = {
   isSearchHashSensitive: false,
   downloadBudgets: [
     {
-      budgetScope: SubtitleSourceBudgetScope.SUBTITLE_SOURCE,
-      windowMs: ANONYMOUS_DOWNLOAD_WINDOW,
-      requestMax: ANONYMOUS_DOWNLOAD_MAX,
-    },
-    {
       budgetScope: SubtitleSourceBudgetScope.CREDENTIAL,
       windowMs: CREDENTIAL_DOWNLOAD_WINDOW,
       requestMax: CREDENTIAL_DOWNLOAD_MAX,
     },
   ],
-  canSearchWithoutCredential: () => true,
-  canDownloadWithoutCredential: () => true,
+  canSearchWithoutCredential: () => false,
+  canDownloadWithoutCredential: () => false,
   async searchSubtitles(searchQuery, credential, {signal} = {}) {
     const searchRequest = thesubtitledbMapping.buildSearchRequest(
       searchQuery,

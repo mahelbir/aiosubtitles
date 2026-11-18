@@ -68,7 +68,7 @@ const SOURCE_HELP = [
     subtitleSource: SubtitleSource.THESUBTITLEDB,
     keyPageUrl: 'https://thesubtitledb.org/account/keys',
     helpText:
-      "Key optional. Without a key, downloads share the server's limit of 1000 an hour across all users. With your key, you get 100,000 downloads a day of your own.",
+      'Requires an API key. With your key, you get 100,000 downloads a day of your own.',
   },
   {
     subtitleSource: SubtitleSource.SUBSOURCE,
@@ -89,7 +89,7 @@ const SOURCE_HELP = [
     subtitleSource: SubtitleSource.ANISUB,
     keyPageUrl: 'https://anisub.co/ayarlar',
     helpText:
-      "Token optional. Without a token, downloads share the server's limit of 60 a minute across all users (server's shared IP). With your token, you get 1000 requests a day of your own.",
+      'Requires a token. With your token, you get 1000 requests a day of your own.',
   },
   {
     subtitleSource: SubtitleSource.GESTDOWN,

@@ -196,7 +196,7 @@ describe('anisubMapping.toSearchHits', () => {
       isForced: null,
       isMachineTranslated: null,
       isUploaderTrusted: null,
-      isQuotaCostly: null,
+      isQuotaCostly: true,
       siteDownloadCount: null,
       siteFps: null,
       siteFileUrl: FILE_URL,
@@ -376,13 +376,7 @@ describe('anisubMapping.buildDownloadRequest', () => {
     credentialId: null,
   };
 
-  it('asks the file url the addon gave for bytes, unchanged', () => {
-    expect(anisubMapping.buildDownloadRequest(subtitleRef, null)).toEqual(
-      expectedRequest,
-    );
-  });
-
-  it('asks the same file url with a token and never sends the token there', () => {
+  it('asks the linked file url for bytes, unchanged, and never sends the token there', () => {
     const downloadRequest = anisubMapping.buildDownloadRequest(
       subtitleRef,
       tokenCredential,
@@ -491,83 +485,6 @@ function toJsonResponse(body, status = StatusCodes.OK) {
     body: Buffer.from(JSON.stringify(body)),
   };
 }
-
-describe('anisubMapping.toFileDownloadLink', () => {
-  it('reads file bytes as no download link', () => {
-    expect(
-      anisubMapping.toFileDownloadLink({
-        status: StatusCodes.OK,
-        headers: {'content-type': 'application/x-subrip'},
-        body: Buffer.from('1\n00:00:01,000 --> 00:00:02,000\nŞimdi\n'),
-      }),
-    ).toBeNull();
-  });
-
-  it('reads the public download answer as the cdn file to fetch', async () => {
-    const downloadLink = anisubMapping.toFileDownloadLink(
-      toJsonResponse(await readFixture(INTEGRATION_DOWNLOAD_FIXTURE)),
-    );
-    expect(downloadLink).toEqual({
-      siteFileUrl:
-        'https://cdn.anisub.co/subtitles/2025/09/2329-one-piece-1100.rar',
-      fileNameHint: '2329-ONE_PIECE-1100.rar',
-    });
-    expect(
-      anisubMapping.buildDownloadRequest(downloadLink, null),
-    ).toMatchObject({
-      url: downloadLink.siteFileUrl,
-      headers: {},
-      responseType: 'bytes',
-      credentialId: null,
-    });
-  });
-
-  it.each([
-    ['a failed envelope', {success: false, message: 'Bulunamadı.'}],
-    ['no download url', {success: true, data: {}}],
-    [
-      'a private download url',
-      {success: true, data: {download_url: 'http://10.0.0.5/file.rar'}},
-    ],
-    [
-      'a download url off the AniSub hosts',
-      {success: true, data: {download_url: 'https://cdn.other.test/a.rar'}},
-    ],
-    [
-      'a download url on a look-alike host',
-      {success: true, data: {download_url: 'https://evilanisub.co/a.rar'}},
-    ],
-    ['another JSON shape', {subtitles: []}],
-  ])('reads %s as an unavailable source', (_, body) => {
-    expect(
-      catchError(() => anisubMapping.toFileDownloadLink(toJsonResponse(body))),
-    ).toBeInstanceOf(SourceUnavailableError);
-  });
-
-  it('reads malformed JSON as an unavailable source', () => {
-    expect(
-      catchError(() =>
-        anisubMapping.toFileDownloadLink({
-          status: StatusCodes.OK,
-          headers: jsonHeaders,
-          body: Buffer.from('{"success":'),
-        }),
-      ),
-    ).toBeInstanceOf(SourceUnavailableError);
-  });
-
-  it('reads a missing file as an unavailable source', () => {
-    expect(
-      catchError(() =>
-        anisubMapping.toFileDownloadLink({
-          status: StatusCodes.NOT_FOUND,
-          headers: {},
-          body: null,
-        }),
-      ),
-    ).toBeInstanceOf(SourceUnavailableError);
-  });
-});
 
 describe('anisubMapping.buildIntegrationDownloadRequest', () => {
   const siteRef = {
@@ -682,12 +599,6 @@ describe('anisubMapping.buildIntegrationDownloadRequest', () => {
     );
   });
 
-  it('builds none without a token, leaving the keyless file url path', () => {
-    expect(
-      anisubMapping.buildIntegrationDownloadRequest(siteRef, null),
-    ).toBeNull();
-  });
-
   it.each([
     ['an addon file url', subtitleRef],
     [
@@ -720,20 +631,17 @@ describe('anisubMapping.buildIntegrationDownloadRequest', () => {
         siteFileUrl: 'https://anisub.co/stremio/subtitle/anisub-2329',
       },
     ],
-  ])(
-    'fails a token download with %s rather than fall back to the keyless path',
-    (_, ref) => {
-      const error = catchError(() =>
-        anisubMapping.buildIntegrationDownloadRequest(ref, tokenCredential),
-      );
-      expect(error).toBeInstanceOf(SourceUnavailableError);
-      expect(error.subtitleSource).toBe(SubtitleSource.ANISUB);
-      expect(error.cause.message).toBe(
-        'AniSub token download needs a recognised file link.',
-      );
-      expect(toErrorText(error)).not.toContain(ACCESS_TOKEN);
-    },
-  );
+  ])('fails a token download with %s before any request', (_, ref) => {
+    const error = catchError(() =>
+      anisubMapping.buildIntegrationDownloadRequest(ref, tokenCredential),
+    );
+    expect(error).toBeInstanceOf(SourceUnavailableError);
+    expect(error.subtitleSource).toBe(SubtitleSource.ANISUB);
+    expect(error.cause.message).toBe(
+      'AniSub token download needs a recognised file link.',
+    );
+    expect(toErrorText(error)).not.toContain(ACCESS_TOKEN);
+  });
 });
 
 describe('anisubMapping.toDownloadLink', () => {
@@ -807,10 +715,39 @@ describe('anisubMapping.toDownloadLink', () => {
       'a private download url',
       {success: true, data: {download_url: 'http://127.0.0.1/file.rar'}},
     ],
+    [
+      'a download url off the AniSub hosts',
+      {success: true, data: {download_url: 'https://cdn.other.test/a.rar'}},
+    ],
+    [
+      'a download url on a look-alike host',
+      {success: true, data: {download_url: 'https://evilanisub.co/a.rar'}},
+    ],
     ['another JSON shape', {subtitles: []}],
   ])('reads %s as an unavailable source, without the token', (_, body) => {
     const error = catchError(() =>
       anisubMapping.toDownloadLink(toJsonResponse(body), tokenCredential),
+    );
+    expect(error).toBeInstanceOf(SourceUnavailableError);
+    expect(toErrorText(error)).not.toContain(ACCESS_TOKEN);
+  });
+
+  it.each([
+    [
+      'malformed JSON',
+      {
+        status: StatusCodes.OK,
+        headers: jsonHeaders,
+        body: Buffer.from('{"success":'),
+      },
+    ],
+    [
+      'a missing file',
+      {status: StatusCodes.NOT_FOUND, headers: {}, body: null},
+    ],
+  ])('reads %s as an unavailable source, without the token', (_, response) => {
+    const error = catchError(() =>
+      anisubMapping.toDownloadLink(response, tokenCredential),
     );
     expect(error).toBeInstanceOf(SourceUnavailableError);
     expect(toErrorText(error)).not.toContain(ACCESS_TOKEN);

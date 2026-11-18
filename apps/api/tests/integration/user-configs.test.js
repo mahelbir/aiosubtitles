@@ -801,7 +801,7 @@ describe('the sources list', () => {
     expect(readEnvelope(response).data).toContainEqual({
       subtitleSource: SubtitleSource.THESUBTITLEDB,
       label: 'TheSubtitleDB',
-      credentialRequirement: CredentialRequirement.OPTIONAL,
+      credentialRequirement: CredentialRequirement.REQUIRED,
       credentialKinds: [CredentialKind.API_KEY],
       credentialLimit: 10,
     });

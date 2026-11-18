@@ -16,6 +16,8 @@ export const LIVE_SECRET_NAMES = Object.freeze([
   'WYZIE_API_KEY',
   'ALTYAZIDB_API_KEY',
   'BETASERIES_API_KEY',
+  'THESUBTITLEDB_API_KEY',
+  'ANISUB_ACCESS_TOKEN',
 ]);
 
 export function getLiveSecretsPath() {

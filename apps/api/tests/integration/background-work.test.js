@@ -69,9 +69,8 @@ const REFERENCE_CUE_STARTS_MS = Array.from(
   (_, cueIndex) => 4000 * (cueIndex + 1) + (cueIndex % 3) * 700,
 );
 
-const thesubtitledbClient = createFixtureSubtitleSourceClient({
-  subtitleSource: SubtitleSource.THESUBTITLEDB,
-  credentialKinds: [CredentialKind.API_KEY],
+const yifyClient = createFixtureSubtitleSourceClient({
+  subtitleSource: SubtitleSource.YIFY,
   downloadBudgets: [
     {
       budgetScope: SubtitleSourceBudgetScope.SUBTITLE_SOURCE,
@@ -139,7 +138,7 @@ const opensubtitlesV3Client = createFixtureSubtitleSourceClient({
 });
 
 const fixtureClients = [
-  thesubtitledbClient,
+  yifyClient,
   altyazidbClient,
   opensubtitlesClient,
   opensubtitlesV3Client,
@@ -161,7 +160,7 @@ beforeEach(() => {
       .mockReset()
       .mockImplementation(async () => toDownload(MOVIE_SRT));
   }
-  thesubtitledbClient.searchSubtitles.mockReset().mockResolvedValue([]);
+  yifyClient.searchSubtitles.mockReset().mockResolvedValue([]);
   opensubtitlesClient.downloadBudgets = OPENSUBTITLES_FIXTURE_BUDGETS;
   opensubtitlesClient.readQuota.mockReset().mockImplementation(async () => ({
     credentialStatus: CredentialStatus.VALID,
@@ -195,10 +194,15 @@ function makeVideoContext(overrides = {}) {
   };
 }
 
+function makeYifyHit(hitOverrides = {}) {
+  return makeSubtitleSourceHit({
+    subtitleSource: SubtitleSource.YIFY,
+    ...hitOverrides,
+  });
+}
+
 function makeHits(hitCount, hitOverrides = {}) {
-  return Array.from({length: hitCount}, () =>
-    makeSubtitleSourceHit(hitOverrides),
-  );
+  return Array.from({length: hitCount}, () => makeYifyHit(hitOverrides));
 }
 
 function makeOpensubtitlesHit(hitOverrides = {}) {
@@ -283,7 +287,7 @@ async function storeFile(subtitleId, fileText = MOVIE_SRT) {
 }
 
 async function storeReference(hitOverrides = {}) {
-  const referenceHit = makeSubtitleSourceHit({
+  const referenceHit = makeYifyHit({
     releaseNames: [STRONG_NAME],
     hashMatchVideoHashes: [VIDEO_HASH],
     ...hitOverrides,
@@ -440,7 +444,7 @@ describe('the background queues', () => {
       expect(BACKGROUND_QUEUE_SIZE_MAX).toBe(500);
       expect(
         enqueueBackgroundJob({
-          subtitleSource: SubtitleSource.THESUBTITLEDB,
+          subtitleSource: SubtitleSource.YIFY,
           runJob: async () => {
             await gate;
             await countRun();
@@ -451,7 +455,7 @@ describe('the background queues', () => {
         {length: BACKGROUND_QUEUE_SIZE_MAX},
         () =>
           enqueueBackgroundJob({
-            subtitleSource: SubtitleSource.THESUBTITLEDB,
+            subtitleSource: SubtitleSource.YIFY,
             runJob: countRun,
           }),
       );
@@ -461,7 +465,7 @@ describe('the background queues', () => {
       );
       expect(
         enqueueBackgroundJob({
-          subtitleSource: SubtitleSource.THESUBTITLEDB,
+          subtitleSource: SubtitleSource.YIFY,
           runJob: countRun,
         }),
       ).toBe(false);
@@ -484,14 +488,14 @@ describe('the background queues', () => {
     const runOrder = [];
     try {
       enqueueBackgroundJob({
-        subtitleSource: SubtitleSource.THESUBTITLEDB,
+        subtitleSource: SubtitleSource.YIFY,
         runJob: async () => {
           await gate;
           runOrder.push('first');
         },
       });
       enqueueBackgroundJob({
-        subtitleSource: SubtitleSource.THESUBTITLEDB,
+        subtitleSource: SubtitleSource.YIFY,
         runJob: async () => {
           runOrder.push('second');
         },
@@ -518,7 +522,7 @@ describe('the background queues', () => {
     vi.useFakeTimers({toFake: ['setTimeout', 'clearTimeout']});
     try {
       enqueueBackgroundJob({
-        subtitleSource: SubtitleSource.THESUBTITLEDB,
+        subtitleSource: SubtitleSource.YIFY,
         runJob: () => gate,
       });
       let isDrained = false;
@@ -547,12 +551,12 @@ describe('free background downloads', () => {
     const candidates = await storeCandidates([...weakHits, ...strongHits]);
 
     await runFreeDownloads({
-      client: thesubtitledbClient,
+      client: yifyClient,
       candidates,
       cachedUserConfig,
     });
 
-    const downloadedIds = downloadedSiteFileIds(thesubtitledbClient);
+    const downloadedIds = downloadedSiteFileIds(yifyClient);
     expect(downloadedIds).toHaveLength(5);
     expect(downloadedIds.toSorted()).toEqual(
       siteFileIdsOf(strongHits).toSorted(),
@@ -576,19 +580,17 @@ describe('free background downloads', () => {
     });
 
     await runFreeDownloads({
-      client: thesubtitledbClient,
+      client: yifyClient,
       candidates,
       cachedUserConfig,
     });
     await runFreeDownloads({
-      client: thesubtitledbClient,
+      client: yifyClient,
       candidates,
       cachedUserConfig,
     });
 
-    expect(downloadedSiteFileIds(thesubtitledbClient)).toEqual([
-      freshHit.siteFileId,
-    ]);
+    expect(downloadedSiteFileIds(yifyClient)).toEqual([freshHit.siteFileId]);
   });
 
   it("never spends a user's key budget past the background share", async () => {
@@ -628,13 +630,10 @@ describe('free background downloads', () => {
     expect(viewerSpends).toEqual([true, true, false]);
   });
 
-  it("never falls back to the keyless path for a user's own invalid key", async () => {
+  it('downloads nothing from a key-required source without a usable key', async () => {
     const invalidUser = await createUserConfig({
       credentials: [
-        makeApiKeyCredential(
-          SubtitleSource.THESUBTITLEDB,
-          'thesubtitledb-invalid-key',
-        ),
+        makeApiKeyCredential(SubtitleSource.ALTYAZIDB, 'altyazidb-invalid-key'),
       ],
     });
     await markCredentialStatus({
@@ -643,24 +642,24 @@ describe('free background downloads', () => {
     });
     const {cachedUserConfig: keylessUserConfig} = await readJobUser();
     const candidates = await storeCandidates(
-      makeHits(2, {releaseNames: [STRONG_NAME]}),
+      makeHits(2, {
+        subtitleSource: SubtitleSource.ALTYAZIDB,
+        releaseNames: [STRONG_NAME],
+      }),
     );
 
-    await runFreeDownloads({
-      client: thesubtitledbClient,
-      candidates,
-      cachedUserConfig: await userConfigCache.get(invalidUser.userConfig.id),
-    });
-    const invalidKeyCallCount =
-      thesubtitledbClient.downloadSubtitle.mock.calls.length;
-    await runFreeDownloads({
-      client: thesubtitledbClient,
-      candidates,
-      cachedUserConfig: keylessUserConfig,
-    });
+    for (const cachedUserConfig of [
+      await userConfigCache.get(invalidUser.userConfig.id),
+      keylessUserConfig,
+    ]) {
+      await runFreeDownloads({
+        client: altyazidbClient,
+        candidates,
+        cachedUserConfig,
+      });
+    }
 
-    expect(invalidKeyCallCount).toBe(0);
-    expect(downloadCredentialIds(thesubtitledbClient)).toEqual([null, null]);
+    expect(altyazidbClient.downloadSubtitle).not.toHaveBeenCalled();
   });
 });
 
@@ -701,7 +700,7 @@ describe('OpenSubtitles quota spending (rule A)', () => {
         subtitleSource: SubtitleSource.OPENSUBTITLES_V3,
       }),
     );
-    const freeHit = makeSubtitleSourceHit({releaseNames: [STRONG_NAME]});
+    const freeHit = makeYifyHit({releaseNames: [STRONG_NAME]});
     const candidates = await storeCandidates([
       freeHit,
       makeOpensubtitlesHit({
@@ -721,9 +720,7 @@ describe('OpenSubtitles quota spending (rule A)', () => {
 
     await runListBackgroundWork({candidates, cachedUserConfig});
 
-    expect(downloadedSiteFileIds(thesubtitledbClient)).toEqual([
-      freeHit.siteFileId,
-    ]);
+    expect(downloadedSiteFileIds(yifyClient)).toEqual([freeHit.siteFileId]);
     expect(opensubtitlesClient.downloadSubtitle).toHaveBeenCalledTimes(0);
   });
 
@@ -881,7 +878,7 @@ describe('reference comparisons', () => {
     );
     const references = [];
     for (let referenceIndex = 0; referenceIndex < 2; referenceIndex += 1) {
-      const referenceHit = makeSubtitleSourceHit({
+      const referenceHit = makeYifyHit({
         releaseNames: [STRONG_NAME],
         hashMatchVideoHashes: [VIDEO_HASH],
       });
@@ -1002,14 +999,12 @@ describe('background work privacy', () => {
 describe('the subtitle list route', () => {
   it('starts the background downloads after the reply', async () => {
     const {userConfig} = await createUserConfig({
-      subtitleSourceSwitchStates: makeSwitchStatesOnly([
-        SubtitleSource.THESUBTITLEDB,
-      ]),
+      subtitleSourceSwitchStates: makeSwitchStatesOnly([SubtitleSource.YIFY]),
     });
-    const searchHit = makeSubtitleSourceHit({releaseNames: [STRONG_NAME]});
-    thesubtitledbClient.searchSubtitles.mockResolvedValue([searchHit]);
+    const searchHit = makeYifyHit({releaseNames: [STRONG_NAME]});
+    yifyClient.searchSubtitles.mockResolvedValue([searchHit]);
     const {gate, openGate} = createGate();
-    thesubtitledbClient.downloadSubtitle.mockImplementation(async () => {
+    yifyClient.downloadSubtitle.mockImplementation(async () => {
       await gate;
       return toDownload(MOVIE_SRT);
     });
@@ -1027,9 +1022,7 @@ describe('the subtitle list route', () => {
 
     expect(response.statusCode).toBe(StatusCodes.OK);
     expect(response.json().subtitles).toHaveLength(1);
-    expect(downloadedSiteFileIds(thesubtitledbClient)).toEqual([
-      searchHit.siteFileId,
-    ]);
+    expect(downloadedSiteFileIds(yifyClient)).toEqual([searchHit.siteFileId]);
     const candidates = await readVideoCandidates({
       videoId: MOVIE_ID,
       videoContext: makeVideoContext({videoHash: null, videoRelease: null}),
@@ -1048,23 +1041,23 @@ describe('background budget refusals', () => {
     const candidates = await storeCandidates(
       makeHits(8, {releaseNames: [STRONG_NAME]}),
     );
-    const credentialReads = thesubtitledbClient.canDownloadWithoutCredential;
+    const credentialReads = yifyClient.canDownloadWithoutCredential;
     credentialReads.mockClear();
 
     await runFreeDownloads({
-      client: thesubtitledbClient,
+      client: yifyClient,
       candidates,
       cachedUserConfig,
     });
 
-    expect(thesubtitledbClient.downloadSubtitle).toHaveBeenCalledTimes(5);
+    expect(yifyClient.downloadSubtitle).toHaveBeenCalledTimes(5);
     expect(credentialReads).toHaveBeenCalledTimes(1 + 6);
   });
 
   it('downloads a site cue-shape match first among equal names', async () => {
     const {cachedUserConfig} = await readJobUser();
     const plainHits = makeHits(10, {releaseNames: [STRONG_NAME]});
-    const shapeHit = makeSubtitleSourceHit({
+    const shapeHit = makeYifyHit({
       releaseNames: [STRONG_NAME],
       siteCueCount: 1500,
       siteDurationMs: 7000000,
@@ -1072,20 +1065,18 @@ describe('background budget refusals', () => {
     const candidates = await storeCandidates([...plainHits, shapeHit]);
 
     await downloadFreeCandidates({
-      client: thesubtitledbClient,
-      candidates: candidatesOf(candidates, SubtitleSource.THESUBTITLEDB),
+      client: yifyClient,
+      candidates: candidatesOf(candidates, SubtitleSource.YIFY),
       videoContext: makeVideoContext({catalogDurationMs: 7200000}),
       credentials: readDownloadCredentials({
         cachedUserConfig,
-        client: thesubtitledbClient,
+        client: yifyClient,
       }),
       cachedUserConfig,
       subtitleSourceRegistry,
     });
 
-    expect(downloadedSiteFileIds(thesubtitledbClient)[0]).toBe(
-      shapeHit.siteFileId,
-    );
+    expect(downloadedSiteFileIds(yifyClient)[0]).toBe(shapeHit.siteFileId);
   });
 
   it('waits out the shipped account window to download three candidates', async () => {
@@ -1233,7 +1224,7 @@ describe('rule A references', () => {
       credentials: [makeAccountCredential('foreign-reference-user')],
     });
     const candidates = await storeCandidates([
-      makeSubtitleSourceHit({
+      makeYifyHit({
         releaseNames: [STRONG_NAME],
         hashMatchVideoHashes: [VIDEO_HASH],
       }),
@@ -1242,7 +1233,7 @@ describe('rule A references', () => {
 
     await runQuotaSpending({candidates, cachedUserConfig});
 
-    expect(thesubtitledbClient.downloadSubtitle).toHaveBeenCalledTimes(0);
+    expect(yifyClient.downloadSubtitle).toHaveBeenCalledTimes(0);
     expect(opensubtitlesClient.downloadSubtitle).toHaveBeenCalledTimes(0);
   });
 
@@ -1250,7 +1241,7 @@ describe('rule A references', () => {
     const {cachedUserConfig} = await readJobUser({
       credentials: [makeAccountCredential('invalid-reference-user')],
     });
-    const referenceHit = makeSubtitleSourceHit({
+    const referenceHit = makeYifyHit({
       releaseNames: [STRONG_NAME],
       hashMatchVideoHashes: [VIDEO_HASH],
     });
@@ -1297,7 +1288,7 @@ describe('rule A references', () => {
       credentials: [makeAccountCredential('switched-off-user')],
       subtitleSourceSwitchStates: makeSwitchStatesOnly(
         SubtitleSource.values.filter(
-          subtitleSource => subtitleSource !== SubtitleSource.THESUBTITLEDB,
+          subtitleSource => subtitleSource !== SubtitleSource.YIFY,
         ),
       ),
     });
@@ -1365,13 +1356,13 @@ describe('list background work across subtitle sources', () => {
     const jobAnswers = [];
     try {
       enqueueBackgroundJob({
-        subtitleSource: SubtitleSource.THESUBTITLEDB,
+        subtitleSource: SubtitleSource.YIFY,
         runJob: () => gate,
       });
       for (const jobKey of ['first', 'first', 'second']) {
         jobAnswers.push(
           enqueueBackgroundJob({
-            subtitleSource: SubtitleSource.THESUBTITLEDB,
+            subtitleSource: SubtitleSource.YIFY,
             jobKey,
             runJob: countRun,
           }),

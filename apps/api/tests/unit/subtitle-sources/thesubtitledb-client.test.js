@@ -6,15 +6,15 @@ import {SubtitleSourceBudgetScope} from '../../../src/lib/subtitle-sources/subti
 import {thesubtitledbClient} from '../../../src/lib/subtitle-sources/thesubtitledb/thesubtitledb-client.js';
 
 describe('thesubtitledbClient', () => {
-  it('names its subtitle source and takes an optional api key', () => {
+  it("names its subtitle source and requires the user's own api key", () => {
     expect(thesubtitledbClient.subtitleSource).toBe(
       SubtitleSource.THESUBTITLEDB,
     );
     expect(thesubtitledbClient.credentialKinds).toEqual([
       CredentialKind.API_KEY,
     ]);
-    expect(thesubtitledbClient.canSearchWithoutCredential()).toBe(true);
-    expect(thesubtitledbClient.canDownloadWithoutCredential()).toBe(true);
+    expect(thesubtitledbClient.canSearchWithoutCredential()).toBe(false);
+    expect(thesubtitledbClient.canDownloadWithoutCredential()).toBe(false);
   });
 
   it('searches by id, not by video hash', () => {
@@ -23,11 +23,6 @@ describe('thesubtitledbClient', () => {
 
   it('declares the documented download limits', () => {
     expect(thesubtitledbClient.downloadBudgets).toEqual([
-      {
-        budgetScope: SubtitleSourceBudgetScope.SUBTITLE_SOURCE,
-        windowMs: 3600000,
-        requestMax: 1000,
-      },
       {
         budgetScope: SubtitleSourceBudgetScope.CREDENTIAL,
         windowMs: 86400000,

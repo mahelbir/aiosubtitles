@@ -49,10 +49,10 @@ function buildRequest(sitePath, credential, requestOptions = {}) {
     subtitleSource: SubtitleSource.THESUBTITLEDB,
     url: new URL(sitePath, THESUBTITLEDB_API_URL).href,
     method: 'GET',
-    headers: credential ? {Authorization: `Bearer ${credential.apiKey}`} : {},
+    headers: {Authorization: `Bearer ${credential.apiKey}`},
     responseType: 'json',
     acceptedStatuses: [],
-    credentialId: credential?.credentialId ?? null,
+    credentialId: credential.credentialId,
     ...requestOptions,
   };
 }
@@ -108,7 +108,7 @@ function toSearchHit(siteSubtitle) {
     isMachineTranslated:
       MACHINE_TRANSLATED_BY_AI_KIND.get(siteSubtitle.ai ?? null) ?? null,
     isUploaderTrusted: null,
-    isQuotaCostly: false,
+    isQuotaCostly: true,
     siteDownloadCount: null,
     siteFps: siteSubtitle.fps ?? null,
     siteFileUrl: null,
