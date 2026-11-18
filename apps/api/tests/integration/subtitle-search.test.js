@@ -758,6 +758,25 @@ describe('spendSubtitleSourceBudget', () => {
     }
   });
 
+  it('spends only the source budget for a client that declares no key budget', async () => {
+    const credentialId = crypto.randomUUID();
+    const client = createFixtureSubtitleSourceClient({
+      downloadBudgets: [subtitleSourceBudget],
+    });
+
+    const isSpent = await spendSubtitleSourceBudget({
+      client,
+      credentialId,
+      isBackground: false,
+      nowMs: NOW_MS,
+    });
+
+    expect(isSpent).toBe(true);
+    await expect(redis.keys('subtitle-source-budget:*')).resolves.toEqual([
+      `subtitle-source-budget:v1:${SUBTITLE_SOURCE}:${BUDGET_WINDOW}`,
+    ]);
+  });
+
   it('consumes nothing from either budget when one refuses', async () => {
     const credentialId = crypto.randomUUID();
     const client = createFixtureSubtitleSourceClient({

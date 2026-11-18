@@ -1,0 +1,19 @@
+{
+  "episodes": [
+    {
+      "id": 9939477,
+      "thetvdb_id": 9949235,
+      "title": "Fixture Episode Three",
+      "season": 1,
+      "episode": 3,
+      "show": {
+        "id": 9900481,
+        "thetvdb_id": 9981189,
+        "title": "Fixture Show"
+      },
+      "code": "S01E03",
+      "subtitles": []
+    }
+  ],
+  "errors": []
+}

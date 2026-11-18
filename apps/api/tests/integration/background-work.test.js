@@ -226,7 +226,7 @@ function makeApiKeyCredential(subtitleSource, apiKey) {
   };
 }
 
-function toSrt(cueStartsMs) {
+function toTimedSrt(cueStartsMs) {
   return cueStartsMs
     .map((startMs, cueIndex) =>
       [
@@ -290,7 +290,7 @@ async function storeReference(hitOverrides = {}) {
   });
   const candidates = await storeCandidates([referenceHit]);
   const reference = findCandidate(candidates, referenceHit);
-  await storeFile(reference.subtitleId, toSrt(REFERENCE_CUE_STARTS_MS));
+  await storeFile(reference.subtitleId, toTimedSrt(REFERENCE_CUE_STARTS_MS));
   return reference;
 }
 
@@ -875,8 +875,8 @@ describe('OpenSubtitles quota spending (rule A)', () => {
 
 describe('reference comparisons', () => {
   it('stores one reference comparison per pair with the method version', async () => {
-    const referenceSrt = toSrt(REFERENCE_CUE_STARTS_MS);
-    const shiftedSrt = toSrt(
+    const referenceSrt = toTimedSrt(REFERENCE_CUE_STARTS_MS);
+    const shiftedSrt = toTimedSrt(
       REFERENCE_CUE_STARTS_MS.map(startMs => startMs + 2500),
     );
     const references = [];

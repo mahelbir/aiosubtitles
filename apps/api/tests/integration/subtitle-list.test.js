@@ -44,6 +44,7 @@ import {
 import {createUserConfig} from '../helpers/factories.js';
 import {createFixtureSubtitleSourceClient} from '../helpers/fixture-subtitle-source.js';
 import {getAppModels} from '../helpers/models.js';
+import {OTHER_TURKISH_SRT, TURKISH_SRT} from '../helpers/subtitle-files.js';
 import {makeSubtitleSourceHit} from '../helpers/subtitle-source-factories.js';
 import {makeSwitchStatesOnly} from '../helpers/user-config-factories.js';
 
@@ -64,36 +65,6 @@ const CINEMETA_META_URL = 'https://v3-cinemeta.strem.io/meta';
 const KITSU_META_URL = `https://anime-kitsu.strem.fun/meta/series/kitsu:${KITSU_ID}.json`;
 
 const MOVIE_RELEASE = 'The.Matrix.1999.1080p.BluRay.x264-AAA';
-
-const TURKISH_SRT = toSrt([
-  'Bu akşam eve erken dönmem gerekiyor.',
-  'Annem yemeği çoktan hazırlamış olmalı.',
-  'Yarın sabah toplantıya geç kalmayalım.',
-  'Kapıyı kapatmayı unutma lütfen.',
-  'Hava bugün oldukça soğuk görünüyor.',
-  'Çocuklar bahçede oyun oynuyorlar.',
-  'Kitabı masanın üstüne bıraktım.',
-  'Bu yolu daha önce hiç görmemiştim.',
-  'Telefonun şarjı neredeyse bitti.',
-  'Kahve içmek ister misin benimle?',
-  'Şehrin ışıkları uzaktan görünüyor.',
-  'Üşüdüğünü söyleme, ceketini giy.',
-]);
-
-const OTHER_TURKISH_SRT = toSrt([
-  'Gemi limana sabah erkenden yanaştı.',
-  'Kaptan tayfaya yeni emirler verdi.',
-  'Denizin rengi bugün çok farklıydı.',
-  'Martılar direklerin üstünde bekliyordu.',
-  'Yolcular güverteye çıkmak için sıraya girdi.',
-  'Fırtına gece boyunca hiç dinmedi.',
-  'Pusulayı kamaradaki çekmecede buldum.',
-  'Haritada bu adayı hiç görmemiştik.',
-  'Erzak bir hafta daha yetecek gibi.',
-  'Rüzgâr yönünü kuzeye doğru çevirdi.',
-  'Fener ışığı ufukta belirdi sonunda.',
-  'Herkes kıyıya ayak basınca sevindi.',
-]);
 
 const EPISODE_SRT = '1\n00:00:01,000 --> 00:00:03,000\nBölüm başlıyor.\n';
 
@@ -203,16 +174,6 @@ async function answerCatalogRequest({url}) {
     throw new SourceUnavailableError({subtitleSource: CatalogService.CINEMETA});
   }
   return {status: StatusCodes.OK, headers: {}, body: CATALOG_BODIES[url]};
-}
-
-function toSrt(cueTexts) {
-  return cueTexts
-    .map((cueText, cueIndex) => {
-      const startSecond = String(cueIndex * 4 + 1).padStart(2, '0');
-      const endSecond = String(cueIndex * 4 + 3).padStart(2, '0');
-      return `${cueIndex + 1}\n00:00:${startSecond},000 --> 00:00:${endSecond},000\n${cueText}\n`;
-    })
-    .join('\n');
 }
 
 function toEpisodeId(catalogSeason, catalogEpisode) {

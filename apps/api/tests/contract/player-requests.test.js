@@ -7,6 +7,7 @@ import {CredentialKind} from '@repo/shared/constants/credential.js';
 import {SubtitleSource} from '@repo/shared/constants/subtitle-source.js';
 import {computeUrlCode} from '@repo/subtitle-core/stremio-row/url-code.js';
 import {loggerOptions} from '../../src/lib/logger.js';
+import {drainBackgroundQueues} from '../../src/lib/subtitle-background/background-queues.js';
 import {drainPendingSearches} from '../../src/lib/subtitle-search/search-subtitle-source.js';
 import {createSubtitleSourceRegistry} from '../../src/lib/subtitle-sources/subtitle-source-clients.js';
 import {
@@ -21,6 +22,11 @@ import {
   buildNuvioLegacyRequests,
   buildStremioListUrl,
 } from '../helpers/player-requests.js';
+import {
+  OTHER_TURKISH_SRT,
+  TURKISH_SRT,
+  toSrt,
+} from '../helpers/subtitle-files.js';
 import {makeSubtitleSourceHit} from '../helpers/subtitle-source-factories.js';
 import {makeSwitchStatesOnly} from '../helpers/user-config-factories.js';
 
@@ -49,7 +55,20 @@ const REQUIRED_MANIFEST_FIELDS = [
   'catalogs',
 ];
 
-const EPISODE_SRT = '1\n00:00:01,000 --> 00:00:03,000\nBölüm başlıyor.\n';
+const EPISODE_SRT = toSrt([
+  'Bölüm şimdi başlıyor, yerine otur.',
+  'Laboratuvarda yeni bir deney hazırladım.',
+  'Bu sabah okula geç kalmamalıyım.',
+  'Arabanın anahtarlarını kim aldı?',
+  'Çölün ortasında yolumuzu kaybettik.',
+  'Ailem için her şeyi yapmaya hazırım.',
+  'Doktor sonuçların yarın çıkacağını söyledi.',
+  'Kimseye bu konudan bahsetmeyeceksin.',
+  'Parayı garajdaki kutuya sakladım.',
+  'Öğrenciler sınavdan sonra dağıldı.',
+  'Telefonu açmadan önce iki kez düşündüm.',
+  'Gece yarısından önce eve dönmeliyiz.',
+]);
 
 const PLAYER_EXTRAS = {
   videoHash: VIDEO_HASH,
@@ -105,6 +124,11 @@ const HASH_HIT = makeEpisodeHit({
   hashMatchVideoHashes: [VIDEO_HASH],
 });
 
+const EPISODE_SRT_BY_SITE_FILE_ID = {
+  [LONG_RELEASE_HIT.siteFileId]: OTHER_TURKISH_SRT,
+  [HASH_HIT.siteFileId]: TURKISH_SRT,
+};
+
 const QUOTA_HITS = [
   makeEpisodeHit({
     subtitleSource: SubtitleSource.OPENSUBTITLES,
@@ -127,11 +151,15 @@ beforeEach(() => {
     HASH_HIT,
   ]);
   opensubtitlesClient.searchSubtitles.mockResolvedValue(QUOTA_HITS);
-  thesubtitledbClient.downloadSubtitle.mockReset().mockResolvedValue({
-    fileBytes: strToU8(EPISODE_SRT),
-    fileNameHint: 'episode.srt',
-    extractedEntryPath: null,
-  });
+  thesubtitledbClient.downloadSubtitle
+    .mockReset()
+    .mockImplementation(async ({siteFileId}) => ({
+      fileBytes: strToU8(
+        EPISODE_SRT_BY_SITE_FILE_ID[siteFileId] ?? EPISODE_SRT,
+      ),
+      fileNameHint: 'episode.srt',
+      extractedEntryPath: null,
+    }));
   videoCatalog.readCatalogMeta
     .mockReset()
     .mockResolvedValue({catalogDurationMs: 58 * 60000, tvdbId: '81189'});
@@ -371,6 +399,7 @@ describe('a Nuvio native player request pair', () => {
     const plainSubtitles = readSubtitleRows(
       await requestAddonPath(listUrls[0], ORIGIN_HEADERS),
     );
+    await drainBackgroundQueues();
     const extraSubtitles = readSubtitleRows(
       await requestAddonPath(listUrls[1], ORIGIN_HEADERS),
     );

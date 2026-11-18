@@ -81,6 +81,11 @@ const SOURCE_HELP = [
     helpText: 'Requires an API key.',
   },
   {
+    subtitleSource: SubtitleSource.BETASERIES,
+    keyPageUrl: 'https://www.betaseries.com/compte/api',
+    helpText: 'Requires an API key.',
+  },
+  {
     subtitleSource: SubtitleSource.ANISUB,
     keyPageUrl: 'https://anisub.co/ayarlar',
     helpText:

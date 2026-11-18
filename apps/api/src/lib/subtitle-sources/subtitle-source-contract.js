@@ -124,6 +124,7 @@ const INTEGER_COLUMN_MAX = 2147483647;
 const HASH_MATCH_VIDEO_HASHES_MAX = 20;
 export const VIDEO_HASH_PATTERN = /^[\da-f]{16}$/i;
 const LEADING_DOT_PATTERN = /^\./;
+const ASS_FILE_NAME_PATTERN = /\.(?:ass|ssa)$/i;
 const IMDB_VIDEO_ID_SEPARATOR = ':';
 
 const supportedFileExtensions = new Set([
@@ -223,6 +224,12 @@ export function buildImdbVideoId({
 
 export function toNullableBoolean(siteValue) {
   return isBoolean(siteValue) ? siteValue : null;
+}
+
+export function toHitFileExtension(fileName) {
+  return ASS_FILE_NAME_PATTERN.test(fileName)
+    ? SubtitleFileExtension.ASS
+    : SubtitleFileExtension.SRT;
 }
 
 export function toHitReleaseNames(releaseNames) {

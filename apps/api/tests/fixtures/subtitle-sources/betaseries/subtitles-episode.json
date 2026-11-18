@@ -1,0 +1,53 @@
+{
+  "subtitles": [
+    {
+      "id": 9970001,
+      "language": "VF",
+      "source": "addic7ed",
+      "quality": 3,
+      "file": "Fixture.Show.S01E03.1080p.WEB-DL-GROUP.fr.srt",
+      "url": "https://www.betaseries.com/srt/9970001"
+    },
+    {
+      "id": 9970002,
+      "language": "VO",
+      "source": "addic7ed",
+      "quality": 3,
+      "file": "Fixture.Show.S01E03.720p.WEB-DL-GROUP.en.srt",
+      "url": "https://www.betaseries.com/srt/9970002"
+    },
+    {
+      "id": 9970003,
+      "language": "vf",
+      "source": "tvsubtitles",
+      "quality": 2,
+      "file": "Fixture.Show.S01E03.HDTV-GROUP.zip",
+      "url": "https://www.betaseries.com/srt/9970003"
+    },
+    {
+      "id": 9970004,
+      "language": "VF",
+      "source": "addic7ed",
+      "quality": 3,
+      "file": "Fixture.Show.S01E03.WEB-GROUP.fr.ass",
+      "url": "https://www.betaseries.com/srt/9970004"
+    },
+    {
+      "id": 9970005,
+      "language": "VOVF",
+      "source": "addic7ed",
+      "quality": 1,
+      "file": "Fixture.Show.S01E03.Bilingual.srt",
+      "url": "https://www.betaseries.com/srt/9970005"
+    },
+    {
+      "id": 9970006,
+      "language": "VF",
+      "source": "seriessub",
+      "quality": 1,
+      "file": "Fixture.Show.S01E03.seriessub.zip",
+      "url": "https://www.betaseries.com/srt/9970006"
+    }
+  ],
+  "errors": []
+}

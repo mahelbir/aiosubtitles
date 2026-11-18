@@ -10,6 +10,7 @@ import {
   buildImdbVideoId,
   isSupportedSubtitleSourceFormat,
   subtitleSourceHitSchema,
+  toHitFileExtension,
   toHitReleaseNames,
   toHitSiteFileId,
   toNullableBoolean,
@@ -174,6 +175,22 @@ describe('toHitSiteFileId', () => {
     'reads %s as no site file id',
     siteFileId => {
       expect(toHitSiteFileId(siteFileId)).toBeNull();
+    },
+  );
+});
+
+describe('toHitFileExtension', () => {
+  it.each(['Show.S01E01.ass', 'Show.S01E01.SSA'])(
+    'reads %s as an ass file',
+    fileName => {
+      expect(toHitFileExtension(fileName)).toBe('ass');
+    },
+  );
+
+  it.each(['Show.S01E01.srt', 'Show.S01E01.zip', 'Show.ass.srt', ''])(
+    'reads %j as an srt file',
+    fileName => {
+      expect(toHitFileExtension(fileName)).toBe('srt');
     },
   );
 });

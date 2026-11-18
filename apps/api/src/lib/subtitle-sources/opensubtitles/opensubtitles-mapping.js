@@ -6,7 +6,6 @@ import {
 } from '@repo/shared/constants/credential.js';
 import {SubtitleSource} from '@repo/shared/constants/subtitle-source.js';
 import {VideoType} from '@repo/shared/constants/video-type.js';
-import {SubtitleFileExtension} from '@repo/subtitle-core/constants/subtitle-core-enums.js';
 import {dropFileExtension} from '@repo/subtitle-core/release-name/name-tokens.js';
 import {
   SiteLanguageCodeStyle,
@@ -15,6 +14,7 @@ import {
 } from '../site-language-codes.js';
 import {SubtitleAliasSource} from '../subtitle-alias-source.js';
 import {
+  toHitFileExtension,
   toHitReleaseNames,
   toNullableBoolean,
 } from '../subtitle-source-contract.js';
@@ -34,7 +34,6 @@ import {
 export const OPENSUBTITLES_API_URL = 'https://api.opensubtitles.com/api/v1';
 const API_PATH = '/api/v1';
 const IMDB_ID_PATTERN = /^tt(\d+)$/i;
-const ASS_FILE_NAME_PATTERN = /\.(ass|ssa)$/i;
 const INVALID_TOKEN_PATTERN = /invalid token/i;
 const INVALID_PATTERN = /invalid/i;
 const SITE_URL_PROTOCOLS = new Set(['http:', 'https:']);
@@ -246,9 +245,7 @@ function toSearchHit(siteSubtitle, {videoHash}) {
       typeof siteAttributes.release === 'string' ? siteAttributes.release : '',
       dropFileExtension(fileName),
     ]),
-    fileExtension: ASS_FILE_NAME_PATTERN.test(fileName)
-      ? SubtitleFileExtension.ASS
-      : SubtitleFileExtension.SRT,
+    fileExtension: toHitFileExtension(fileName),
     isSitePack: false,
     isHearingImpaired: toNullableBoolean(siteAttributes.hearing_impaired),
     isForced: toNullableBoolean(siteAttributes.foreign_parts_only),

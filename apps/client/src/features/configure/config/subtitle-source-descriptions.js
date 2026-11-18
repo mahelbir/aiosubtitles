@@ -27,6 +27,10 @@ export const SUBTITLE_SOURCE_DESCRIPTIONS = Object.freeze({
     helpText: 'Requires an API key.',
     keyPageUrl: 'https://subsource.net/dashboard/api',
   },
+  [SubtitleSource.BETASERIES]: {
+    helpText: 'Requires an API key.',
+    keyPageUrl: 'https://www.betaseries.com/compte/api',
+  },
   [SubtitleSource.GESTDOWN]: {
     helpText: "No key needed. Requests share the server's limits.",
   },

@@ -34,6 +34,7 @@ const EXPECTED_SECRET_NAMES = [
   'SUBDL_API_KEY',
   'WYZIE_API_KEY',
   'ALTYAZIDB_API_KEY',
+  'BETASERIES_API_KEY',
 ];
 const FIXTURE_SECRETS = {
   OPENSUBTITLES_API_KEY: 'fake-opensubtitles-api-key',
@@ -43,6 +44,7 @@ const FIXTURE_SECRETS = {
   SUBDL_API_KEY: 'fake-subdl-api-key',
   WYZIE_API_KEY: 'fake-wyzie-api-key',
   ALTYAZIDB_API_KEY: 'fake-altyazidb-api-key',
+  BETASERIES_API_KEY: 'fake-betaseries-api-key',
 };
 const FIXTURE_VALUES = [
   ...Object.values(FIXTURE_SECRETS),
@@ -63,7 +65,7 @@ afterEach(() => {
 });
 
 describe('LIVE_SECRET_NAMES', () => {
-  it('lists exactly the seven live secret names', () => {
+  it('lists exactly the eight live secret names', () => {
     expect(LIVE_SECRET_NAMES.toSorted()).toEqual(
       EXPECTED_SECRET_NAMES.toSorted(),
     );
