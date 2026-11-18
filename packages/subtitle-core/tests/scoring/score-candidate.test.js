@@ -9,6 +9,7 @@ import {
   ScoringSignal,
 } from '../../src/constants/subtitle-core-enums.js';
 import {AIOSUBTITLES_SCORE_TABLE} from '../../src/scoring/aiosubtitles-score-table.js';
+import {READY_MADE_SCORE_TABLES} from '../../src/scoring/ready-made-score-tables.js';
 import {
   compareScoreBreakdowns,
   scoreSubtitleCandidate,
@@ -204,6 +205,35 @@ describe('scoreSubtitleCandidate', () => {
         }),
       ).toMatchObject({hardRejectReason: HardRejectReason.INVALID_FILE});
     });
+
+    it.each(
+      [AIOSUBTITLES_SCORE_TABLE, ...READY_MADE_SCORE_TABLES].map(scoreTable => [
+        scoreTable.tableName,
+        scoreTable,
+      ]),
+    )(
+      'scores a localized title like the video title under %s',
+      (_tableName, scoreTable) => {
+        const video = makeVideo({
+          videoRelease: makeReleaseInfo({
+            releaseTitle: 'Scarlet Buds',
+            releaseYear: 2023,
+          }),
+        });
+        const scoreTitle = releaseTitle =>
+          scoreSubtitleCandidate({
+            candidate: makeCandidate(),
+            candidateReleases: [
+              makeReleaseInfo({releaseTitle, releaseYear: 2023}),
+            ],
+            video,
+            scoreTable,
+          });
+        const localizedBreakdown = scoreTitle('Kızıl Goncalar');
+        expect(localizedBreakdown.hardRejectReason).toBeNull();
+        expect(localizedBreakdown).toEqual(scoreTitle('Scarlet Buds'));
+      },
+    );
   });
 
   describe('hash match and confidence', () => {

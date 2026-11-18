@@ -60,7 +60,6 @@ const enumMembers = [
     [
       'WRONG_SEASON',
       'WRONG_EPISODE',
-      'WRONG_TITLE',
       'WRONG_YEAR',
       'CD_PART',
       'INVALID_FILE',

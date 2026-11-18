@@ -1,49 +1,12 @@
-import {deburr, isEqual} from 'es-toolkit';
 import {
   HardRejectReason,
   SignalState,
 } from '../constants/subtitle-core-enums.js';
-import {tokenizeReleaseName} from '../release-name/name-tokens.js';
 import {
   compareReleaseValues,
   findSeasonEpisodeConflict,
   readUsableVideoRelease,
 } from './release-comparison.js';
-
-const COMBINING_MARKS = /\p{M}/gu;
-const APOSTROPHES = /['’ʼ]/gu;
-const SINGLE_LETTER = /^\p{L}$/u;
-
-const joinSingleLetterRuns = titleTokens =>
-  titleTokens.reduce((joinedTokens, titleToken, tokenIndex) => {
-    const isLetterRun =
-      tokenIndex > 0 &&
-      SINGLE_LETTER.test(titleToken) &&
-      SINGLE_LETTER.test(titleTokens[tokenIndex - 1]);
-    if (isLetterRun) {
-      joinedTokens[joinedTokens.length - 1] += titleToken;
-    } else {
-      joinedTokens.push(titleToken);
-    }
-    return joinedTokens;
-  }, []);
-
-export const normalizeReleaseTitle = releaseTitle =>
-  joinSingleLetterRuns(
-    tokenizeReleaseName(
-      deburr(releaseTitle)
-        .normalize('NFKD')
-        .replaceAll(COMBINING_MARKS, '')
-        .replaceAll(APOSTROPHES, '')
-        .replaceAll('&', ' and '),
-    ),
-  );
-
-const areSameTitles = (candidateTitle, videoTitle) =>
-  isEqual(
-    normalizeReleaseTitle(candidateTitle),
-    normalizeReleaseTitle(videoTitle),
-  );
 
 const findReleaseRejectReason = ({candidateRelease, video, isSitePack}) => {
   if (candidateRelease.partNumber != null) {
@@ -60,15 +23,6 @@ const findReleaseRejectReason = ({candidateRelease, video, isSitePack}) => {
   const videoRelease = readUsableVideoRelease(video);
   if (videoRelease == null) {
     return null;
-  }
-  if (
-    compareReleaseValues(
-      candidateRelease.releaseTitle,
-      videoRelease.releaseTitle,
-      areSameTitles,
-    ) === SignalState.CONFLICT
-  ) {
-    return HardRejectReason.WRONG_TITLE;
   }
   return compareReleaseValues(
     candidateRelease.releaseYear,

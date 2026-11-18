@@ -129,16 +129,38 @@ describe('findHardRejectReason', () => {
     ).toBeNull();
   });
 
-  it('rejects a different title when both names carry one', () => {
+  it('keeps a different title when both names carry one and the year matches', () => {
     expect(
       findHardRejectReason({
         candidate: makeCandidate(),
-        candidateReleases: [makeReleaseInfo({releaseTitle: 'Another Movie'})],
+        candidateReleases: [
+          makeReleaseInfo({releaseTitle: 'Another Movie', releaseYear: 2020}),
+        ],
         video: makeVideo({
-          videoRelease: makeReleaseInfo({releaseTitle: 'The Movie'}),
+          videoRelease: makeReleaseInfo({
+            releaseTitle: 'The Movie',
+            releaseYear: 2020,
+          }),
         }),
       }),
-    ).toBe(HardRejectReason.WRONG_TITLE);
+    ).toBeNull();
+  });
+
+  it('keeps a localized title that shares no word with the video title', () => {
+    expect(
+      findHardRejectReason({
+        candidate: makeCandidate(),
+        candidateReleases: [
+          makeReleaseInfo({releaseTitle: 'Kızıl Goncalar', releaseYear: 2023}),
+        ],
+        video: makeVideo({
+          videoRelease: makeReleaseInfo({
+            releaseTitle: 'Scarlet Buds',
+            releaseYear: 2023,
+          }),
+        }),
+      }),
+    ).toBeNull();
   });
 
   it('keeps a candidate whose title the video name lacks', () => {
@@ -169,6 +191,23 @@ describe('findHardRejectReason', () => {
         candidate: makeCandidate(),
         candidateReleases: [makeReleaseInfo({releaseYear: 1999})],
         video: makeVideo({videoRelease: makeReleaseInfo({releaseYear: 2020})}),
+      }),
+    ).toBe(HardRejectReason.WRONG_YEAR);
+  });
+
+  it('rejects a different year as a year conflict whatever the titles say', () => {
+    expect(
+      findHardRejectReason({
+        candidate: makeCandidate(),
+        candidateReleases: [
+          makeReleaseInfo({releaseTitle: 'Another Movie', releaseYear: 1999}),
+        ],
+        video: makeVideo({
+          videoRelease: makeReleaseInfo({
+            releaseTitle: 'The Movie',
+            releaseYear: 2020,
+          }),
+        }),
       }),
     ).toBe(HardRejectReason.WRONG_YEAR);
   });
@@ -210,37 +249,7 @@ describe('findHardRejectReason', () => {
     ).toBeNull();
   });
 
-  describe('title spelling variants', () => {
-    const findTitleRejectReason = (candidateTitle, videoTitle) =>
-      findHardRejectReason({
-        candidate: makeCandidate(),
-        candidateReleases: [makeReleaseInfo({releaseTitle: candidateTitle})],
-        video: makeVideo({
-          videoRelease: makeReleaseInfo({releaseTitle: videoTitle}),
-        }),
-      });
-
-    it.each([
-      ['Pokemon', 'Pokémon'],
-      ['Agents of SHIELD', 'Agents of S.H.I.E.L.D'],
-      ['Law & Order', 'Law and Order'],
-      ["Grey's Anatomy", 'Greys Anatomy'],
-      ['Marvel’s Agents of S.H.I.E.L.D.', 'Marvels Agents of SHIELD'],
-      ['Marvelʼs Agents of SHIELD', 'Marvels Agents of SHIELD'],
-      ['Kızıl Goncalar', 'Kizil Goncalar'],
-      ['Ødegaard', 'Odegaard'],
-    ])('keeps %s for a video titled %s', (candidateTitle, videoTitle) => {
-      expect(findTitleRejectReason(candidateTitle, videoTitle)).toBeNull();
-    });
-
-    it('still rejects a clearly different title', () => {
-      expect(findTitleRejectReason('Pokemon Origins', 'Digimon')).toBe(
-        HardRejectReason.WRONG_TITLE,
-      );
-    });
-  });
-
-  it('skips title and year when the video name is meaningless', () => {
+  it('skips the year when the video name is meaningless', () => {
     expect(
       findHardRejectReason({
         candidate: makeCandidate(),

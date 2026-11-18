@@ -39,7 +39,6 @@ export const ConfidenceWord = Enum({
 export const HardRejectReason = Enum({
   WRONG_SEASON: {value: 'wrong-season'},
   WRONG_EPISODE: {value: 'wrong-episode'},
-  WRONG_TITLE: {value: 'wrong-title'},
   WRONG_YEAR: {value: 'wrong-year'},
   CD_PART: {value: 'cd-part'},
   INVALID_FILE: {value: 'invalid-file'},
