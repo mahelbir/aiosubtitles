@@ -645,6 +645,43 @@ describe('anisubMapping.buildIntegrationDownloadRequest', () => {
     ).toBe('https://anisub.co/api/integrations/subtitles/2329/download');
   });
 
+  it('reads the site id from the addon file link', () => {
+    expect(
+      anisubMapping.buildIntegrationDownloadRequest(
+        {...siteRef, siteFileUrl: 'https://anisub.co/stremio/subtitle/2329'},
+        tokenCredential,
+      ),
+    ).toEqual({
+      subtitleSource: SubtitleSource.ANISUB,
+      url: 'https://anisub.co/api/integrations/subtitles/2329/download',
+      method: 'GET',
+      headers: {
+        Authorization: `Bearer ${ACCESS_TOKEN}`,
+        Accept: 'application/json',
+      },
+      responseType: 'bytes',
+      acceptedStatuses: [StatusCodes.UNAUTHORIZED, StatusCodes.FORBIDDEN],
+      credentialId: tokenCredential.credentialId,
+    });
+  });
+
+  it('asks the catalog episode for an addon file link of a site pack', () => {
+    expect(
+      anisubMapping.buildIntegrationDownloadRequest(
+        {
+          ...siteRef,
+          siteFileUrl: 'https://anisub.co/stremio/subtitle/2329',
+          catalogSeason: 1,
+          catalogEpisode: 5,
+          isSitePack: true,
+        },
+        tokenCredential,
+      ).url,
+    ).toBe(
+      'https://anisub.co/api/integrations/subtitles/2329/download?episode=5',
+    );
+  });
+
   it('builds none without a token, leaving the keyless file url path', () => {
     expect(
       anisubMapping.buildIntegrationDownloadRequest(siteRef, null),
@@ -665,6 +702,24 @@ describe('anisubMapping.buildIntegrationDownloadRequest', () => {
       {...siteRef, siteFileUrl: 'https://anisub.co/altyazi/2329/'},
     ],
     ['no file url', {...siteRef, siteFileUrl: null}],
+    [
+      'an addon file link on a look-alike host',
+      {
+        ...siteRef,
+        siteFileUrl: 'https://anisub.co.evil.test/stremio/subtitle/2329',
+      },
+    ],
+    [
+      'an addon file link over http',
+      {...siteRef, siteFileUrl: 'http://anisub.co/stremio/subtitle/2329'},
+    ],
+    [
+      'an addon file link with a non-numeric tail',
+      {
+        ...siteRef,
+        siteFileUrl: 'https://anisub.co/stremio/subtitle/anisub-2329',
+      },
+    ],
   ])(
     'fails a token download with %s rather than fall back to the keyless path',
     (_, ref) => {

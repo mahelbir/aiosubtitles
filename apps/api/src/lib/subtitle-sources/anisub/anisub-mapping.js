@@ -31,6 +31,7 @@ const SITE_PACK_PATTERN = /\bPaket\b/;
 const SITE_ID_PATH_PATTERNS = [
   /^\/api\/subtitles\/(\d+)\/download$/,
   /^\/altyazi\/(\d+)$/,
+  /^\/stremio\/subtitle\/(\d+)$/,
 ];
 const SITE_EPISODE_PATTERN = /^\d+$/;
 const TOKEN_REJECTED_STATUSES = [
