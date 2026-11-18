@@ -1,7 +1,5 @@
 import {expect, test as base} from '@playwright/test';
 
-const UNSERVED_FAVICON_PATH = '/favicon.ico';
-
 export const test = base.extend({
   allowedConsoleError: [null, {option: true}],
   consoleGuard: [
@@ -14,13 +12,10 @@ export const test = base.extend({
       };
       const watch = page => {
         page.on('console', message => {
-          const {url} = message.location();
-          if (
-            message.type() !== 'error' ||
-            url.endsWith(UNSERVED_FAVICON_PATH)
-          ) {
+          if (message.type() !== 'error') {
             return;
           }
+          const {url} = message.location();
           record(url ? `${message.text()} (${url})` : message.text());
         });
         page.on('pageerror', error => record(String(error)));

@@ -208,4 +208,13 @@ export const FIXTURES = [
         ({FormSkeletonsFixture}) => FormSkeletonsFixture,
       ),
   },
+  {
+    slug: 'settings-layout',
+    title: 'Settings layout',
+    variants: ['?dirty=1'],
+    load: () =>
+      import('./components/settings-layout-fixture').then(
+        ({SettingsLayoutFixture}) => SettingsLayoutFixture,
+      ),
+  },
 ];

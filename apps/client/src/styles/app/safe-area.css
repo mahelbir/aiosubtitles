@@ -1,3 +1,7 @@
 @utility bottom-safe {
   bottom: max(calc(var(--spacing) * 6), env(safe-area-inset-bottom));
 }
+
+@utility pb-safe {
+  padding-bottom: max(calc(var(--spacing) * 3), env(safe-area-inset-bottom));
+}

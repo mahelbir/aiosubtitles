@@ -26,6 +26,7 @@ const DIGEST_STYLE_PROPERTIES = [
   'alignItems',
   'textAlign',
   'position',
+  'transitionDuration',
 ];
 
 export const fixtureToolkit = {

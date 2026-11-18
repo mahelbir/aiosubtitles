@@ -23,6 +23,7 @@ const buttonVariants = cva(
         blue: "bg-blue/10 text-blue hover:bg-blue/20 focus-visible:border-blue/40 focus-visible:ring-blue/20 dark:bg-blue/20 dark:hover:bg-blue/30 dark:focus-visible:ring-blue/40",
         sky: "bg-sky/10 text-sky hover:bg-sky/20 focus-visible:border-sky/40 focus-visible:ring-sky/20 dark:bg-sky/20 dark:hover:bg-sky/30 dark:focus-visible:ring-sky/40",
         link: "text-primary underline-offset-4 hover:underline",
+        nav: "text-muted-foreground hover:text-foreground hover:not-aria-[current=page]:bg-accent/50 aria-[current=page]:text-foreground",
       },
       size: {
         default:
