@@ -3,7 +3,9 @@ import {sequelize} from '../index.js';
 import {BaseModel} from '../base-model.js';
 import {SubtitleAliasSource} from '../../lib/subtitle-sources/subtitle-alias-source.js';
 
-export class SubtitleAlias extends BaseModel {}
+export class SubtitleAlias extends BaseModel {
+  static linkAttributes = ['subtitleId', 'aliasSource', 'aliasSiteFileId'];
+}
 
 SubtitleAlias.init(
   {

@@ -3,7 +3,9 @@ import {sequelize} from '../index.js';
 import {BaseModel} from '../base-model.js';
 import {VIDEO_HASH_LENGTH} from './video-variant.js';
 
-export class SubtitleHashMatch extends BaseModel {}
+export class SubtitleHashMatch extends BaseModel {
+  static linkAttributes = ['subtitleId', 'videoHash'];
+}
 
 SubtitleHashMatch.init(
   {

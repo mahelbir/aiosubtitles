@@ -67,6 +67,7 @@
  *   fileExtension: string,
  *   hashMatchVideoHashes: string[],
  *   fileFacts: FileFacts|null,
+ *   siteCueShape?: {cueCount: number, lastCueEndMs: number}|null,
  *   referenceComparison: {isSameTimeFamily: boolean}|null,
  *   variantReferenceFamilyCount: number,
  *   variantHashMatchCount: number,

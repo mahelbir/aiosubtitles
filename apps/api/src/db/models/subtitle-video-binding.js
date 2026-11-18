@@ -2,7 +2,9 @@ import {DataTypes} from 'sequelize';
 import {sequelize} from '../index.js';
 import {BaseModel} from '../base-model.js';
 
-export class SubtitleVideoBinding extends BaseModel {}
+export class SubtitleVideoBinding extends BaseModel {
+  static bindingAttributes = ['subtitleId', 'boundArchiveEntryPath'];
+}
 
 SubtitleVideoBinding.init(
   {

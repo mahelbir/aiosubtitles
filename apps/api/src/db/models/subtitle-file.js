@@ -27,6 +27,22 @@ export class SubtitleFile extends BaseModel {
     'cueCount',
     'fileInvalidReasons',
   ];
+  static factAttributes = [
+    'subtitleId',
+    'contentKey',
+    'isFileValid',
+    'fileInvalidReasons',
+    'cueCount',
+    'lastCueEndMs',
+    'detectedLanguageCode',
+    'fileFormat',
+  ];
+  static cueSourceAttributes = [
+    'subtitleId',
+    'fileContent',
+    'fileEncoding',
+    'fileFormat',
+  ];
 }
 
 SubtitleFile.init(

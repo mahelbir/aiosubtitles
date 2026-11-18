@@ -26,6 +26,8 @@ describe('OpenAPI document', () => {
       'GET /{userConfigId}/manifest.json',
       'GET /{userConfigId}/subtitle-files/{videoId}/{urlCode}.{fileExtension}',
       'GET /{userConfigId}/subtitle-notices/{noticeName}.srt',
+      'GET /{userConfigId}/subtitles/{type}/{videoId}.json',
+      'GET /{userConfigId}/subtitles/{type}/{videoId}/{extra}.json',
       'POST /api/user-configs',
       'POST /api/user-configs/{userConfigId}/sessions',
     ]);

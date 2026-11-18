@@ -104,7 +104,11 @@ const enumMembers = [
     ['IDENTITY', 'ALIAS', 'CONTENT_KEY', 'NEAR_DUPLICATE'],
   ],
   ['ScoreTableMode', ScoreTableMode, ['ADDITIVE', 'STRICT_PRIORITY', 'TIERED']],
-  ['SubtitleNotice', SubtitleNotice, ['OPENSUBTITLES_ACCOUNT']],
+  [
+    'SubtitleNotice',
+    SubtitleNotice,
+    ['OPENSUBTITLES_ACCOUNT', 'OPENSUBTITLES_ACCOUNT_FIX'],
+  ],
   [
     'SubtitleNote',
     SubtitleNote,
@@ -181,6 +185,12 @@ describe('subtitle-core enums', () => {
   it('labels the OpenSubtitles account notice with its hidden subtitle count placeholder', () => {
     expect(SubtitleNotice.label('OPENSUBTITLES_ACCOUNT')).toBe(
       'Add an OpenSubtitles account to see {hiddenSubtitleCount} more',
+    );
+  });
+
+  it('labels the OpenSubtitles account fix notice with its hidden subtitle count placeholder', () => {
+    expect(SubtitleNotice.label('OPENSUBTITLES_ACCOUNT_FIX')).toBe(
+      'Fix your OpenSubtitles account to see {hiddenSubtitleCount} more',
     );
   });
 

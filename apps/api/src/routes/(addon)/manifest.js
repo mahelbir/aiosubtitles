@@ -4,8 +4,8 @@ import {
   ADDON_MANIFEST_VERSION,
   ADDON_NAME,
 } from '@repo/shared/constants/app.js';
-import {getUuidField} from '@repo/shared/schemas/common.js';
-import {userConfigCache} from '../../lib/user-config-cache.js';
+import {AddonVideoType} from './_addon-video-type.js';
+import {readCachedUserConfig} from './_cached-user-config.js';
 
 const ADDON_MANIFEST = {
   id: 'com.mahmuthanelbir.aiosubtitles',
@@ -14,7 +14,7 @@ const ADDON_MANIFEST = {
   description:
     'Puts the subtitle that best fits the playing video at the top of the list.',
   resources: ['subtitles'],
-  types: ['movie', 'series', 'anime'],
+  types: AddonVideoType.values,
   idPrefixes: ['tt', 'kitsu'],
   catalogs: [],
 };
@@ -22,8 +22,6 @@ const ADDON_MANIFEST = {
 const GENERAL_MANIFEST = toManifest({isConfigurationRequired: true});
 
 const USER_MANIFEST = toManifest({isConfigurationRequired: false});
-
-const userConfigIdField = getUuidField();
 
 const MANIFEST_SCHEMA = {
   response: {
@@ -68,11 +66,9 @@ export default async function (fastify) {
       config: ADDON_ROUTE_CONFIG,
     },
     async request => {
-      const parsed = userConfigIdField.safeParse(request.params.userConfigId);
-      if (!parsed.success) {
-        return GENERAL_MANIFEST;
-      }
-      const userConfig = await userConfigCache.get(parsed.data);
+      const userConfig = await readCachedUserConfig(
+        request.params.userConfigId,
+      );
       return userConfig ? USER_MANIFEST : GENERAL_MANIFEST;
     },
   );

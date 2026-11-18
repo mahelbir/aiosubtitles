@@ -2687,6 +2687,192 @@ exports[`OpenAPI document > matches the recorded contract 1`] = `
         ],
       },
     },
+    "/{userConfigId}/subtitles/{type}/{videoId}.json": {
+      "get": {
+        "parameters": [
+          {
+            "in": "path",
+            "name": "userConfigId",
+            "required": true,
+            "schema": {
+              "type": "string",
+            },
+          },
+          {
+            "in": "path",
+            "name": "type",
+            "required": true,
+            "schema": {
+              "enum": [
+                "movie",
+                "series",
+                "anime",
+              ],
+              "type": "string",
+            },
+          },
+          {
+            "in": "path",
+            "name": "videoId",
+            "required": true,
+            "schema": {
+              "maxLength": 128,
+              "pattern": "^(tt\\d+(:\\d+){0,2}|kitsu:\\d+(:\\d+)?)$",
+              "type": "string",
+            },
+          },
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": false,
+                  "description": "The Stremio subtitle list",
+                  "properties": {
+                    "subtitles": {
+                      "items": {
+                        "additionalProperties": false,
+                        "properties": {
+                          "id": {
+                            "type": "string",
+                          },
+                          "label": {
+                            "type": "string",
+                          },
+                          "lang": {
+                            "type": "string",
+                          },
+                          "subtitleFileName": {
+                            "type": "string",
+                          },
+                          "url": {
+                            "type": "string",
+                          },
+                        },
+                        "required": [
+                          "id",
+                          "url",
+                          "lang",
+                          "label",
+                        ],
+                        "type": "object",
+                      },
+                      "type": "array",
+                    },
+                  },
+                  "required": [
+                    "subtitles",
+                  ],
+                  "type": "object",
+                },
+              },
+            },
+            "description": "The Stremio subtitle list",
+          },
+        },
+        "tags": [
+          "default",
+        ],
+      },
+    },
+    "/{userConfigId}/subtitles/{type}/{videoId}/{extra}.json": {
+      "get": {
+        "parameters": [
+          {
+            "in": "path",
+            "name": "userConfigId",
+            "required": true,
+            "schema": {
+              "type": "string",
+            },
+          },
+          {
+            "in": "path",
+            "name": "type",
+            "required": true,
+            "schema": {
+              "enum": [
+                "movie",
+                "series",
+                "anime",
+              ],
+              "type": "string",
+            },
+          },
+          {
+            "in": "path",
+            "name": "videoId",
+            "required": true,
+            "schema": {
+              "maxLength": 128,
+              "pattern": "^(tt\\d+(:\\d+){0,2}|kitsu:\\d+(:\\d+)?)$",
+              "type": "string",
+            },
+          },
+          {
+            "in": "path",
+            "name": "extra",
+            "required": true,
+            "schema": {
+              "type": "string",
+            },
+          },
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": false,
+                  "description": "The Stremio subtitle list",
+                  "properties": {
+                    "subtitles": {
+                      "items": {
+                        "additionalProperties": false,
+                        "properties": {
+                          "id": {
+                            "type": "string",
+                          },
+                          "label": {
+                            "type": "string",
+                          },
+                          "lang": {
+                            "type": "string",
+                          },
+                          "subtitleFileName": {
+                            "type": "string",
+                          },
+                          "url": {
+                            "type": "string",
+                          },
+                        },
+                        "required": [
+                          "id",
+                          "url",
+                          "lang",
+                          "label",
+                        ],
+                        "type": "object",
+                      },
+                      "type": "array",
+                    },
+                  },
+                  "required": [
+                    "subtitles",
+                  ],
+                  "type": "object",
+                },
+              },
+            },
+            "description": "The Stremio subtitle list",
+          },
+        },
+        "tags": [
+          "default",
+        ],
+      },
+    },
   },
 }
 `;

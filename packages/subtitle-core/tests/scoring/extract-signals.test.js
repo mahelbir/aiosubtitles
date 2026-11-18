@@ -437,6 +437,59 @@ describe('extractSignals', () => {
         {signalState: SignalState.MATCH},
       );
     });
+
+    it('matches on the site cue shape before a file is downloaded', () => {
+      expectSignal(
+        readSignals({
+          candidate: makeCandidate({
+            siteCueShape: {cueCount: 1400, lastCueEndMs: 7_080_000},
+          }),
+          video: makeVideo({catalogDurationMs: 7_200_000}),
+        }),
+        ScoringSignal.CUE_SHAPE,
+        {signalState: SignalState.MATCH, signalMagnitude: 1},
+      );
+    });
+
+    it('conflicts on a site cue shape far shorter than the catalog duration', () => {
+      expectSignal(
+        readSignals({
+          candidate: makeCandidate({
+            siteCueShape: {cueCount: 3, lastCueEndMs: 9000},
+          }),
+          video: makeVideo({catalogDurationMs: 7_200_000}),
+        }),
+        ScoringSignal.CUE_SHAPE,
+        {signalState: SignalState.CONFLICT},
+      );
+    });
+
+    it('reads the downloaded file before the site cue shape', () => {
+      expectSignal(
+        readSignals({
+          candidate: makeCandidate({
+            fileFacts: makeFileFacts({cueCount: 3, lastCueEndMs: 9000}),
+            siteCueShape: {cueCount: 1400, lastCueEndMs: 7_080_000},
+          }),
+          video: makeVideo({catalogDurationMs: 7_200_000}),
+        }),
+        ScoringSignal.CUE_SHAPE,
+        {signalState: SignalState.CONFLICT},
+      );
+    });
+
+    it('reads the site cue shape as unknown without a catalog duration', () => {
+      expectSignal(
+        readSignals({
+          candidate: makeCandidate({
+            siteCueShape: {cueCount: 1400, lastCueEndMs: 7_080_000},
+          }),
+          video: makeVideo({catalogDurationMs: null}),
+        }),
+        ScoringSignal.CUE_SHAPE,
+        {signalState: SignalState.UNKNOWN},
+      );
+    });
   });
 
   describe('hash match', () => {

@@ -55,6 +55,7 @@ export const makeCandidate = (overrides = {}) => ({
   fileExtension: 'srt',
   hashMatchVideoHashes: [],
   fileFacts: null,
+  siteCueShape: null,
   referenceComparison: null,
   variantReferenceFamilyCount: 0,
   variantHashMatchCount: 0,

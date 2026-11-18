@@ -1,36 +1,30 @@
 import {z} from 'zod';
-import {getUuidField} from '@repo/shared/schemas/common.js';
 import {
   SubtitleFileExtension,
   SubtitleMessage,
 } from '@repo/subtitle-core/constants/subtitle-core-enums.js';
-import {VIDEO_ID_LENGTH_MAX} from '@repo/subtitle-core/stremio-row/build-subtitle-url.js';
 import {Subtitle} from '../../db/models/subtitle.js';
 import {
   downloadSubtitleFile,
   readStoredSubtitleFile,
 } from '../../lib/subtitle-store/download-subtitle-file.js';
-import {userConfigCache} from '../../lib/user-config-cache.js';
-import {parseStremioVideoId} from '../../lib/video-catalog/parse-video-id.js';
+import {resolveVideoEpisode} from '../../lib/video-catalog/resolve-video-episode.js';
 import {getSubtitleSourceRegistry} from '../_subtitle-source-registry.js';
+import {getVideoCatalog} from '../_video-catalog.js';
+import {readCachedUserConfig} from './_cached-user-config.js';
+import {stremioVideoIdField} from './_stremio-video-id.js';
 import {
   toSubtitleFileRouteConfig,
   writeSubtitleFile,
   writeSubtitleMessage,
 } from './_subtitle-file-reply.js';
 
-const STREMIO_VIDEO_ID_PATTERN = /^(tt\d+(:\d+){0,2}|kitsu:\d+(:\d+)?)$/;
 const URL_CODE_PATTERN = /^[\da-f]{64}$/;
-
-const userConfigIdField = getUuidField();
 
 const SUBTITLE_FILE_SCHEMA = {
   params: z.object({
     userConfigId: z.string(),
-    videoId: z
-      .string()
-      .max(VIDEO_ID_LENGTH_MAX)
-      .regex(STREMIO_VIDEO_ID_PATTERN),
+    videoId: stremioVideoIdField,
     urlCode: z.string().regex(URL_CODE_PATTERN),
     fileExtension: z.enum(SubtitleFileExtension.values),
   }),
@@ -38,6 +32,7 @@ const SUBTITLE_FILE_SCHEMA = {
 
 export default async function (fastify, opts) {
   const subtitleSourceRegistry = getSubtitleSourceRegistry(opts);
+  const videoCatalog = getVideoCatalog(opts);
 
   fastify.get(
     '/:userConfigId/subtitle-files/:videoId/:urlCode.:fileExtension',
@@ -55,16 +50,16 @@ export default async function (fastify, opts) {
       if (!subtitle) {
         return writeSubtitleMessage(reply, SubtitleMessage.SUBTITLE_NOT_FOUND);
       }
-      const {catalogSeason, catalogEpisode} = parseStremioVideoId(videoId);
-      const videoContext = {videoId, catalogSeason, catalogEpisode};
-      const storedFile = await readStoredSubtitleFile({subtitle, videoContext});
+      const directFile = subtitle.isSitePack
+        ? null
+        : await readStoredSubtitleFile({subtitle, videoContext: {videoId}});
       const subtitleFile =
-        storedFile ??
-        (await downloadSubtitleFile({
+        directFile ??
+        (await readEpisodeFile({
           subtitle,
-          videoContext,
-          cachedUserConfig: await readCachedUserConfig(userConfigId),
-          isBackground: false,
+          videoId,
+          userConfigId,
+          videoCatalog,
           subtitleSourceRegistry,
         }));
       if (subtitleFile.subtitleMessage) {
@@ -78,7 +73,31 @@ export default async function (fastify, opts) {
   );
 }
 
-async function readCachedUserConfig(userConfigId) {
-  const parsed = userConfigIdField.safeParse(userConfigId);
-  return parsed.success ? userConfigCache.get(parsed.data) : null;
+async function readEpisodeFile({
+  subtitle,
+  videoId,
+  userConfigId,
+  videoCatalog,
+  subtitleSourceRegistry,
+}) {
+  const videoContext = {
+    videoId,
+    ...(await resolveVideoEpisode({
+      videoId,
+      resolveKitsuVideo: videoCatalog.resolveKitsuVideo,
+    })),
+  };
+  const storedFile = subtitle.isSitePack
+    ? await readStoredSubtitleFile({subtitle, videoContext})
+    : null;
+  return (
+    storedFile ??
+    downloadSubtitleFile({
+      subtitle,
+      videoContext,
+      cachedUserConfig: await readCachedUserConfig(userConfigId),
+      isBackground: false,
+      subtitleSourceRegistry,
+    })
+  );
 }

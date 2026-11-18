@@ -7,6 +7,7 @@ import {URL_MAX_LENGTH} from '@repo/shared/constants/common.js';
 import {config} from './config/index.js';
 import {basePathField} from './config/schema.js';
 import {loggerOptions} from './lib/logger.js';
+import {createAddonRouteTable} from './plugins/addon-route.js';
 import app from './app.js';
 
 /**
@@ -14,15 +15,19 @@ import app from './app.js';
  * @param {string} [options.basePath]
  * @param {import('fastify').FastifyPluginAsync[]} [options.extraPlugins]
  * @param {ReturnType<typeof import('./lib/subtitle-sources/subtitle-source-clients.js').createSubtitleSourceRegistry>} [options.subtitleSourceRegistry]
+ * @param {{readCatalogMeta: Function, resolveKitsuVideo: Function}} [options.videoCatalog]
  * @returns {import('fastify').FastifyInstance}
  */
 export function buildApp({
   basePath = config.apiBasePath,
   extraPlugins = [],
   subtitleSourceRegistry,
+  videoCatalog,
   ...options
 } = {}) {
+  const addonRouteTable = createAddonRouteTable();
   const fastify = Fastify({
+    frameworkErrors: addonRouteTable.replyFrameworkError,
     routerOptions: {
       ignoreTrailingSlash: true,
       maxParamLength: URL_MAX_LENGTH,
@@ -42,6 +47,8 @@ export function buildApp({
     basePath: basePathField.parse(basePath),
     extraPlugins,
     subtitleSourceRegistry,
+    videoCatalog,
+    addonRouteTable,
   });
 
   return fastify;

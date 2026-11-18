@@ -39,6 +39,10 @@ const [{buildApp}, {config}, {createFixtureSubtitleSourceRegistry}] =
 
 fastify = buildApp({
   subtitleSourceRegistry: createFixtureSubtitleSourceRegistry(),
+  videoCatalog: {
+    readCatalogMeta: async () => null,
+    resolveKitsuVideo: async () => null,
+  },
 });
 
 await fastify.listen({port: config.port, host: config.host});

@@ -193,7 +193,10 @@ export const extractCandidateSignals = ({candidate, video}) => ({
     readReferenceFamilyState(candidate.referenceComparison),
   ),
   [ScoringSignal.CUE_SHAPE]: readState(
-    readCueShapeState(candidate.fileFacts, video.catalogDurationMs),
+    readCueShapeState(
+      candidate.fileFacts ?? candidate.siteCueShape,
+      video.catalogDurationMs,
+    ),
   ),
   [ScoringSignal.INDEPENDENT_COPIES]: readMagnitude(
     candidate.independentCopyCount,

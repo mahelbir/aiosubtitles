@@ -5,7 +5,9 @@ import {dbUtils} from '../utils.js';
 
 export const VIDEO_HASH_LENGTH = 16;
 
-export class VideoVariant extends BaseModel {}
+export class VideoVariant extends BaseModel {
+  static playAttributes = ['id', 'videoHash', 'videoFilename'];
+}
 
 VideoVariant.init(
   {

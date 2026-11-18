@@ -3,7 +3,13 @@ import {sequelize} from '../index.js';
 import {BaseModel} from '../base-model.js';
 import {dbUtils} from '../utils.js';
 
-export class SubtitleReferenceComparison extends BaseModel {}
+export class SubtitleReferenceComparison extends BaseModel {
+  static familyAttributes = [
+    'candidateSubtitleId',
+    'referenceSubtitleId',
+    'isSameTimeFamily',
+  ];
+}
 
 SubtitleReferenceComparison.init(
   {

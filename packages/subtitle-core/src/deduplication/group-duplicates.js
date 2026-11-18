@@ -16,6 +16,9 @@ const REPRESENTATIVE_CRITERIA = [
   candidate => candidate.urlCode,
 ];
 
+export const pickGroupRepresentative = members =>
+  orderBy(members, REPRESENTATIVE_CRITERIA, ['asc', 'asc'])[0];
+
 const createLinkForest = size => {
   const parentIndexes = Array.from({length: size}, (_, index) => index);
   const linkTiers = Array.from({length: size}, () => null);
@@ -143,10 +146,7 @@ export const groupDuplicates = ({candidates, textSimilarityMin}) => {
   return Object.entries(indexesByRoot).map(([rootIndex, memberIndexes]) => {
     const members = memberIndexes.map(index => candidates[index]);
     return {
-      representative: orderBy(members, REPRESENTATIVE_CRITERIA, [
-        'asc',
-        'asc',
-      ])[0],
+      representative: pickGroupRepresentative(members),
       members,
       duplicateTier: linkForest.readTier(Number(rootIndex)),
     };

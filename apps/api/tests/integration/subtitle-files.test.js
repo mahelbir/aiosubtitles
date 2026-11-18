@@ -982,7 +982,9 @@ describe('a download for another source', () => {
       getSubtitleFile(request),
     ]);
     await waitForDownloadCallers(configLookup, 2);
-    expect(thesubtitledbClient.downloadSubtitle).toHaveBeenCalledTimes(1);
+    await vi.waitFor(() => {
+      expect(thesubtitledbClient.downloadSubtitle).toHaveBeenCalledTimes(1);
+    });
     sourceAnswer.resolve(toDownload(MOVIE_SRT));
     const [firstResponse, secondResponse] = await responses;
     configLookup.mockRestore();

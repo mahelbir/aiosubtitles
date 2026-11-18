@@ -1,5 +1,8 @@
 import {describe, expect, it} from 'vitest';
-import {groupDuplicates} from '../../src/deduplication/group-duplicates.js';
+import {
+  groupDuplicates,
+  pickGroupRepresentative,
+} from '../../src/deduplication/group-duplicates.js';
 import {
   NEAR_DUPLICATE_SCENE_LINES,
   OTHER_SCENE_LINES,
@@ -632,5 +635,18 @@ describe('groupDuplicates', () => {
       expect(findGroup(groups, 'x').duplicateTier).toBe(3);
       expect(findGroup(groups, 'z').duplicateTier).toBeNull();
     });
+  });
+});
+
+describe('pickGroupRepresentative', () => {
+  it('picks the earliest seen member, then the smallest url code', () => {
+    const firstSeenAt = '2026-01-01T00:00:00.000Z';
+    const members = [
+      makeRow('c', {firstSeenAt: '2026-02-01T00:00:00.000Z'}),
+      makeRow('b', {firstSeenAt}),
+      makeRow('a', {firstSeenAt}),
+    ];
+
+    expect(pickGroupRepresentative(members).urlCode).toBe('a');
   });
 });

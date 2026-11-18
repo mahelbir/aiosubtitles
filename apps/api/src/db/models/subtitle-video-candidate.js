@@ -2,7 +2,9 @@ import {DataTypes} from 'sequelize';
 import {sequelize} from '../index.js';
 import {BaseModel} from '../base-model.js';
 
-export class SubtitleVideoCandidate extends BaseModel {}
+export class SubtitleVideoCandidate extends BaseModel {
+  static linkAttributes = ['subtitleId'];
+}
 
 SubtitleVideoCandidate.init(
   {

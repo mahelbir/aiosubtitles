@@ -414,6 +414,9 @@ async function readSubtitleEntry({fileBytes, fileNameHint, videoContext}) {
     inflatedBytesMax: ARCHIVE_INFLATED_BYTES_MAX,
     entryCountMax: ARCHIVE_ENTRY_COUNT_MAX,
   });
+  if (videoContext.isEpisodeResolved === false && archiveEntries.length > 1) {
+    return null;
+  }
   const entryPath = pickArchiveEntryForVideo({
     entryPaths: archiveEntries.map(({entryPath}) => entryPath),
     seasonNumber: videoContext.catalogSeason,

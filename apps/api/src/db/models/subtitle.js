@@ -33,6 +33,24 @@ export class Subtitle extends BaseModel {
     'siteFileUrl',
     'isSitePack',
   ];
+  static candidateAttributes = [
+    ...Subtitle.downloadAttributes,
+    'releaseNames',
+    'isHearingImpaired',
+    'isForced',
+    'isMachineTranslated',
+    'isUploaderTrusted',
+    'isQuotaCostly',
+    'siteDownloadCount',
+    'siteCueCount',
+    'siteDurationMs',
+    'firstSeenAt',
+  ];
+  static fileFactsInclude = {
+    association: 'subtitleFile',
+    attributes: SubtitleFile.factAttributes,
+    required: false,
+  };
   static subtitleFileInclude = {
     association: 'subtitleFile',
     attributes: SubtitleFile.embeddedAttributes,
