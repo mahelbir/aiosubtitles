@@ -11,23 +11,21 @@ import {
   THESUBTITLEDB_VALID_API_KEY,
 } from '../../../../api/tests/e2e/fixture-credentials.js';
 import {getApiUrl} from '../lib/api.js';
-import {getTabPanel, getVisibleText} from '../lib/locators.js';
+import {getTabPanel} from '../lib/locators.js';
 import {
   openTabMenuItem,
   openTabMenuItems,
   readTokenColor,
 } from '../lib/page.js';
-import {waitForApiRequest} from '../lib/requests.js';
 import {
-  SAVED_TEXT,
   callApi,
   expect,
   getAllSourcesCheckbox,
   getUnsavedNotice,
-  getUserConfigPath,
   getVisibleSaveButton,
   openConfigure,
   openSignedIn,
+  saveAndSettle,
   test,
 } from '../lib/user-configs.js';
 
@@ -115,22 +113,6 @@ const SOURCE_HELP = [
 
 function getSourceSwitch(panel, label) {
   return panel.getByRole('switch', {name: label, exact: true});
-}
-
-async function saveAndSettle(page, {userConfigId}) {
-  const patch = waitForApiRequest(
-    page,
-    'PATCH',
-    getUserConfigPath(userConfigId),
-  );
-  await getVisibleSaveButton(page).click();
-  const request = await patch;
-  await request.response();
-  await expect(
-    page.getByRole('button', {name: 'Save', disabled: true}),
-  ).toHaveCount(0);
-  await expect(getVisibleText(page, SAVED_TEXT)).toBeVisible();
-  return request;
 }
 
 test.describe('sources', () => {

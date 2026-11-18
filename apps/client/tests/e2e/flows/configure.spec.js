@@ -14,7 +14,7 @@ import {
 } from '../lib/api.js';
 import {getMain, getOfflineBanner, getVisibleText} from '../lib/locators.js';
 import {expectSearchParams} from '../lib/page.js';
-import {recordRequests, waitForApiRequest} from '../lib/requests.js';
+import {recordRequests} from '../lib/requests.js';
 import {
   LOGIN_REFUSAL,
   MANIFEST_URL_PATTERN,
@@ -39,6 +39,7 @@ import {
   openSection,
   openSignedIn,
   readSessionToken,
+  saveAndSettle,
   submitPassword,
   test,
 } from '../lib/user-configs.js';
@@ -451,20 +452,14 @@ test.describe('configure', () => {
       ]);
       await openSignedIn(page, userConfig, {tab: 'languages'});
       await addLanguage(page, ENGLISH);
-      const patch = waitForApiRequest(
-        page,
-        'PATCH',
-        getUserConfigPath(userConfig.userConfigId),
-      );
 
-      await getVisibleSaveButton(page).click();
+      const patch = await saveAndSettle(page, userConfig);
 
-      const [credential] = (await patch).postDataJSON().credentials;
+      const [credential] = patch.postDataJSON().credentials;
       expect(credential).toMatchObject({
         credentialId: storedCredentials[0].credentialId,
         credentialSecret: {apiKey: ''},
       });
-      await expect(getVisibleText(page, SAVED_TEXT)).toBeVisible();
     });
   });
 });

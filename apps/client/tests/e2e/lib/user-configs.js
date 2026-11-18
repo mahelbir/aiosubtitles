@@ -2,8 +2,14 @@ import {escapeRegExp} from 'es-toolkit';
 import {StatusCodes} from 'http-status-codes';
 import {SUBTITLE_LANGUAGE_LIMIT_DEFAULT} from '@repo/shared/constants/user-config.js';
 import {getApiUrl} from './api.js';
-import {getForm, getMain, getSectionPicker} from './locators.js';
+import {
+  getForm,
+  getMain,
+  getSectionPicker,
+  getVisibleText,
+} from './locators.js';
 import {gotoWithQuery} from './page.js';
+import {waitForApiRequest} from './requests.js';
 import {expect, test as base} from './test.js';
 import {isPhoneLayout} from './viewport.js';
 
@@ -226,6 +232,22 @@ export function getVisibleSaveButton(page) {
   return page.getByRole('button', {name: 'Save', exact: true}).filter({
     visible: true,
   });
+}
+
+export async function saveAndSettle(page, {userConfigId}) {
+  const patch = waitForApiRequest(
+    page,
+    'PATCH',
+    getUserConfigPath(userConfigId),
+  );
+  await getVisibleSaveButton(page).click();
+  const request = await patch;
+  await request.response();
+  await expect(
+    page.getByRole('button', {name: 'Save', disabled: true}),
+  ).toHaveCount(0);
+  await expect(getVisibleText(page, SAVED_TEXT)).toBeVisible();
+  return request;
 }
 
 export function getPasswordField(scope) {

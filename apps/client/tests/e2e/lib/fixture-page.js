@@ -10,13 +10,22 @@ export const DIALOG_SELECTOR = '[role="dialog"]';
 
 export const PUBLIC_FIXTURES_PATH = '/fixtures';
 
-export async function openFixture(page, name, searchParams) {
-  await gotoWithQuery(page, `${PUBLIC_FIXTURES_PATH}/${name}`, searchParams);
-  await page
+function waitForFixture(page, name) {
+  return page
     .locator(
       `[data-testid="fixture"][data-fixture="${name}"]:not([aria-busy="true"])`,
     )
     .waitFor();
+}
+
+export async function reloadFixture(page, name) {
+  await page.reload();
+  await waitForFixture(page, name);
+}
+
+export async function openFixture(page, name, searchParams) {
+  await gotoWithQuery(page, `${PUBLIC_FIXTURES_PATH}/${name}`, searchParams);
+  await waitForFixture(page, name);
 }
 
 export function readFixtureState(page) {

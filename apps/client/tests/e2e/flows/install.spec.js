@@ -8,7 +8,6 @@ import {expectToasts} from '../lib/toasts.js';
 import {
   LOGIN_REFUSAL,
   NOT_SAVED_YET_TEXT,
-  SAVED_TEXT,
   SESSION_REFUSAL,
   USER_CONFIG_PATH,
   USER_CONFIG_SESSIONS_PATH,
@@ -20,10 +19,10 @@ import {
   getPasswordDialog,
   getPasswordField,
   getUserConfigPath,
-  getVisibleSaveButton,
   openConfigure,
   openSection,
   readSessionToken,
+  saveAndSettle,
   submitPassword,
   test,
   writeSessionToken,
@@ -223,8 +222,7 @@ test.describe('install', () => {
       );
       await openSection(page, 'Languages');
       await addLanguage(page, ENGLISH);
-      await getVisibleSaveButton(page).click();
-      await expect(getVisibleText(page, SAVED_TEXT)).toBeVisible();
+      await saveAndSettle(page, userConfig);
       await expect(getPasswordDialog(page)).toHaveCount(0);
       await page.reload();
       await expect(getLanguage(page, ENGLISH)).toBeVisible();

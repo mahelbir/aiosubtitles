@@ -2,6 +2,7 @@ import {
   expectDialogSlot,
   expectFixtureState,
   openFixture,
+  reloadFixture,
 } from '../lib/fixture-page.js';
 import {
   getCloseButton,
@@ -40,6 +41,10 @@ function getDialogBehindQuestion(page, name) {
 
 function openFormShells(page, searchParams) {
   return openFixture(page, 'form-shells', searchParams);
+}
+
+function reloadFormShells(page) {
+  return reloadFixture(page, 'form-shells');
 }
 
 function getRecordAction(page, name) {
@@ -83,7 +88,7 @@ test.describe('form panel', () => {
       panel: {action: 'create', isOpen: true, targetId: null},
     });
 
-    await page.reload();
+    await reloadFormShells(page);
 
     await expect(getDialog(page, 'Kayıt Ekle')).toBeVisible();
     await expectSearchParams(page).toEqual({action: 'create'});
@@ -536,7 +541,7 @@ test.describe('tab query', () => {
     );
     await expectFixtureState(page).toMatchObject({tab: 'bildirim'});
 
-    await page.reload();
+    await reloadFormShells(page);
 
     await expect(getTab(page, 'Bildirimler')).toHaveAttribute(
       'aria-selected',
