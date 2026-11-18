@@ -36,8 +36,7 @@ variants, the `@layer base` reset and the reduced-motion block.
 - **The spinner is `ui/spinner.jsx`**, not a wrapper. Its `size-4` default is load-bearing (base-nova sizes bare icons
   to `size-4`, so a spinner carrying a bigger class keeps it inside buttons/menus) and it inherits colour, so no call
   site needs `text-current`. Every call site names it with `LOADING_LABEL` from `components/common/loading-status.js`.
-  `PageLoader` and `FullscreenSpinner` are the presets that go large, `LoadingStatus` the one that stays visually
-  hidden.
+  `PageLoader` is the preset that goes large, `LoadingStatus` the one that stays visually hidden.
 - **`src/styles/vendor-overrides/`** — rules against a third-party package's _own_ shipped stylesheet.
   `react-toastify.css` maps `--toastify-*` onto our tokens; its doubled selectors (`:root:root`) raise specificity
   so they win over the package stylesheet. A package that injects its stylesheet at run time is imported through its
@@ -70,16 +69,14 @@ variants, the `@layer base` reset and the reduced-motion block.
   `AppProviders`, which skips every animation it runs.
 - **Pick the layer by scope.** A visual variant is always a **prop** on the owning component — never a colour or type
   class in the call site's `className`, nor a `data-*` the call site writes unless that attribute is the shadcn
-  component's own API (`Field`'s `data-invalid`). A primitive with no look of its own, such as a bare trigger or
-  `Toolbar`, takes its look at the call site, as `Spinner` takes its colour. Semantic colour → the `cva` `variant` map; a
+  component's own API (`Field`'s `data-invalid`). A primitive with no look of its own, such as a bare trigger,
+  takes its look at the call site, as `Spinner` takes its colour. Semantic colour → the `cva` `variant` map; a
   structural/positional switch → a prop reflected as `data-*` and read back by `data-[…]:`
-  variants in the same `className` (as `Card`/`Sheet`/`Sidebar`/`Dialog` do for size/side/position). A systemic size →
+  variants in the same `className` (as `Card`/`Sheet`/`Dialog` do for size/side/position). A systemic size →
   a theme token, a custom colour → `semantic.css`. A parent's `:has()` is not a reason to leave the component. Override
   rules sit outside `@layer` (so they beat utilities) and are written against tokens, never raw pixels.
 - **No arbitrary values in code we author** — `p-[13px]`, `text-[#333]` are forbidden; define a token instead. Exempt:
   `calc()`/`min()` over existing tokens (`rounded-[min(var(--radius-md),10px)]`).
-- **Raw text — a payload, a log, code — renders in the shadcn `CodeBlock`**, never a bare `<pre>`; `CodeViewer` is its
-  preset with copy, a full-screen view and syntax highlighting for a language the highlighter lists.
 - **An icon inside a field means `InputGroup`** (`InputGroupAddon` + `InputGroupInput`), never a positioned `<Icon>`
   over a padded `Input`. A field with no addon stays a plain `Input`.
 - Primitives are never imported directly from `@base-ui/react`; they arrive through `@/components/ui/*`. Base UI's
