@@ -101,6 +101,11 @@ const SOURCE_HELP = [
     keyPageUrl: null,
     helpText: "No key needed. Requests share the server's limits.",
   },
+  {
+    subtitleSource: SubtitleSource.WYZIE,
+    keyPageUrl: 'https://sub.wyzie.io/redeem',
+    helpText: 'Requires an API key.',
+  },
 ];
 
 function getSourceSwitch(panel, label) {

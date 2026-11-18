@@ -1,0 +1,46 @@
+{
+  "sources": ["charlie", "foxtrot", "oscar", "quebec", "xray"],
+  "free": ["charlie", "oscar", "quebec", "xray"],
+  "paid": ["foxtrot"],
+  "tiered": [
+    {
+      "key": "charlie",
+      "name": "charlie",
+      "tier": "free",
+      "tags": [],
+      "available": true
+    },
+    {
+      "key": "foxtrot",
+      "name": "foxtrot",
+      "tier": "paid",
+      "tags": ["anime"],
+      "available": false
+    },
+    {
+      "key": "oscar",
+      "name": "oscar",
+      "tier": "free",
+      "tags": [],
+      "available": true
+    },
+    {
+      "key": "quebec",
+      "name": "quebec",
+      "tier": "free",
+      "tags": [],
+      "available": true
+    },
+    {
+      "key": "xray",
+      "name": "xray",
+      "tier": "free",
+      "tags": [],
+      "available": true
+    }
+  ],
+  "key": {"valid": true, "type": "free"},
+  "available": ["charlie", "oscar", "quebec", "xray"],
+  "restricted": ["foxtrot"],
+  "allFree": false
+}

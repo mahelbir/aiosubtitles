@@ -180,19 +180,24 @@ describe('toHitSiteFileId', () => {
 });
 
 describe('toHitFileExtension', () => {
-  it.each(['Show.S01E01.ass', 'Show.S01E01.SSA'])(
+  it.each(['Show.S01E01.ass', 'Show.S01E01.SSA', 'ass', 'SSA'])(
     'reads %s as an ass file',
     fileName => {
       expect(toHitFileExtension(fileName)).toBe('ass');
     },
   );
 
-  it.each(['Show.S01E01.srt', 'Show.S01E01.zip', 'Show.ass.srt', ''])(
-    'reads %j as an srt file',
-    fileName => {
-      expect(toHitFileExtension(fileName)).toBe('srt');
-    },
-  );
+  it.each([
+    'Show.S01E01.srt',
+    'Show.S01E01.zip',
+    'Show.ass.srt',
+    '',
+    'srt',
+    'class',
+    null,
+  ])('reads %j as an srt file', fileName => {
+    expect(toHitFileExtension(fileName)).toBe('srt');
+  });
 });
 
 describe('buildImdbVideoId', () => {

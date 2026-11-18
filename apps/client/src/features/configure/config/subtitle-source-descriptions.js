@@ -46,4 +46,8 @@ export const SUBTITLE_SOURCE_DESCRIPTIONS = Object.freeze({
   [SubtitleSource.YIFY]: {
     helpText: "No key needed. Requests share the server's limits.",
   },
+  [SubtitleSource.WYZIE]: {
+    helpText: 'Requires an API key.',
+    keyPageUrl: 'https://sub.wyzie.io/redeem',
+  },
 });

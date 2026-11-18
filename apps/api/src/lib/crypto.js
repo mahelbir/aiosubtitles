@@ -129,13 +129,17 @@ export function verifyPassword(plain, hash) {
   return bcryptVerify(plain, hash, {key: config.secretKey});
 }
 
-export function fingerprintPasswordHash(passwordHash) {
+export function fingerprintSecret(secret, fingerprintKey) {
   return crypto
-    .createHmac(SECRET_DIGEST, passwordFingerprintKey)
-    .update(passwordHash)
+    .createHmac(SECRET_DIGEST, fingerprintKey)
+    .update(secret)
     .digest()
     .subarray(0, FINGERPRINT_LENGTH)
     .toString(FINGERPRINT_ENCODING);
+}
+
+export function fingerprintPasswordHash(passwordHash) {
+  return fingerprintSecret(passwordHash, passwordFingerprintKey);
 }
 
 export function isSameSecret(presented, expected) {

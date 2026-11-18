@@ -72,6 +72,11 @@ export const SubtitleFileFormat = Enum({
   OTHER: {value: 'other', fileExtensions: []},
 });
 
+export const ASS_FILE_FORMATS = new Set([
+  SubtitleFileFormat.ASS,
+  SubtitleFileFormat.SSA,
+]);
+
 export const SubtitleFileExtension = Enum({
   SRT: {value: 'srt'},
   ASS: {value: 'ass'},

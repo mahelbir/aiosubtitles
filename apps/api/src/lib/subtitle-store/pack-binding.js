@@ -11,6 +11,7 @@ import {
   pickArchiveEntryForVideo,
 } from '@repo/subtitle-core/archive/pick-archive-entry.js';
 import {
+  ASS_FILE_FORMATS,
   HardRejectReason,
   SUBTITLE_FORMAT_FILE_EXTENSIONS,
   SubtitleFileExtension,
@@ -24,7 +25,6 @@ import {
   insertSubtitleFileRows,
 } from './store-subtitle-file.js';
 
-const ASS_ENTRY_EXTENSIONS = new Set(['ass', 'ssa']);
 const EPISODE_CUT_ENTRY_PATH_PATTERN = /^S\d{2,}E\d{2,}$/;
 const INNER_FILE_INSERT_BATCH_SIZE = 25;
 
@@ -207,7 +207,7 @@ function toEntryFileExtension(fileName, fallbackFileExtension) {
   const extensionStart = fileName.lastIndexOf('.');
   const entryExtension =
     extensionStart > 0 ? fileName.slice(extensionStart + 1).toLowerCase() : '';
-  if (ASS_ENTRY_EXTENSIONS.has(entryExtension)) {
+  if (ASS_FILE_FORMATS.has(entryExtension)) {
     return SubtitleFileExtension.ASS;
   }
   return SUBTITLE_FORMAT_FILE_EXTENSIONS.has(entryExtension)

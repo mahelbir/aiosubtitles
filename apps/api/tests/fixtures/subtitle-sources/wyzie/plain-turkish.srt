@@ -1,0 +1,11 @@
+1
+00:00:00,500 --> 00:00:03,000
+Önceki bölümlerde olanlar.
+
+2
+00:00:07,000 --> 00:00:09,500
+Günaydın, bugün hava çok güzel.
+
+3
+00:00:10,000 --> 00:00:12,200
+İstanbul'a gitmek için erken çıktık.

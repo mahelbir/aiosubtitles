@@ -1,0 +1,24 @@
+{
+  "key_type": "free",
+  "balance": 812,
+  "daily_limit": 1000,
+  "daily_used": 188,
+  "reset_at": 1763510400,
+  "held": false,
+  "subscription": null,
+  "webhook": null,
+  "since": "2026-11-01",
+  "days": [
+    {
+      "date": "2026-11-18",
+      "requests": 188,
+      "routes": {"search": 120, "download": 68},
+      "sources": {"charlie": 100, "xray": 20}
+    }
+  ],
+  "totals": {
+    "requests": 188,
+    "routes": {"search": 120, "download": 68},
+    "sources": {"charlie": 100, "xray": 20}
+  }
+}

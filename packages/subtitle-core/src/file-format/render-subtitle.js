@@ -1,12 +1,8 @@
 import {
+  ASS_FILE_FORMATS,
   SubtitleFileExtension,
-  SubtitleFileFormat,
 } from '../constants/subtitle-core-enums.js';
 
-const ASS_SOURCE_FORMATS = new Set([
-  SubtitleFileFormat.ASS,
-  SubtitleFileFormat.SSA,
-]);
 const ASS_DOCUMENT_HEADER = [
   '[Script Info]',
   'ScriptType: v4.00+',
@@ -83,7 +79,7 @@ export const renderSubtitleFile = ({parsedSubtitle, fileExtension}) => {
     case SubtitleFileExtension.SRT:
       return renderSrtText(parsedSubtitle.cues);
     case SubtitleFileExtension.ASS:
-      return ASS_SOURCE_FORMATS.has(parsedSubtitle.subtitleFileFormat)
+      return ASS_FILE_FORMATS.has(parsedSubtitle.subtitleFileFormat)
         ? parsedSubtitle.sourceText
         : renderAssText(parsedSubtitle.cues);
     default:

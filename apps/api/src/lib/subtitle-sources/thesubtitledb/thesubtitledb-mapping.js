@@ -3,13 +3,13 @@ import {StatusCodes} from 'http-status-codes';
 import {CredentialStatus} from '@repo/shared/constants/credential.js';
 import {SubtitleSource} from '@repo/shared/constants/subtitle-source.js';
 import {VideoType} from '@repo/shared/constants/video-type.js';
-import {SubtitleFileExtension} from '@repo/subtitle-core/constants/subtitle-core-enums.js';
 import {
   fromSiteLanguageCode,
   toSiteLanguageCodes,
 } from '../site-language-codes.js';
 import {
   isSupportedSubtitleSourceFormat,
+  toHitFileExtension,
   toHitReleaseNames,
 } from '../subtitle-source-contract.js';
 import {
@@ -22,7 +22,6 @@ const SEARCH_RESULTS_MAX = 100;
 const SEARCH_LANGUAGE_CODES_MAX = 16;
 const CREDENTIAL_CHECK_IMDB_ID = 'tt0133093';
 const RELEASE_NAME_SEPARATOR_PATTERN = /\r?\n/;
-const ASS_FORMATS = new Set(['ass', 'ssa']);
 const MACHINE_TRANSLATED_BY_AI_KIND = new Map([
   [null, false],
   ['translated', true],
@@ -99,9 +98,7 @@ function toSearchHit(siteSubtitle) {
     releaseNames: toHitReleaseNames(
       (siteSubtitle.release_name ?? '').split(RELEASE_NAME_SEPARATOR_PATTERN),
     ),
-    fileExtension: ASS_FORMATS.has(siteSubtitle.format)
-      ? SubtitleFileExtension.ASS
-      : SubtitleFileExtension.SRT,
+    fileExtension: toHitFileExtension(siteSubtitle.format),
     isSitePack: false,
     isHearingImpaired: siteSubtitle.hearing_impaired ?? null,
     isForced: null,

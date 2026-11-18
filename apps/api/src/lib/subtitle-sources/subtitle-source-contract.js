@@ -120,11 +120,11 @@ import {SubtitleAliasSource} from './subtitle-alias-source.js';
 export const SITE_FILE_ID_LENGTH_MAX = 512;
 const RELEASE_NAMES_MAX = 20;
 const RELEASE_NAME_LENGTH_MAX = 512;
-const INTEGER_COLUMN_MAX = 2147483647;
+export const INTEGER_COLUMN_MAX = 2147483647;
 const HASH_MATCH_VIDEO_HASHES_MAX = 20;
 export const VIDEO_HASH_PATTERN = /^[\da-f]{16}$/i;
 const LEADING_DOT_PATTERN = /^\./;
-const ASS_FILE_NAME_PATTERN = /\.(?:ass|ssa)$/i;
+const ASS_FILE_NAME_PATTERN = /(?:^|\.)(?:ass|ssa)$/i;
 const IMDB_VIDEO_ID_SEPARATOR = ':';
 
 const supportedFileExtensions = new Set([
