@@ -16,7 +16,9 @@
     "enum-plus": "^3.4.0",
     "es-toolkit": "^1.53.1",
     "fastest-levenshtein": "^1.0.16",
+    "fflate": "^0.8.3",
     "franc-min": "^6.2.0",
+    "libarchive-wasm": "^1.2.0",
     "melperjs": "^17.4.0",
     "parsium-media": "^1.1.0"
   },

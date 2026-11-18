@@ -98,9 +98,13 @@ const readMatchedNumber = (releaseName, numberPattern) => {
 const readResolutionHeight = resolution =>
   resolution == null ? null : Number.parseInt(resolution, 10);
 
-export const parseReleaseName = (fullName, {isSitePack = false} = {}) => {
-  if (isMeaninglessName(fullName)) {
-    return {...makeEmptyReleaseInfo(), isMeaningless: true};
+export const parseReleaseName = (
+  fullName,
+  {isSitePack = false, isArchiveEntry = false} = {},
+) => {
+  const isMeaningless = isMeaninglessName(fullName);
+  if (isMeaningless && !isArchiveEntry) {
+    return {...makeEmptyReleaseInfo(), isMeaningless};
   }
   const releaseName = reduceReleaseName(fullName);
   const parsedName = parse(toParsiumInput(releaseName));
@@ -133,5 +137,6 @@ export const parseReleaseName = (fullName, {isSitePack = false} = {}) => {
     audioTags: releaseName.match(AUDIO_TAG_PATTERN) ?? [],
     frameRate: readMatchedNumber(releaseName, FRAME_RATE_PATTERN),
     nameTokens,
+    isMeaningless,
   };
 };

@@ -382,6 +382,28 @@ describe('parseReleaseName', () => {
       );
     });
 
+    it('keeps a one-token archive entry name empty by default', () => {
+      expect(parseReleaseName('S01E02.srt')).toEqual(
+        makeReleaseInfo({isMeaningless: true}),
+      );
+    });
+
+    it('reads a one-token archive entry name and still reports it meaningless', () => {
+      expect(
+        parseReleaseName('S01E02.srt', {isArchiveEntry: true}),
+      ).toMatchObject({
+        isMeaningless: true,
+        seasonNumbers: [1],
+        episodeNumbers: [2],
+      });
+    });
+
+    it('reports a meaningful archive entry name as meaningful', () => {
+      expect(
+        parseReleaseName('Show.S01E02.srt', {isArchiveEntry: true}),
+      ).toMatchObject({isMeaningless: false, episodeNumbers: [2]});
+    });
+
     it('reads a name with a question mark in its title as meaningful', () => {
       expect(parseReleaseName('What.If...?.S01E01.1080p.WEB-DL')).toMatchObject(
         {isMeaningless: false, seasonNumbers: [1], episodeNumbers: [1]},

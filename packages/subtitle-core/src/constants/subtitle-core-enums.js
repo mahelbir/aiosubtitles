@@ -143,3 +143,9 @@ export const SubtitleMessage = Enum({
     label: 'This subtitle could not be downloaded. Please try another one.',
   },
 });
+
+export const ArchiveKind = Enum({
+  ZIP: {value: 'zip'},
+  RAR: {value: 'rar'},
+  SEVEN_ZIP: {value: 'seven-zip'},
+});

@@ -1,5 +1,6 @@
 import {describe, expect, it} from 'vitest';
 import {
+  ArchiveKind,
   ConfidenceWord,
   DuplicateTier,
   HardRejectReason,
@@ -19,6 +20,7 @@ import {
 const KEBAB_CASE_PATTERN = /^[a-z0-9]+(-[a-z0-9]+)*$/;
 
 const enumMembers = [
+  ['ArchiveKind', ArchiveKind, ['ZIP', 'RAR', 'SEVEN_ZIP']],
   [
     'ScoringSignal',
     ScoringSignal,
