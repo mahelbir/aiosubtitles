@@ -11,12 +11,12 @@ import {devNull, tmpdir} from 'node:os';
 import {join} from 'node:path';
 import {omit} from 'es-toolkit';
 import {afterAll, beforeAll, describe, expect, it} from 'vitest';
-import {runExportDisagreements} from '../src/commands/export-disagreements.js';
-import {runExportNames} from '../src/commands/export-names.js';
 import {
   assertPrivateOutputPath,
   PrivateOutputPathError,
-} from '../src/private-output.js';
+} from '@repo/tooling/private-output.js';
+import {runExportDisagreements} from '../src/commands/export-disagreements.js';
+import {runExportNames} from '../src/commands/export-names.js';
 import {ATLAS_FIXTURE_ROOT} from './support/atlas-fixture.js';
 
 const GIT_SAFE_ENV = omit(process.env, [

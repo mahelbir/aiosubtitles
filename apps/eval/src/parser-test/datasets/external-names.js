@@ -1,9 +1,9 @@
 import {realpathSync} from 'node:fs';
 import {readdir, readFile} from 'node:fs/promises';
-import {dirname, join} from 'node:path';
+import {join} from 'node:path';
 import {mapValues} from 'es-toolkit';
+import {getMainCheckoutPath, runGit} from '@repo/tooling/git.js';
 import {EVAL_APP_ROOT} from '../../eval-paths.js';
-import {runGit} from '../../git-command.js';
 import {parseGuessitYaml} from './guessit-yaml.js';
 import {countDroppedEditionNames, mergeNameCases} from './name-cases.js';
 import {listGoPttCases, listPttCases} from './ptt-cases.js';
@@ -126,12 +126,9 @@ export const readReferenceCommits = ({referenceRoot}) =>
 
 export const resolveReferenceRoot = ({startDirectory = EVAL_APP_ROOT} = {}) => {
   try {
-    const commonGitDir = runGit(startDirectory, [
-      'rev-parse',
-      '--path-format=absolute',
-      '--git-common-dir',
-    ]);
-    return realpathSync(join(dirname(commonGitDir), REFERENCE_FOLDER_NAME));
+    return realpathSync(
+      join(getMainCheckoutPath(startDirectory), REFERENCE_FOLDER_NAME),
+    );
   } catch {
     throw new ReferenceRootError(
       'The .reference folder next to the main checkout is missing.',

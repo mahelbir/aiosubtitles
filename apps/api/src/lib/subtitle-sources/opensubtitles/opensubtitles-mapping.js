@@ -28,7 +28,7 @@ import {
   toSubtitleSourceStatusError,
 } from '../subtitle-source-request.js';
 
-const OPENSUBTITLES_API_URL = 'https://api.opensubtitles.com/api/v1';
+export const OPENSUBTITLES_API_URL = 'https://api.opensubtitles.com/api/v1';
 const API_PATH = '/api/v1';
 const IMDB_ID_PATTERN = /^tt(\d+)$/i;
 const ASS_FILE_NAME_PATTERN = /\.(ass|ssa)$/i;
@@ -42,7 +42,7 @@ const CREDENTIAL_REJECTED_STATUSES = [
   StatusCodes.FORBIDDEN,
 ];
 const LOGIN_ACCEPTED_STATUSES = [StatusCodes.FORBIDDEN];
-const DOWNLOAD_ACCEPTED_STATUSES = [
+export const DOWNLOAD_ACCEPTED_STATUSES = [
   StatusCodes.FORBIDDEN,
   StatusCodes.NOT_ACCEPTABLE,
   StatusCodes.INTERNAL_SERVER_ERROR,

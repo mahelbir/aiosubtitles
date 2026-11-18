@@ -3,6 +3,7 @@ import {parseArgs} from 'node:util';
 import {runExportDisagreements} from './commands/export-disagreements.js';
 import {runExportNames} from './commands/export-names.js';
 import {runInspect} from './commands/inspect.js';
+import {runMoviehashReportCommand} from './commands/moviehash-report.js';
 import {runParserTestCommand} from './commands/parser-test.js';
 import {runScoreTablesCommand} from './commands/score-tables.js';
 
@@ -21,6 +22,7 @@ const OPTION_CHECKS = {
   'guessit-output': ABSOLUTE_PATH_CHECK,
   'pending-output': ABSOLUTE_PATH_CHECK,
   'parser-labels': ABSOLUTE_PATH_CHECK,
+  enrichment: ABSOLUTE_PATH_CHECK,
   'report-date': {
     isValid: optionValue => REPORT_DATE_PATTERN.test(optionValue),
     problem: 'must be YYYY-MM-DD',
@@ -51,6 +53,10 @@ export const EVAL_COMMANDS = {
   'score-tables': {
     options: {'report-date': STRING_OPTION},
     run: runScoreTablesCommand,
+  },
+  'moviehash-report': {
+    options: {enrichment: STRING_OPTION, 'report-date': STRING_OPTION},
+    run: runMoviehashReportCommand,
   },
 };
 

@@ -11,7 +11,7 @@ const INTEGRATION_DIRS = 'integration,security,contract,concurrency,budget';
    loaded module whose work happens inside its functions. So it is applied only
    where it is needed — the projects that boot the app — and coverage is
    measured on the ones where it is trustworthy. */
-const server = {
+export const server = {
   deps: {
     external: [
       /[\\/]apps[\\/]api[\\/]src[\\/]/,
@@ -81,9 +81,11 @@ export default defineConfig({
          therefore selected by test path, never by `--project`. */
       include: [
         'apps/api/src/**/*.js',
+        'apps/api/scripts/**/*.js',
         'apps/eval/src/**/*.js',
         'packages/shared/src/**/*.js',
         'packages/subtitle-core/src/**/*.js',
+        'packages/tooling/src/**/*.js',
       ],
       /* What only a booted application reaches. Those paths are covered by the
          integration project, whose coverage V8 cannot attribute — counting them

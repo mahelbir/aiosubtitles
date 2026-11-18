@@ -1,6 +1,6 @@
 import {existsSync} from 'node:fs';
 import {dirname} from 'node:path';
-import {runGit} from './git-command.js';
+import {runGit} from './git.js';
 
 export class PrivateOutputPathError extends Error {
   constructor() {

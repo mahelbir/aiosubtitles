@@ -1,11 +1,11 @@
 import {readFile} from 'node:fs/promises';
+import {assertPrivateOutputPath} from '@repo/tooling/private-output.js';
 import {writeJsonFile} from '../json-file.js';
 import {readOwnNames} from '../parser-test/datasets/own-names.js';
 import {
   exportPendingItems,
   parseGuessitOutput,
 } from '../parser-test/run-parser-test.js';
-import {assertPrivateOutputPath} from '../private-output.js';
 
 export const runExportDisagreements = async ({
   atlasRoot,

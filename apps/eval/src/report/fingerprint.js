@@ -1,5 +1,6 @@
 import {readFile} from 'node:fs/promises';
 import {sha256} from 'melperjs/node';
+import {runGit} from '@repo/tooling/git.js';
 import {atlasPaths} from '../corpus/atlas-paths.js';
 import {
   EVAL_APP_ROOT,
@@ -7,7 +8,6 @@ import {
   METRICS_PATH,
   SUBTITLE_CORE_SOURCE_TREE_PATH,
 } from '../eval-paths.js';
-import {runGit} from '../git-command.js';
 import {readJsonFile} from '../json-file.js';
 import {computeMetricsDigest} from '../metrics-lock.js';
 

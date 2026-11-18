@@ -447,6 +447,9 @@ importers:
       '@repo/subtitle-core':
         specifier: workspace:*
         version: link:../../packages/subtitle-core
+      '@repo/tooling':
+        specifier: workspace:*
+        version: link:../../packages/tooling
       enum-plus:
         specifier: ^3.4.0
         version: 3.4.0
@@ -533,6 +536,9 @@ importers:
       dotenv:
         specifier: ^18.0.9
         version: 18.0.9
+      es-toolkit:
+        specifier: ^1.53.1
+        version: 1.53.1
       melperjs:
         specifier: ^17.4.0
         version: 17.4.0

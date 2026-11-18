@@ -377,3 +377,4 @@ brainstorming.md
 !/apps/api/storage/*/.gitkeep
 /data/
 /apps/eval/.out/
+/apps/api/.out/

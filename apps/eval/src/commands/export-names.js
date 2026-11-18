@@ -1,8 +1,8 @@
+import {assertPrivateOutputPath} from '@repo/tooling/private-output.js';
 import {NameDataset} from '../constants/parser-library.js';
 import {writeJsonFile} from '../json-file.js';
 import {resolveReferenceRoot} from '../parser-test/datasets/external-names.js';
 import {exportParserNames} from '../parser-test/run-parser-test.js';
-import {assertPrivateOutputPath} from '../private-output.js';
 
 export const runExportNames = async ({
   atlasRoot,
