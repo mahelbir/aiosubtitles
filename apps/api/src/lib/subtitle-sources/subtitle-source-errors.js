@@ -1,10 +1,18 @@
 import {SubtitleSource} from '@repo/shared/constants/subtitle-source.js';
+import {CatalogService} from '../video-catalog/catalog-service.js';
 
 export class SubtitleSourceError extends Error {
   constructor({subtitleSource, message, cause}) {
-    super(`${SubtitleSource.label(subtitleSource)} ${message}`, {cause});
+    const serviceLabel =
+      SubtitleSource.label(subtitleSource) ??
+      CatalogService.label(subtitleSource) ??
+      subtitleSource;
+    super(`${serviceLabel} ${message}`, {cause});
     this.name = new.target.name;
-    this.subtitleSource = subtitleSource;
+    this.serviceName = subtitleSource;
+    this.subtitleSource = SubtitleSource.has(subtitleSource)
+      ? subtitleSource
+      : null;
   }
 }
 

@@ -373,3 +373,33 @@ describe('peek', () => {
     expect(await cache.peek(FIXTURE_SUBJECT, 'fallback')).toBeNull();
   });
 });
+
+describe('a reload', () => {
+  it('replaces a cached value with a fresh load at the full TTL', async () => {
+    const load = vi
+      .fn()
+      .mockResolvedValueOnce({version: 1})
+      .mockResolvedValue({version: 2});
+    const cache = createFixtureCache(load);
+    await cache.get(FIXTURE_SUBJECT);
+
+    await expect(cache.reload(FIXTURE_SUBJECT)).resolves.toEqual({version: 2});
+    await expect(cache.get(FIXTURE_SUBJECT)).resolves.toEqual({version: 2});
+    expect(load).toHaveBeenCalledTimes(2);
+    await expect(
+      redis.ttl(`${FIXTURE_PREFIX}${FIXTURE_SUBJECT}`),
+    ).resolves.toBeGreaterThan(FIXTURE_TTL - 5);
+  });
+
+  it('never overwrites the tombstone of an invalidation', async () => {
+    const cache = createFixtureCache(async () => ({version: 1}));
+    await cache.get(FIXTURE_SUBJECT);
+    await cache.invalidate(FIXTURE_SUBJECT);
+
+    await cache.reload(FIXTURE_SUBJECT);
+
+    expect(await cache.peek(FIXTURE_SUBJECT, 'invalidated')).toBe(
+      'invalidated',
+    );
+  });
+});

@@ -19,6 +19,19 @@ redis.defineCommand('claimAtGeneration', {
   `,
 });
 
+redis.defineCommand('replaceAtGeneration', {
+  numberOfKeys: 2,
+  lua: `
+    if (tonumber(redis.call('GET', KEYS[2])) or 0) ~= tonumber(ARGV[1]) then
+      return false
+    end
+    if redis.call('GET', KEYS[1]) == ARGV[4] then
+      return false
+    end
+    return redis.call('SET', KEYS[1], ARGV[2], 'EX', ARGV[3])
+  `,
+});
+
 export class RedisCache {
   _prefix;
   _generationKey;
@@ -88,7 +101,13 @@ export class RedisCache {
     return this._remember(key, deepFreeze(JSON.parse(cached)), epoch);
   }
 
-  async _fill(key, id, enabled) {
+  reload(id) {
+    const key = this._key(id);
+    this._memo?.delete(key);
+    return this._fill(key, id, this._ttl() > 0, {isReplacing: true});
+  }
+
+  async _fill(key, id, enabled, {isReplacing = false} = {}) {
     const epoch = this._epoch;
     const generation = enabled
       ? Number(await redis.get(this._generationKey))
@@ -99,13 +118,16 @@ export class RedisCache {
     if (!enabled) {
       return value;
     }
-    const stored = await redis.claimAtGeneration(
+    const storeArguments = [
       key,
       this._generationKey,
       generation,
       isMissing ? MISSING : JSON.stringify(data),
       isMissing ? Math.min(this._ttl(), MISSING_TTL) : this._ttl(),
-    );
+    ];
+    const stored = isReplacing
+      ? await redis.replaceAtGeneration(...storeArguments, TOMBSTONE)
+      : await redis.claimAtGeneration(...storeArguments);
     return stored ? this._remember(key, value, epoch) : value;
   }
 

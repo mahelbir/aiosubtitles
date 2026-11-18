@@ -414,8 +414,8 @@ async function sendSubtitleSourceRequest(
   );
 }
 
-export async function requestSubtitleSource({
-  subtitleSource,
+export async function requestRemoteResource({
+  serviceName,
   url,
   method = 'GET',
   headers = {},
@@ -430,7 +430,7 @@ export async function requestSubtitleSource({
       {
         subtitleSourceRequest: {url, method, headers, body},
         readOptions: {
-          subtitleSource,
+          subtitleSource: serviceName,
           credentialId,
           acceptedStatuses,
           responseType,
@@ -439,6 +439,13 @@ export async function requestSubtitleSource({
       {signal, redirectCount: 0},
     );
   } catch (error) {
-    throw toSubtitleSourceError(error, {subtitleSource});
+    throw toSubtitleSourceError(error, {subtitleSource: serviceName});
   }
+}
+
+export function requestSubtitleSource({subtitleSource, ...requestOptions}) {
+  return requestRemoteResource({
+    serviceName: subtitleSource,
+    ...requestOptions,
+  });
 }
