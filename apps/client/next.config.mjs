@@ -23,6 +23,7 @@ export default function nextConfig(phase) {
     },
     reactCompiler: !isDev || isTest, // The feature has been disabled to save device's battery life
     experimental: {
+      ...(isTest && {agentUpgrade: false}),
       globalNotFound: true,
       optimizePackageImports: ['@reactuses/core', 'es-toolkit', 'melperjs'],
     },

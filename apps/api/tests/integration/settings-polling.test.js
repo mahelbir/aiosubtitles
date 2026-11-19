@@ -19,7 +19,6 @@ beforeEach(async () => {
   await writeFile({});
   log = {error: vi.fn()};
   settings = new LoggedSettings({
-    filePath: POLLING_FILE,
     store: new FileSettingsStore(POLLING_FILE),
     schema: fixtureSettingsDefinition.schema,
     log,
@@ -54,33 +53,19 @@ it('logs the failure again once a reload has recovered in between', async () => 
   await vi.waitFor(() => expect(log.error).toHaveBeenCalledTimes(2));
 });
 
-it('logs a broken file by error name and file path, never a fragment of its content', async () => {
-  const sharedSecret = 'abcdef0123456789secretkey';
-  await fs.writeFile(
-    POLLING_FILE,
-    `{"sharedCredentials": {"jimaku": ['${sharedSecret}']}}`,
-  );
+it('logs a broken file by its path and cause, never a fragment of its content', async () => {
+  const secret = 'qzxjvkwpfgmhtrsd';
+  await fs.writeFile(POLLING_FILE, `{"apiKeys": ['${secret}']}`);
 
   await vi.waitFor(() => expect(log.error).toHaveBeenCalledOnce());
 
-  const loggedText = JSON.stringify(log.error.mock.calls, (_, loggedValue) =>
-    loggedValue instanceof Error
-      ? pino.stdSerializers.err(loggedValue)
-      : loggedValue,
+  const logged = JSON.stringify(log.error.mock.calls, (_, value) =>
+    value instanceof Error ? pino.stdSerializers.err(value) : value,
   );
-  expect(log.error.mock.calls[0][0]).toMatchObject({
-    errorName: 'Error',
-    causeName: 'SyntaxError',
-    settingsFile: POLLING_FILE,
-  });
-  for (
-    let fragmentStart = 0;
-    fragmentStart + 4 <= sharedSecret.length;
-    fragmentStart += 1
-  ) {
-    expect(loggedText).not.toContain(
-      sharedSecret.slice(fragmentStart, fragmentStart + 4),
-    );
+  expect(logged).toContain(POLLING_FILE);
+  expect(logged).toContain('SyntaxError');
+  for (let start = 0; start + 4 <= secret.length; start += 1) {
+    expect(logged).not.toContain(secret.slice(start, start + 4));
   }
 });
 
