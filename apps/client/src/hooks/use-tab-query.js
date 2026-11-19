@@ -12,7 +12,9 @@ export function useTabQuery(
   const parsers = useMemo(() => {
     const values = items.map(item => item.value);
     return {
-      [urlKey]: parseAsStringLiteral(values).withDefault(values[0]),
+      [urlKey]: parseAsStringLiteral(values)
+        .withDefault(values[0])
+        .withOptions({clearOnDefault: false}),
       ...Object.fromEntries(resetKeys.map(key => [key, parseAsString])),
     };
   }, [items, resetKeys, urlKey]);

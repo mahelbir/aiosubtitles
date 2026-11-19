@@ -485,7 +485,7 @@ test.describe('tab query', () => {
 
     await getTab(page, 'Genel').click();
 
-    await expectSearchParams(page).toEqual({});
+    await expectSearchParams(page).toEqual({tab: 'genel'});
   });
 
   test('the tab menu is a vertical tablist whose ArrowDown and ArrowUp move the focus between tabs', async ({
