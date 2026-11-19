@@ -141,9 +141,21 @@ async function answerFeed({feedBody, answerTorrent} = {}) {
   });
 }
 
-function createClientWithAid(anidbId = FRIEREN_SECOND_SEASON_AID) {
+function giveEveryTurnAtOnce({callCount}) {
+  return Array.from({length: callCount}, () => 0);
+}
+
+function createClientWithAid(
+  anidbId = FRIEREN_SECOND_SEASON_AID,
+  reserveTurns = giveEveryTurnAtOnce,
+) {
   const readAnidbId = vi.fn(async () => anidbId);
-  return {readAnidbId, client: createAnimetoshoClient({readAnidbId})};
+  const reservePace = vi.fn(async paceOptions => reserveTurns(paceOptions));
+  return {
+    readAnidbId,
+    reservePace,
+    client: createAnimetoshoClient({readAnidbId, reservePace}),
+  };
 }
 
 describe('animetoshoClient', () => {
@@ -282,13 +294,82 @@ describe('animetoshoClient', () => {
   });
 
   it('answers an empty feed with no hits and opens no torrent', async () => {
-    const {client} = createClientWithAid();
+    const {client, reservePace} = createClientWithAid();
     await answerFeed({feedBody: []});
 
     await expect(
       client.searchSubtitles?.(kitsuEpisodeQuery, null),
     ).resolves.toEqual([]);
     expect(requestSubtitleSource).toHaveBeenCalledTimes(1);
+    expect(reservePace).toHaveBeenCalledTimes(1);
+  });
+
+  it('takes a turn on the shared feed pace before the feed call, then one per opened torrent', async () => {
+    const {client, reservePace} = createClientWithAid();
+    await answerFeed();
+
+    await client.searchSubtitles?.(kitsuEpisodeQuery, null);
+
+    const paceCalls = reservePace.mock.calls.map(
+      ([paceOptions]) => paceOptions,
+    );
+    expect(paceCalls).toEqual([
+      {
+        subtitleSource: SubtitleSource.ANIMETOSHO,
+        intervalMs: 2500,
+        burstMax: 6,
+        waitMaxMs: 10000,
+        callCount: 1,
+        plannedCallCount: 6,
+      },
+      expect.objectContaining({callCount: readOpenedTorrentIds().length}),
+    ]);
+    expect(reservePace.mock.invocationCallOrder[0]).toBeLessThan(
+      requestSubtitleSource.mock.invocationCallOrder[0],
+    );
+    expect(reservePace.mock.invocationCallOrder[1]).toBeLessThan(
+      requestSubtitleSource.mock.invocationCallOrder[1],
+    );
+  });
+
+  it('fails the search without a call while the feed pace is full', async () => {
+    const {client} = createClientWithAid(FRIEREN_SECOND_SEASON_AID, () => null);
+    await answerFeed();
+
+    await expect(
+      client.searchSubtitles?.(kitsuEpisodeQuery, null),
+    ).rejects.toBeInstanceOf(SourceUnavailableError);
+    expect(requestSubtitleSource).not.toHaveBeenCalled();
+  });
+
+  it('fails the whole search, opening no torrent, when its torrents do not fit the pace', async () => {
+    const {client} = createClientWithAid(
+      FRIEREN_SECOND_SEASON_AID,
+      ({callCount}) => (callCount === 1 ? [0] : null),
+    );
+    await answerFeed();
+
+    await expect(
+      client.searchSubtitles?.(kitsuEpisodeQuery, null),
+    ).rejects.toBeInstanceOf(SourceUnavailableError);
+    expect(requestSubtitleSource).toHaveBeenCalledTimes(1);
+    expect(readOpenedTorrentIds()).toEqual([]);
+  });
+
+  it('stops waiting for its turn, with no call, once the search is aborted', async () => {
+    const {client} = createClientWithAid(FRIEREN_SECOND_SEASON_AID, () => [
+      60000,
+    ]);
+    const abortController = new AbortController();
+    abortController.abort();
+    await answerFeed();
+
+    await expect(
+      client.searchSubtitles?.(kitsuEpisodeQuery, null, {
+        signal: abortController.signal,
+      }),
+    ).rejects.toBeInstanceOf(SourceUnavailableError);
+    expect(requestSubtitleSource).not.toHaveBeenCalled();
   });
 
   it('fails the search when the feed body is no list', async () => {

@@ -33,7 +33,7 @@ None of these sites offers a key, token or account that a client can send.
 | Gestdown         | None. Its docs say no endpoint needs authentication                                                             | The server code has a per-IP limiter of 50/min with a burst of 200, but it is off by default, so production is ?. A download can also hit Addic7ed's own limit, which every Gestdown user shares |
 | YIFY             | None. The site has no API and no sign-in                                                                        | ?                                                                                                                                                                                                |
 | TVsubtitles      | None. The site has no sign-in                                                                                   | ?                                                                                                                                                                                                |
-| AnimeTosho       | None. Site accounts serve comments and uploads only, and the API ignores keys                                   | ? Others report that 1 request per 2.5 s holds and 1 per 2 s gets 429s                                                                                                                           |
+| AnimeTosho       | None. Site accounts serve comments and uploads only, and the API ignores keys                                   | ? Others report that 1 request per 2.5 s holds and 1 per 2 s gets 429s. The server spaces its feed calls to that pace                                                                            |
 
 ## Limit pages
 
@@ -59,3 +59,4 @@ The other sources publish no limit page.
 - A 429 or a 503 with `Retry-After` from the site opens a short breaker for the whole source. A per-key limit marks only that key "Limit reached".
 - On TheSubtitleDB and AniSub a key has a limit of its own, so a 429 on a call made without a key pauses only the calls sent with no key at all. Downloads with the user's own key or a server key keep going. AniSub searches never send a key, so they pause for everyone.
 - Searches spend no budget. They are cached and shared between users.
+- AnimeTosho feed calls share one pace for the whole server. When it is idle, a whole search goes at once; after that, each call waits its turn. A search that cannot get its turns within a few seconds is skipped and runs again on the next request.
