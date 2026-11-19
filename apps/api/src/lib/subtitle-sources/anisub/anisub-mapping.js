@@ -221,6 +221,10 @@ function findDownloadEpisode(siteEpisode, {catalogEpisode, isSitePack}) {
     : String(catalogEpisode);
 }
 
+function hasTokenFileLink({siteFileUrl}) {
+  return readSiteFileTarget(siteFileUrl) !== null;
+}
+
 function buildIntegrationDownloadRequest(subtitleRef, credential) {
   const siteFileTarget = readSiteFileTarget(subtitleRef.siteFileUrl);
   if (siteFileTarget === null) {
@@ -339,8 +343,10 @@ export const anisubMapping = {
   toSearchHits,
   buildDownloadRequest,
   toDownload,
+  hasTokenFileLink,
   buildIntegrationDownloadRequest,
   toDownloadLink,
+  toFileDownloadLink,
   buildCredentialCheckRequest,
   toCredentialCheck,
   buildQuotaRequest,

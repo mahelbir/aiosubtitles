@@ -415,38 +415,38 @@ describe('wyzie credentials of a user (D32)', () => {
     };
   }
 
-  function readCandidates(credentialRows) {
+  async function readCandidates(credentialRows) {
     const cachedUserConfig = {userConfigId, credentials: credentialRows};
     return {
       searchCandidates: toCandidateCredentials({
         ...readSearchCredentials({cachedUserConfig, client: wyzieClient}),
         canUseWithoutCredential: wyzieClient.canSearchWithoutCredential(),
       }),
-      downloadCandidates: readDownloadCredentials({
+      downloadCandidates: await readDownloadCredentials({
         cachedUserConfig,
         client: wyzieClient,
       }),
     };
   }
 
-  it('gives a user with a wyzie key only that key, never a keyless path', () => {
-    const {searchCandidates, downloadCandidates} = readCandidates([
+  it('gives a user with a wyzie key only that key, never a keyless path', async () => {
+    const {searchCandidates, downloadCandidates} = await readCandidates([
       makeWyzieCredentialRow(CredentialStatus.VALID),
     ]);
     expect(searchCandidates.map(({apiKey}) => apiKey)).toEqual([API_KEY_A]);
     expect(downloadCandidates.map(({apiKey}) => apiKey)).toEqual([API_KEY_A]);
   });
 
-  it('gives a user whose wyzie key is invalid no path at all', () => {
-    const {searchCandidates, downloadCandidates} = readCandidates([
+  it('gives a user whose wyzie key is invalid no path at all', async () => {
+    const {searchCandidates, downloadCandidates} = await readCandidates([
       makeWyzieCredentialRow(CredentialStatus.INVALID),
     ]);
     expect(searchCandidates).toEqual([]);
     expect(downloadCandidates).toEqual([]);
   });
 
-  it('gives a user without a wyzie key no wyzie call', () => {
-    const {searchCandidates, downloadCandidates} = readCandidates([]);
+  it('gives a user without a wyzie key no wyzie call', async () => {
+    const {searchCandidates, downloadCandidates} = await readCandidates([]);
     expect(searchCandidates).toEqual([]);
     expect(downloadCandidates).toEqual([]);
   });

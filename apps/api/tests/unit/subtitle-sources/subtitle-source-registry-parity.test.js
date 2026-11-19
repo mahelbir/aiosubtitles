@@ -28,14 +28,18 @@ describe('the subtitle source registry', () => {
 
   it.each(registeredClients)(
     '%s searches and downloads without a key exactly as its requirement allows',
-    (subtitleSource, client) => {
+    async (subtitleSource, client) => {
       const {credentialRequirement} = SubtitleSource.raw(subtitleSource);
-      const keylessCalls = [
+      const keylessCalls = await Promise.all([
         client.canSearchWithoutCredential(),
         client.canDownloadWithoutCredential(),
-      ];
+      ]);
+      for (const keylessCall of keylessCalls) {
+        expect(keylessCall).toBeTypeOf('boolean');
+      }
       if (credentialRequirement === CredentialRequirement.REQUIRED) {
         expect(keylessCalls).toEqual([false, false]);
+        expect(client.canUseSharedCredential).not.toBe(true);
       }
       if (credentialRequirement === CredentialRequirement.NONE) {
         expect(keylessCalls).toEqual([true, true]);
@@ -43,8 +47,29 @@ describe('the subtitle source registry', () => {
       }
       if (credentialRequirement === CredentialRequirement.OPTIONAL) {
         expect(client.credentialKinds.length).toBeGreaterThan(0);
-        expect(keylessCalls).toContain(true);
       }
     },
   );
+
+  it('lets exactly Jimaku, BetaSeries and AniSub draw on shared server credentials', () => {
+    expect(
+      registeredClients
+        .filter(([, client]) => client.canUseSharedCredential === true)
+        .map(([subtitleSource]) => subtitleSource)
+        .toSorted(),
+    ).toEqual(
+      [
+        SubtitleSource.ANISUB,
+        SubtitleSource.BETASERIES,
+        SubtitleSource.JIMAKU,
+      ].toSorted(),
+    );
+    for (const [subtitleSource, client] of registeredClients) {
+      if (client.canUseSharedCredential) {
+        expect(SubtitleSource.raw(subtitleSource).credentialRequirement).toBe(
+          CredentialRequirement.OPTIONAL,
+        );
+      }
+    }
+  });
 });

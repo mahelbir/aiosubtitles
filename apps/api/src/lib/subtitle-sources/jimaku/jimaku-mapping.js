@@ -218,16 +218,17 @@ function readSiteFileId(siteFileId) {
   return {entryId: fileMatch[1], fileName: fileMatch[2]};
 }
 
-function buildDownloadRequest({siteFileId}, credential) {
-  if (!credential) {
-    throw toSiteError('A download needs the user key.');
-  }
+function buildDownloadRequest({siteFileId}) {
   const {entryId, fileName} = readSiteFileId(siteFileId);
-  return buildRequest(toFileUrl(entryId, fileName), {}, credential, {
+  return {
+    subtitleSource: SubtitleSource.JIMAKU,
+    url: toFileUrl(entryId, fileName),
+    method: 'GET',
     headers: {},
     responseType: 'bytes',
+    acceptedStatuses: [StatusCodes.TOO_MANY_REQUESTS],
     credentialId: null,
-  });
+  };
 }
 
 function toDownload(response, {siteFileId}) {

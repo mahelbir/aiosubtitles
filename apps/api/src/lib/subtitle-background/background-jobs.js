@@ -89,9 +89,10 @@ export function scheduleListBackgroundWork({
           client,
           candidates: sourceCandidates,
           videoContext,
-          credentials: readDownloadCredentials({
+          credentials: await readDownloadCredentials({
             cachedUserConfig: jobUserConfig,
             client,
+            isBackground: true,
           }),
           cachedUserConfig: jobUserConfig,
           subtitleSourceRegistry,
@@ -163,11 +164,12 @@ export async function downloadFreeCandidates({
   ) {
     return [];
   }
+  const isUserQuotaKept = client.canUseSharedCredential === true;
   const freeCandidates = candidates.filter(
     candidate =>
       candidate.subtitleSource === client.subtitleSource &&
       candidate.archiveEntryPath === '' &&
-      candidate.isQuotaCostly !== true,
+      (isUserQuotaKept || candidate.isQuotaCostly !== true),
   );
   const groupIndexes = new Map();
   readDuplicateGroups(freeCandidates).forEach(({members}, groupIndex) => {

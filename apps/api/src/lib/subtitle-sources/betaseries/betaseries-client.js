@@ -1,26 +1,20 @@
 import {CredentialKind} from '@repo/shared/constants/credential.js';
 import {SubtitleSource} from '@repo/shared/constants/subtitle-source.js';
+import {sharedCredentialPool as defaultSharedCredentialPool} from '../shared-credential-pool.js';
 import {SubtitleSourceBudgetScope} from '../subtitle-source-contract.js';
-import {requestSubtitleSource} from '../subtitle-source-request.js';
+import {requestSubtitleSource as requestSite} from '../subtitle-source-request.js';
 import {betaseriesMapping} from './betaseries-mapping.js';
 
 const DOWNLOAD_WINDOW = 60000;
 const DOWNLOAD_MAX = 10;
 
-export const betaseriesClient = {
-  subtitleSource: SubtitleSource.BETASERIES,
-  credentialKinds: [CredentialKind.API_KEY],
-  isSearchHashSensitive: false,
-  downloadBudgets: [
-    {
-      budgetScope: SubtitleSourceBudgetScope.SUBTITLE_SOURCE,
-      windowMs: DOWNLOAD_WINDOW,
-      requestMax: DOWNLOAD_MAX,
-    },
-  ],
-  canSearchWithoutCredential: () => false,
-  canDownloadWithoutCredential: () => false,
-  async searchSubtitles(searchQuery, credential, {signal} = {}) {
+export function createBetaseriesClient({
+  requestSubtitleSource = requestSite,
+  sharedCredentialPool = defaultSharedCredentialPool,
+} = {}) {
+  const subtitleSource = SubtitleSource.BETASERIES;
+
+  async function searchWithCredential(searchQuery, credential, signal) {
     const showRequest = betaseriesMapping.buildShowRequest(
       searchQuery,
       credential,
@@ -61,22 +55,50 @@ export const betaseriesClient = {
       }),
       credential,
     );
-  },
-  async downloadSubtitle(subtitleRef, credential, {signal} = {}) {
-    return betaseriesMapping.toDownload(
-      await requestSubtitleSource({
-        ...betaseriesMapping.buildDownloadRequest(subtitleRef),
-        signal,
-      }),
-    );
-  },
-  async checkCredential(credential, {signal} = {}) {
-    return betaseriesMapping.toCredentialCheck(
-      await requestSubtitleSource({
-        ...betaseriesMapping.buildCredentialCheckRequest(credential),
-        signal,
-      }),
-      credential,
-    );
-  },
-};
+  }
+
+  return {
+    subtitleSource,
+    credentialKinds: [CredentialKind.API_KEY],
+    isSearchHashSensitive: false,
+    canUseSharedCredential: true,
+    isDownloadKeyless: true,
+    downloadBudgets: [
+      {
+        budgetScope: SubtitleSourceBudgetScope.SUBTITLE_SOURCE,
+        windowMs: DOWNLOAD_WINDOW,
+        requestMax: DOWNLOAD_MAX,
+      },
+    ],
+    canSearchWithoutCredential: () =>
+      sharedCredentialPool.hasUsableCredential(subtitleSource),
+    canDownloadWithoutCredential: () => true,
+    searchSubtitles(searchQuery, credential, {signal} = {}) {
+      return sharedCredentialPool.callWithCredential({
+        subtitleSource,
+        credential,
+        runCall: activeCredential =>
+          searchWithCredential(searchQuery, activeCredential, signal),
+      });
+    },
+    async downloadSubtitle(subtitleRef, credential, {signal} = {}) {
+      return betaseriesMapping.toDownload(
+        await requestSubtitleSource({
+          ...betaseriesMapping.buildDownloadRequest(subtitleRef),
+          signal,
+        }),
+      );
+    },
+    async checkCredential(credential, {signal} = {}) {
+      return betaseriesMapping.toCredentialCheck(
+        await requestSubtitleSource({
+          ...betaseriesMapping.buildCredentialCheckRequest(credential),
+          signal,
+        }),
+        credential,
+      );
+    },
+  };
+}
+
+export const betaseriesClient = createBetaseriesClient();

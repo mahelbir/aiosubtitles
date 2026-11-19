@@ -500,6 +500,81 @@ function toJsonResponse(body, status = StatusCodes.OK) {
   };
 }
 
+describe('anisubMapping.toFileDownloadLink', () => {
+  it('reads file bytes as no download link', () => {
+    expect(
+      anisubMapping.toFileDownloadLink({
+        status: StatusCodes.OK,
+        headers: {'content-type': 'application/x-subrip'},
+        body: Buffer.from('1\n00:00:01,000 --> 00:00:02,000\nŞimdi\n'),
+      }),
+    ).toBeNull();
+  });
+
+  it('reads the public download answer as the cdn file to fetch', async () => {
+    const downloadLink = anisubMapping.toFileDownloadLink(
+      toJsonResponse(await readFixture(INTEGRATION_DOWNLOAD_FIXTURE)),
+    );
+    expect(downloadLink).toEqual({
+      siteFileUrl:
+        'https://cdn.anisub.co/subtitles/2025/09/2329-one-piece-1100.rar',
+      fileNameHint: '2329-ONE_PIECE-1100.rar',
+    });
+    expect(anisubMapping.buildDownloadRequest(downloadLink)).toMatchObject({
+      url: downloadLink.siteFileUrl,
+      headers: {},
+      responseType: 'bytes',
+      credentialId: null,
+    });
+  });
+
+  it.each([
+    ['a failed envelope', {success: false, message: 'Bulunamadı.'}],
+    ['no download url', {success: true, data: {}}],
+    [
+      'a private download url',
+      {success: true, data: {download_url: 'http://10.0.0.5/file.rar'}},
+    ],
+    [
+      'a download url off the AniSub hosts',
+      {success: true, data: {download_url: 'https://cdn.other.test/a.rar'}},
+    ],
+    [
+      'a download url on a look-alike host',
+      {success: true, data: {download_url: 'https://evilanisub.co/a.rar'}},
+    ],
+    ['another JSON shape', {subtitles: []}],
+  ])('reads %s as an unavailable source', (_, body) => {
+    expect(
+      catchError(() => anisubMapping.toFileDownloadLink(toJsonResponse(body))),
+    ).toBeInstanceOf(SourceUnavailableError);
+  });
+
+  it('reads malformed JSON as an unavailable source', () => {
+    expect(
+      catchError(() =>
+        anisubMapping.toFileDownloadLink({
+          status: StatusCodes.OK,
+          headers: jsonHeaders,
+          body: Buffer.from('{"success":'),
+        }),
+      ),
+    ).toBeInstanceOf(SourceUnavailableError);
+  });
+
+  it('reads a missing file as an unavailable source', () => {
+    expect(
+      catchError(() =>
+        anisubMapping.toFileDownloadLink({
+          status: StatusCodes.NOT_FOUND,
+          headers: {},
+          body: null,
+        }),
+      ),
+    ).toBeInstanceOf(SourceUnavailableError);
+  });
+});
+
 describe('anisubMapping.buildIntegrationDownloadRequest', () => {
   const siteRef = {
     ...subtitleRef,

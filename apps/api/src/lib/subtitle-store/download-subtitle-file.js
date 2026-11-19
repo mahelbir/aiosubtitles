@@ -198,9 +198,10 @@ async function downloadFromSources({
   if (!client || !subtitleRef) {
     return DOWNLOAD_FAILED;
   }
-  const candidateCredentials = readDownloadCredentials({
+  const candidateCredentials = await readDownloadCredentials({
     client,
     cachedUserConfig,
+    isBackground,
   });
   if (candidateCredentials.length === 0) {
     return cachedUserConfig ? DOWNLOAD_FAILED : USER_CONFIG_DELETED;
@@ -237,7 +238,11 @@ async function downloadThroughV3({
   return downloadWithCredentials({
     client,
     subtitleRef,
-    candidateCredentials: readDownloadCredentials({client, cachedUserConfig}),
+    candidateCredentials: await readDownloadCredentials({
+      client,
+      cachedUserConfig,
+      isBackground,
+    }),
     isBackground,
   });
 }

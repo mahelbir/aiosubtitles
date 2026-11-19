@@ -4,7 +4,10 @@ import {
   CredentialStatus,
 } from '@repo/shared/constants/credential.js';
 import {SubtitleLanguage} from '@repo/shared/constants/subtitle-language.js';
-import {SubtitleSource} from '@repo/shared/constants/subtitle-source.js';
+import {
+  CredentialRequirement,
+  SubtitleSource,
+} from '@repo/shared/constants/subtitle-source.js';
 import {
   OPENSUBTITLES_STALE_QUOTA_ACCOUNT,
   OPENSUBTITLES_VALID_ACCOUNT,
@@ -52,6 +55,11 @@ const OPENSUBTITLES = SubtitleSource.label(SubtitleSource.OPENSUBTITLES);
 const OPENSUBTITLES_V3 = SubtitleSource.label(SubtitleSource.OPENSUBTITLES_V3);
 const THESUBTITLEDB = SubtitleSource.label(SubtitleSource.THESUBTITLEDB);
 const SUBSOURCE = SubtitleSource.label(SubtitleSource.SUBSOURCE);
+const SHARED_CREDENTIAL_SOURCES = [
+  SubtitleSource.ANISUB,
+  SubtitleSource.JIMAKU,
+  SubtitleSource.BETASERIES,
+];
 
 const SOURCE_HELP = [
   {
@@ -90,13 +98,14 @@ const SOURCE_HELP = [
   {
     subtitleSource: SubtitleSource.BETASERIES,
     keyPageUrl: 'https://www.betaseries.com/compte/api',
-    helpText: 'Requires an API key.',
+    helpText:
+      "Optional. Add your own API key for searching, or the server's shared key is used when the server has one. Downloads need no key.",
   },
   {
     subtitleSource: SubtitleSource.ANISUB,
     keyPageUrl: 'https://anisub.co/ayarlar',
     helpText:
-      'Requires a token. With your token, you get 1000 requests a day of your own.',
+      "Optional. With your own token, you get 1000 requests a day of your own. Without one, the server's shared token or its public limits are used.",
   },
   {
     subtitleSource: SubtitleSource.GESTDOWN,
@@ -127,7 +136,8 @@ const SOURCE_HELP = [
   {
     subtitleSource: SubtitleSource.JIMAKU,
     keyPageUrl: 'https://jimaku.cc/account',
-    helpText: 'Requires an API key.',
+    helpText:
+      "Optional. Add your own API key, or the server's shared key is used when the server has one. Requests share the server's limits.",
   },
   {
     subtitleSource: SubtitleSource.ANIMETOSHO,
@@ -177,6 +187,42 @@ test.describe('sources', () => {
         await expect(keyPageLink, label).toHaveCount(0);
       }
     }
+  });
+
+  test('Jimaku, BetaSeries and AniSub read as optional, and switch off without a key', async ({
+    page,
+    request,
+  }) => {
+    const subtitleSources = await callApi(
+      request,
+      'GET',
+      SUBTITLE_SOURCES_PATH,
+    );
+    expect(
+      subtitleSources
+        .filter(({subtitleSource}) =>
+          SHARED_CREDENTIAL_SOURCES.includes(subtitleSource),
+        )
+        .map(({credentialRequirement}) => credentialRequirement),
+    ).toEqual(
+      SHARED_CREDENTIAL_SOURCES.map(() => CredentialRequirement.OPTIONAL),
+    );
+
+    await openConfigure(page);
+    const allSources = getAllSourcesCheckbox(page);
+
+    for (const subtitleSource of SHARED_CREDENTIAL_SOURCES) {
+      const label = SubtitleSource.label(subtitleSource);
+      const panel = await openTabMenuItem(page, label);
+      const sourceSwitch = getSourceSwitch(panel, label);
+      await expect(sourceSwitch, label).toBeEnabled();
+      await expect(sourceSwitch, label).toBeChecked();
+
+      await sourceSwitch.click();
+
+      await expect(sourceSwitch, label).not.toBeChecked();
+    }
+    await expect(allSources).toBeChecked({indeterminate: true});
   });
 
   test('the global control reads mixed once one source is switched off, and turns every source on again', async ({

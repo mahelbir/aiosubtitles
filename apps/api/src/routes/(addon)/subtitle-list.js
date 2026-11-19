@@ -166,7 +166,7 @@ export default async function (fastify, opts) {
           videoContext,
           scopedUrlCodes,
         });
-        const candidates = collectVideoCandidates({
+        const candidates = await collectVideoCandidates({
           cachedUserConfig,
           videoContext,
           candidates: videoCandidates,
@@ -202,6 +202,19 @@ export default async function (fastify, opts) {
             }),
           );
         }
+        const credentialsBySource = await readCredentialsBySource({
+          cachedUserConfig,
+          subtitleSourceRegistry,
+        }).catch(error => {
+          request.log.warn(
+            {errorName: error?.name},
+            'Background credentials could not be read, so no background work runs.',
+          );
+          return null;
+        });
+        if (credentialsBySource === null) {
+          return {subtitles};
+        }
         reply.then(
           () =>
             Promise.try(() =>
@@ -209,10 +222,7 @@ export default async function (fastify, opts) {
                 cachedUserConfig,
                 videoContext,
                 candidates: videoCandidates,
-                credentialsBySource: readCredentialsBySource({
-                  cachedUserConfig,
-                  subtitleSourceRegistry,
-                }),
+                credentialsBySource,
                 subtitleSourceRegistry,
               }),
             ).catch(error => {
@@ -229,14 +239,21 @@ export default async function (fastify, opts) {
   }
 }
 
-function readCredentialsBySource({cachedUserConfig, subtitleSourceRegistry}) {
+async function readCredentialsBySource({
+  cachedUserConfig,
+  subtitleSourceRegistry,
+}) {
   return Object.fromEntries(
-    subtitleSourceRegistry
-      .listSubtitleSourceClients()
-      .map(client => [
+    await Promise.all(
+      subtitleSourceRegistry.listSubtitleSourceClients().map(async client => [
         client.subtitleSource,
-        readDownloadCredentials({cachedUserConfig, client}),
+        await readDownloadCredentials({
+          cachedUserConfig,
+          client,
+          isBackground: true,
+        }),
       ]),
+    ),
   );
 }
 

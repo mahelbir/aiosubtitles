@@ -15,10 +15,16 @@ import {
 } from '../../../src/lib/subtitle-sources/jimaku/jimaku-client.js';
 import {listSubtitleSourceClients} from '../../../src/lib/subtitle-sources/subtitle-source-clients.js';
 import {SubtitleSourceBudgetScope} from '../../../src/lib/subtitle-sources/subtitle-source-contract.js';
-import {SourceUnavailableError} from '../../../src/lib/subtitle-sources/subtitle-source-errors.js';
+import {
+  SourceCredentialError,
+  SourceRateLimitError,
+  SourceUnavailableError,
+} from '../../../src/lib/subtitle-sources/subtitle-source-errors.js';
 import {requestSubtitleSource} from '../../../src/lib/subtitle-sources/subtitle-source-request.js';
 import {CatalogService} from '../../../src/lib/video-catalog/catalog-service.js';
+import {toErrorText} from '../../helpers/caught-error.js';
 import {readFixture} from '../../helpers/read-fixture.js';
+import {createTestSharedCredentialPool} from '../../helpers/shared-credentials.js';
 import {
   makeSearchQuery,
   makeSubtitleSourceCredential,
@@ -33,6 +39,8 @@ vi.mock(
 );
 
 const API_KEY = 'fixture-jimaku-key';
+const SHARED_KEY = 'fixture-jimaku-shared-key';
+const OTHER_SHARED_KEY = 'fixture-jimaku-other-shared-key';
 const keyCredential = makeSubtitleSourceCredential({apiKey: API_KEY});
 const kitsuEpisodeQuery = makeSearchQuery({
   videoId: 'kitsu:46474:5',
@@ -46,9 +54,15 @@ const kitsuEpisodeQuery = makeSearchQuery({
 });
 const jsonHeaders = {'content-type': 'application/json'};
 
-function makeClient(anilistId = 154587) {
+function makeClient(anilistId = 154587, sharedCredentials = {}) {
   const readAnilistId = vi.fn(async () => anilistId);
-  return {client: createJimakuClient({readAnilistId}), readAnilistId};
+  const {sharedCredentialPool} =
+    createTestSharedCredentialPool(sharedCredentials);
+  return {
+    client: createJimakuClient({readAnilistId, sharedCredentialPool}),
+    readAnilistId,
+    sharedCredentialPool,
+  };
 }
 
 async function answerEntriesAndFiles() {
@@ -70,16 +84,29 @@ afterEach(() => {
 });
 
 describe('jimakuClient', () => {
-  it("names its subtitle source and needs the user's own api key", () => {
+  it('names its subtitle source and takes an api key', () => {
     expect(jimakuClient.subtitleSource).toBe(SubtitleSource.JIMAKU);
     expect(jimakuClient.credentialKinds).toEqual([CredentialKind.API_KEY]);
-    expect(jimakuClient.canSearchWithoutCredential()).toBe(false);
-    expect(jimakuClient.canDownloadWithoutCredential()).toBe(false);
+    expect(jimakuClient.canUseSharedCredential).toBe(true);
+    expect(jimakuClient.isDownloadKeyless).toBe(true);
   });
 
-  it('takes one required key on the configure page', () => {
+  it('searches without a user key only while the server has a shared key, and always downloads without one', async () => {
+    const {client: keylessClient} = makeClient();
+    const {client: sharedClient} = makeClient(154587, {
+      [SubtitleSource.JIMAKU]: [SHARED_KEY],
+    });
+
+    await expect(keylessClient.canSearchWithoutCredential()).resolves.toBe(
+      false,
+    );
+    await expect(sharedClient.canSearchWithoutCredential()).resolves.toBe(true);
+    expect(await keylessClient.canDownloadWithoutCredential()).toBe(true);
+  });
+
+  it('takes one optional key on the configure page', () => {
     expect(SubtitleSource.item(SubtitleSource.JIMAKU)).toMatchObject({
-      credentialRequirement: CredentialRequirement.REQUIRED,
+      credentialRequirement: CredentialRequirement.OPTIONAL,
       credentialKinds: [CredentialKind.API_KEY],
       credentialLimit: 1,
     });
@@ -254,36 +281,205 @@ describe('jimakuClient.checkCredential', () => {
 });
 
 describe('jimaku credential use (D32)', () => {
-  function readCandidates({credentials, hasConfiguredCredential}) {
+  async function readCandidates({
+    credentials,
+    hasConfiguredCredential,
+    sharedCredentials = {},
+  }) {
+    const {client} = makeClient(154587, sharedCredentials);
     return {
       searchCandidates: toCandidateCredentials({
         credentials,
         hasConfiguredCredential,
-        canUseWithoutCredential: jimakuClient.canSearchWithoutCredential(),
+        canUseWithoutCredential: await client.canSearchWithoutCredential(),
       }),
       downloadCandidates: toCandidateCredentials({
         credentials,
         hasConfiguredCredential,
-        canUseWithoutCredential: jimakuClient.canDownloadWithoutCredential(),
+        canUseWithoutCredential: await client.canDownloadWithoutCredential(),
       }),
     };
   }
 
-  it('gives a user without a key no keyless search and no keyless download', () => {
-    expect(
+  it('gives a user without a key no keyless search, and the keyless file download', async () => {
+    await expect(
       readCandidates({credentials: [], hasConfiguredCredential: false}),
-    ).toEqual({searchCandidates: [], downloadCandidates: []});
+    ).resolves.toEqual({searchCandidates: [], downloadCandidates: [null]});
   });
 
-  it("runs a user's search and download under the user's own key", () => {
-    expect(
+  it('gives a user without a key the server path while the server has a shared key', async () => {
+    await expect(
+      readCandidates({
+        credentials: [],
+        hasConfiguredCredential: false,
+        sharedCredentials: {[SubtitleSource.JIMAKU]: [SHARED_KEY]},
+      }),
+    ).resolves.toEqual({searchCandidates: [null], downloadCandidates: [null]});
+  });
+
+  it('gives a user whose every key is unusable no shared key either', async () => {
+    await expect(
+      readCandidates({
+        credentials: [],
+        hasConfiguredCredential: true,
+        sharedCredentials: {[SubtitleSource.JIMAKU]: [SHARED_KEY]},
+      }),
+    ).resolves.toEqual({searchCandidates: [], downloadCandidates: []});
+  });
+
+  it("runs a user's search and download under the user's own key", async () => {
+    await expect(
       readCandidates({
         credentials: [keyCredential],
         hasConfiguredCredential: true,
+        sharedCredentials: {[SubtitleSource.JIMAKU]: [SHARED_KEY]},
       }),
-    ).toEqual({
+    ).resolves.toEqual({
       searchCandidates: [keyCredential],
       downloadCandidates: [keyCredential],
     });
+  });
+});
+
+describe('jimakuClient with shared keys', () => {
+  it('searches under a shared key when the user has none, and never names it in the request id', async () => {
+    const {client} = makeClient(154587, {
+      [SubtitleSource.JIMAKU]: [SHARED_KEY],
+    });
+    await answerEntriesAndFiles();
+
+    const hits = await client.searchSubtitles(kitsuEpisodeQuery, null);
+
+    expect(hits).toHaveLength(3);
+    expect(requestSubtitleSource).toHaveBeenCalledTimes(2);
+    for (const [siteRequest] of requestSubtitleSource.mock.calls) {
+      expect(siteRequest.headers.Authorization).toBe(SHARED_KEY);
+      expect(String(siteRequest.credentialId)).not.toContain(SHARED_KEY);
+    }
+    expect(JSON.stringify(hits)).not.toContain(SHARED_KEY);
+  });
+
+  it("keeps the user's own key over every shared key", async () => {
+    const {client} = makeClient(154587, {
+      [SubtitleSource.JIMAKU]: [SHARED_KEY],
+    });
+    await answerEntriesAndFiles();
+
+    await client.searchSubtitles(kitsuEpisodeQuery, keyCredential);
+
+    for (const [siteRequest] of requestSubtitleSource.mock.calls) {
+      expect(siteRequest.headers.Authorization).toBe(API_KEY);
+      expect(siteRequest.credentialId).toBe(keyCredential.credentialId);
+    }
+  });
+
+  it('moves on to the next shared key when the site rejects one', async () => {
+    const {client} = makeClient(154587, {
+      [SubtitleSource.JIMAKU]: [SHARED_KEY, OTHER_SHARED_KEY],
+    });
+    const [entriesBody, filesBody] = await Promise.all([
+      readFixture('subtitle-sources/jimaku/entries-search.json'),
+      readFixture('subtitle-sources/jimaku/entry-files.json'),
+    ]);
+    requestSubtitleSource.mockImplementation(async siteRequest => {
+      if (siteRequest.headers.Authorization === SHARED_KEY) {
+        throw new SourceCredentialError({
+          subtitleSource: SubtitleSource.JIMAKU,
+          credentialId: siteRequest.credentialId,
+        });
+      }
+      return {
+        status: StatusCodes.OK,
+        headers: jsonHeaders,
+        body: new URL(siteRequest.url).pathname.endsWith('/files')
+          ? filesBody
+          : entriesBody,
+      };
+    });
+
+    await expect(
+      client.searchSubtitles(kitsuEpisodeQuery, null),
+    ).resolves.toHaveLength(3);
+    await client.searchSubtitles(kitsuEpisodeQuery, null);
+
+    expect(
+      requestSubtitleSource.mock.calls.map(
+        ([siteRequest]) => siteRequest.headers.Authorization,
+      ),
+    ).toEqual([
+      SHARED_KEY,
+      OTHER_SHARED_KEY,
+      OTHER_SHARED_KEY,
+      OTHER_SHARED_KEY,
+      OTHER_SHARED_KEY,
+    ]);
+  });
+
+  it("stops at Jimaku's per-address limit without trying the other shared keys (D49)", async () => {
+    const {client} = makeClient(154587, {
+      [SubtitleSource.JIMAKU]: [SHARED_KEY, OTHER_SHARED_KEY],
+    });
+    requestSubtitleSource.mockResolvedValue({
+      status: StatusCodes.TOO_MANY_REQUESTS,
+      headers: {'x-ratelimit-reset-after': '12.5'},
+      body: null,
+    });
+
+    const error = await client
+      .searchSubtitles(kitsuEpisodeQuery, null)
+      .catch(caughtError => caughtError);
+
+    expect(error).toBeInstanceOf(SourceRateLimitError);
+    expect(error.credentialId).toBeNull();
+    expect(requestSubtitleSource).toHaveBeenCalledOnce();
+  });
+
+  it('raises the source rate limit once every shared key is limited', async () => {
+    const {client} = makeClient(154587, {
+      [SubtitleSource.JIMAKU]: [SHARED_KEY, OTHER_SHARED_KEY],
+    });
+    requestSubtitleSource.mockImplementation(async siteRequest => {
+      throw new SourceRateLimitError({
+        subtitleSource: SubtitleSource.JIMAKU,
+        retryAfterMs: 60000,
+        credentialId: siteRequest.credentialId,
+      });
+    });
+
+    const error = await client
+      .searchSubtitles(kitsuEpisodeQuery, null)
+      .catch(caughtError => caughtError);
+
+    expect(error).toBeInstanceOf(SourceRateLimitError);
+    expect(error.credentialId).toBeNull();
+    expect(toErrorText(error)).not.toContain(SHARED_KEY);
+    expect(toErrorText(error)).not.toContain(OTHER_SHARED_KEY);
+  });
+
+  it('downloads the public file without any key, even while the server has no shared key', async () => {
+    const {client} = makeClient();
+    const fileBytes = new TextEncoder().encode('[Script Info]\n');
+    requestSubtitleSource.mockResolvedValueOnce({
+      status: StatusCodes.OK,
+      headers: {'content-type': 'application/octet-stream'},
+      body: fileBytes,
+    });
+
+    const download = await client.downloadSubtitle(
+      {
+        subtitleSource: SubtitleSource.JIMAKU,
+        siteFileId: '1234/Sousou.no.Frieren.S01E05.WEB.ja.srt',
+        siteFileUrl:
+          'https://jimaku.cc/entry/1234/download/Sousou.no.Frieren.S01E05.WEB.ja.srt',
+        catalogSeason: 2,
+        catalogEpisode: 1,
+      },
+      null,
+    );
+
+    expect(download.fileBytes).toBe(fileBytes);
+    const [downloadRequest] = requestSubtitleSource.mock.calls[0];
+    expect(downloadRequest.headers).toEqual({});
+    expect(downloadRequest.credentialId).toBeNull();
   });
 });

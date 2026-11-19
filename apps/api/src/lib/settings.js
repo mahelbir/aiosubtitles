@@ -14,14 +14,17 @@ export const SETTINGS_FILE = path.join(
 export class LoggedSettings extends Settings {
   _failure = null;
   _log;
+  _filePath;
 
   /**
    * @param {import('@mahelbir/settings').SettingsOptions & Object} options
    * @param {Pick<import('pino').Logger, 'error'>} [options.log]
+   * @param {string|null} [options.filePath]
    */
-  constructor({log = logger, ...options}) {
+  constructor({log = logger, filePath = null, ...options}) {
     super({...options, onError: error => this._reportFailure(error)});
     this._log = log;
+    this._filePath = filePath;
   }
 
   async reload() {
@@ -33,13 +36,24 @@ export class LoggedSettings extends Settings {
     const failure = String(error);
     if (failure !== this._failure) {
       this._failure = failure;
-      this._log.error(error, 'Settings error');
+      this._log.error(
+        {
+          errorName: error?.name,
+          causeName: error?.cause?.name,
+          settingsFile: this._filePath,
+        },
+        'Settings error',
+      );
     }
   }
 }
 
 export function createSettings(filePath, schema) {
-  return new LoggedSettings({store: new FileSettingsStore(filePath), schema});
+  return new LoggedSettings({
+    store: new FileSettingsStore(filePath),
+    schema,
+    filePath,
+  });
 }
 
 export const settings = createSettings(

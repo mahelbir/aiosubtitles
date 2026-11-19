@@ -2,7 +2,11 @@ import {describe, expect, it} from 'vitest';
 import {CredentialStatus} from '@repo/shared/constants/credential.js';
 import {SubtitleSource} from '@repo/shared/constants/subtitle-source.js';
 import {loadLiveSecrets} from '../../scripts/lib/live-secrets.js';
-import {jimakuClient} from '../../src/lib/subtitle-sources/jimaku/jimaku-client.js';
+import {
+  createJimakuClient,
+  jimakuClient,
+} from '../../src/lib/subtitle-sources/jimaku/jimaku-client.js';
+import {createTestSharedCredentialPool} from '../helpers/shared-credentials.js';
 import {makeSubtitleSourceCredential} from '../helpers/subtitle-source-factories.js';
 import {
   LiveStatus,
@@ -73,6 +77,36 @@ describe('Jimaku live', () => {
         const download = await jimakuClient.downloadSubtitle(
           toSubtitleRef(hits[0], searchQuery),
           credential,
+        );
+        expect(download.fileBytes.length).toBeGreaterThan(0);
+      },
+    );
+  });
+
+  it('searches kitsu:46474:5 in Japanese under a shared key and downloads one file', async testContext => {
+    await runLiveCase(
+      {
+        serviceName,
+        liveNote: 'Shared-key AniList search, episode files and one download.',
+        missingSecretNames,
+      },
+      testContext,
+      async () => {
+        const {sharedCredentialPool} = createTestSharedCredentialPool({
+          [SubtitleSource.JIMAKU]: [liveSecrets.JIMAKU_API_KEY],
+        });
+        const sharedClient = createJimakuClient({sharedCredentialPool});
+        const searchQuery = makeLiveSearchQuery('kitsu:46474:5', ['jpn']);
+        const hits = await sharedClient.searchSubtitles(searchQuery, null);
+        await recordLiveResult({
+          serviceName,
+          liveStatus: LiveStatus.VERIFIED,
+          liveNote: `Shared key: episode 5 gave ${hits.length} files.`,
+        });
+        expect(hits.length).toBeGreaterThan(0);
+        const download = await sharedClient.downloadSubtitle(
+          toSubtitleRef(hits[0], searchQuery),
+          null,
         );
         expect(download.fileBytes.length).toBeGreaterThan(0);
       },

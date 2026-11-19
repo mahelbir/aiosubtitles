@@ -11,10 +11,10 @@ const SUBTITLE_SOURCES = [
   ['altyazidb', 'AltyazıDB', 1, 'required', ['api-key'], 10],
   ['thesubtitledb', 'TheSubtitleDB', 1, 'required', ['api-key'], 10],
   ['subsource', 'SubSource', 1, 'required', ['api-key'], 10],
-  ['anisub', 'AniSub', 1, 'required', ['access-token'], 1],
+  ['anisub', 'AniSub', 1, 'optional', ['access-token'], 1],
   ['subdl', 'SubDL', 2, 'required', ['api-key'], 10],
   ['wyzie', 'Wyzie', 2, 'required', ['api-key'], 10],
-  ['jimaku', 'Jimaku', 2, 'required', ['api-key'], 1],
+  ['jimaku', 'Jimaku', 2, 'optional', ['api-key'], 1],
   [
     'stremio-community-subtitles',
     'Community Subtitles',
@@ -27,7 +27,7 @@ const SUBTITLE_SOURCES = [
   ['animetosho', 'AnimeTosho', 2, 'none', [], 0],
   ['yify', 'YIFY', 2, 'none', [], 0],
   ['tvsubtitles', 'TVsubtitles', 2, 'none', [], 0],
-  ['betaseries', 'BetaSeries', 2, 'required', ['api-key'], 10],
+  ['betaseries', 'BetaSeries', 2, 'optional', ['api-key'], 10],
 ];
 const SUBTITLE_SOURCE_CREDENTIALS = SUBTITLE_SOURCES.map(
   ([subtitleSource, , , , credentialKinds, credentialLimit]) => [

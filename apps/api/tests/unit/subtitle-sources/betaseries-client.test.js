@@ -7,7 +7,10 @@ import {
 } from '@repo/shared/constants/credential.js';
 import {SubtitleSource} from '@repo/shared/constants/subtitle-source.js';
 import {toCandidateCredentials} from '../../../src/lib/subtitle-source-credentials.js';
-import {betaseriesClient} from '../../../src/lib/subtitle-sources/betaseries/betaseries-client.js';
+import {
+  betaseriesClient,
+  createBetaseriesClient,
+} from '../../../src/lib/subtitle-sources/betaseries/betaseries-client.js';
 import {listSubtitleSourceClients} from '../../../src/lib/subtitle-sources/subtitle-source-clients.js';
 import {SubtitleSourceBudgetScope} from '../../../src/lib/subtitle-sources/subtitle-source-contract.js';
 import {
@@ -18,6 +21,7 @@ import {
 import {requestSubtitleSource} from '../../../src/lib/subtitle-sources/subtitle-source-request.js';
 import {toErrorText} from '../../helpers/caught-error.js';
 import {readFixture} from '../../helpers/read-fixture.js';
+import {createTestSharedCredentialPool} from '../../helpers/shared-credentials.js';
 import {
   makeSearchQuery,
   makeSubtitleSourceCredential,
@@ -32,6 +36,14 @@ vi.mock(
 );
 
 const API_KEY = 'fixture-betaseries-key';
+const SHARED_KEY = 'fixture-betaseries-shared-key';
+const OTHER_SHARED_KEY = 'fixture-betaseries-other-shared-key';
+
+function makeClient(sharedCredentials = {}) {
+  const {sharedCredentialPool} =
+    createTestSharedCredentialPool(sharedCredentials);
+  return createBetaseriesClient({sharedCredentialPool});
+}
 const keyCredential = makeSubtitleSourceCredential({apiKey: API_KEY});
 const episodeQuery = makeSearchQuery({
   videoId: 'tt9900001:1:3',
@@ -80,11 +92,24 @@ afterEach(() => {
 });
 
 describe('betaseriesClient', () => {
-  it('names its subtitle source and needs an api key', () => {
+  it('names its subtitle source and takes an api key', () => {
     expect(betaseriesClient.subtitleSource).toBe(SubtitleSource.BETASERIES);
     expect(betaseriesClient.credentialKinds).toEqual([CredentialKind.API_KEY]);
-    expect(betaseriesClient.canSearchWithoutCredential()).toBe(false);
-    expect(betaseriesClient.canDownloadWithoutCredential()).toBe(false);
+    expect(betaseriesClient.canUseSharedCredential).toBe(true);
+    expect(betaseriesClient.isDownloadKeyless).toBe(true);
+  });
+
+  it('searches without a user key only while the server has a shared key, and always downloads without one', async () => {
+    const keylessClient = makeClient();
+    const sharedClient = makeClient({
+      [SubtitleSource.BETASERIES]: [SHARED_KEY],
+    });
+
+    await expect(keylessClient.canSearchWithoutCredential()).resolves.toBe(
+      false,
+    );
+    await expect(sharedClient.canSearchWithoutCredential()).resolves.toBe(true);
+    expect(await keylessClient.canDownloadWithoutCredential()).toBe(true);
   });
 
   it('searches by id, not by video hash', () => {
@@ -345,43 +370,182 @@ describe('betaseriesClient.checkCredential', () => {
 });
 
 describe('betaseries credential use (D32)', () => {
-  function readCandidates({credentials, hasConfiguredCredential}) {
+  async function readCandidates({
+    credentials,
+    hasConfiguredCredential,
+    sharedCredentials = {},
+  }) {
+    const client = makeClient(sharedCredentials);
     return {
       searchCandidates: toCandidateCredentials({
         credentials,
         hasConfiguredCredential,
-        canUseWithoutCredential: betaseriesClient.canSearchWithoutCredential(),
+        canUseWithoutCredential: await client.canSearchWithoutCredential(),
       }),
       downloadCandidates: toCandidateCredentials({
         credentials,
         hasConfiguredCredential,
-        canUseWithoutCredential:
-          betaseriesClient.canDownloadWithoutCredential(),
+        canUseWithoutCredential: await client.canDownloadWithoutCredential(),
       }),
     };
   }
 
-  it('gives a user without a key no keyless search and no keyless download', () => {
-    expect(
+  it('gives a user without a key no keyless search, and the keyless file download', async () => {
+    await expect(
       readCandidates({credentials: [], hasConfiguredCredential: false}),
-    ).toEqual({searchCandidates: [], downloadCandidates: []});
+    ).resolves.toEqual({searchCandidates: [], downloadCandidates: [null]});
   });
 
-  it('gives a user whose every key is unusable no keyless path either', () => {
-    expect(
-      readCandidates({credentials: [], hasConfiguredCredential: true}),
-    ).toEqual({searchCandidates: [], downloadCandidates: []});
+  it('gives a user without a key the server search while the server has a shared key', async () => {
+    await expect(
+      readCandidates({
+        credentials: [],
+        hasConfiguredCredential: false,
+        sharedCredentials: {[SubtitleSource.BETASERIES]: [SHARED_KEY]},
+      }),
+    ).resolves.toEqual({searchCandidates: [null], downloadCandidates: [null]});
   });
 
-  it("runs a user's search and download under the user's own key", () => {
-    expect(
+  it('gives a user whose every key is unusable no keyless path either', async () => {
+    await expect(
+      readCandidates({
+        credentials: [],
+        hasConfiguredCredential: true,
+        sharedCredentials: {[SubtitleSource.BETASERIES]: [SHARED_KEY]},
+      }),
+    ).resolves.toEqual({searchCandidates: [], downloadCandidates: []});
+  });
+
+  it("runs a user's search and download under the user's own key", async () => {
+    await expect(
       readCandidates({
         credentials: [keyCredential],
         hasConfiguredCredential: true,
+        sharedCredentials: {[SubtitleSource.BETASERIES]: [SHARED_KEY]},
       }),
-    ).toEqual({
+    ).resolves.toEqual({
       searchCandidates: [keyCredential],
       downloadCandidates: [keyCredential],
     });
+  });
+});
+
+describe('betaseriesClient with shared keys', () => {
+  it('answers a search with neither a user key nor a shared key as could not search, without a request', async () => {
+    await expect(
+      makeClient().searchSubtitles(episodeQuery, null),
+    ).resolves.toBeNull();
+    expect(requestSubtitleSource).not.toHaveBeenCalled();
+  });
+
+  it('searches under a shared key when the user has none', async () => {
+    await mockLookupChain();
+
+    const hits = await makeClient({
+      [SubtitleSource.BETASERIES]: [SHARED_KEY],
+    }).searchSubtitles(episodeQuery, null);
+
+    expect(hits.length).toBeGreaterThan(0);
+    for (const [siteRequest] of requestSubtitleSource.mock.calls) {
+      expect(siteRequest.headers['X-BetaSeries-Key']).toBe(SHARED_KEY);
+      expect(String(siteRequest.credentialId)).not.toContain(SHARED_KEY);
+    }
+    expect(JSON.stringify(hits)).not.toContain(SHARED_KEY);
+  });
+
+  it("keeps the user's own key over every shared key", async () => {
+    await mockLookupChain();
+
+    await makeClient({
+      [SubtitleSource.BETASERIES]: [SHARED_KEY],
+    }).searchSubtitles(episodeQuery, keyCredential);
+
+    for (const [siteRequest] of requestSubtitleSource.mock.calls) {
+      expect(siteRequest.headers['X-BetaSeries-Key']).toBe(API_KEY);
+    }
+  });
+
+  it('moves on to the next shared key when the site rejects one', async () => {
+    const client = makeClient({
+      [SubtitleSource.BETASERIES]: [SHARED_KEY, OTHER_SHARED_KEY],
+    });
+    requestSubtitleSource.mockResolvedValueOnce({
+      status: StatusCodes.BAD_REQUEST,
+      headers: {'content-type': 'application/json'},
+      body: {errors: [{code: 1001, text: 'Invalid key.'}]},
+    });
+    await mockLookupChain();
+
+    const hits = await client.searchSubtitles(episodeQuery, null);
+
+    expect(hits.length).toBeGreaterThan(0);
+    expect(
+      requestSubtitleSource.mock.calls.map(
+        ([siteRequest]) => siteRequest.headers['X-BetaSeries-Key'],
+      ),
+    ).toEqual([
+      SHARED_KEY,
+      OTHER_SHARED_KEY,
+      OTHER_SHARED_KEY,
+      OTHER_SHARED_KEY,
+    ]);
+  });
+
+  it('moves a rate-limited shared key aside, then answers could not search once every key is limited, without opening the breaker', async () => {
+    const client = makeClient({
+      [SubtitleSource.BETASERIES]: [SHARED_KEY, OTHER_SHARED_KEY],
+    });
+    requestSubtitleSource.mockImplementation(async siteRequest => {
+      throw new SourceRateLimitError({
+        subtitleSource: SubtitleSource.BETASERIES,
+        retryAfterMs: 60000,
+        credentialId: siteRequest.credentialId,
+      });
+    });
+
+    await expect(
+      client.searchSubtitles(episodeQuery, null),
+    ).resolves.toBeNull();
+    expect(requestSubtitleSource).toHaveBeenCalledTimes(2);
+  });
+
+  it("still searches under a user's own key while every shared key is limited", async () => {
+    const client = makeClient({
+      [SubtitleSource.BETASERIES]: [SHARED_KEY],
+    });
+    requestSubtitleSource.mockImplementationOnce(async siteRequest => {
+      throw new SourceRateLimitError({
+        subtitleSource: SubtitleSource.BETASERIES,
+        retryAfterMs: 60000,
+        credentialId: siteRequest.credentialId,
+      });
+    });
+    await client.searchSubtitles(episodeQuery, null);
+    await mockLookupChain();
+
+    const hits = await client.searchSubtitles(episodeQuery, keyCredential);
+
+    expect(hits.length).toBeGreaterThan(0);
+    expect(requestSubtitleSource.mock.calls.at(-1)[0].headers).toMatchObject({
+      'X-BetaSeries-Key': API_KEY,
+    });
+  });
+
+  it('downloads the stored file url without any key for a user without one', async () => {
+    requestSubtitleSource.mockResolvedValueOnce({
+      status: StatusCodes.OK,
+      headers: {'content-type': 'application/x-subrip'},
+      body: new TextEncoder().encode(
+        '1\n00:00:01,000 --> 00:00:02,000\nSalut\n',
+      ),
+    });
+
+    await makeClient({
+      [SubtitleSource.BETASERIES]: [SHARED_KEY],
+    }).downloadSubtitle(subtitleRef, null);
+
+    const [downloadRequest] = requestSubtitleSource.mock.calls[0];
+    expect(downloadRequest.headers).toEqual({});
+    expect(downloadRequest.credentialId).toBeNull();
   });
 });

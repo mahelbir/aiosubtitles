@@ -1,4 +1,4 @@
-import {isNil, memoize} from 'es-toolkit';
+import {isNil, uniq} from 'es-toolkit';
 import {CredentialKind} from '@repo/shared/constants/credential.js';
 import {SubtitleSource} from '@repo/shared/constants/subtitle-source.js';
 import {listArchiveEntriesForVideo} from '@repo/subtitle-core/archive/pick-archive-entry.js';
@@ -11,19 +11,31 @@ import {
 import {findPackRejectReason} from '../../../lib/subtitle-store/pack-binding.js';
 import {hasFreeDownloadPath} from '../../../lib/subtitle-store/read-video-candidates.js';
 
-export function collectVideoCandidates({
+export async function collectVideoCandidates({
   cachedUserConfig,
   videoContext,
   candidates,
   subtitleSourceRegistry,
 }) {
   const {languageCodes, subtitleSourceSwitchStates} = cachedUserConfig;
-  const canListUnstoredRows = memoize(subtitleSource =>
-    canSourceListUnstoredRows({
-      cachedUserConfig,
-      client: subtitleSourceRegistry.getSubtitleSourceClient(subtitleSource),
-    }),
+  const candidateSources = uniq(
+    candidates.map(({subtitleSource}) => subtitleSource),
   );
+  const canSourcesListUnstoredRows = await Promise.all(
+    candidateSources.map(subtitleSource =>
+      canSourceListUnstoredRows({
+        cachedUserConfig,
+        client: subtitleSourceRegistry.getSubtitleSourceClient(subtitleSource),
+      }),
+    ),
+  );
+  const listingSources = new Set(
+    candidateSources.filter(
+      (_, sourceIndex) => canSourcesListUnstoredRows[sourceIndex],
+    ),
+  );
+  const canListUnstoredRows = subtitleSource =>
+    listingSources.has(subtitleSource);
   const hasOpensubtitlesAccount =
     readUsableCredentials({
       cachedUserConfig,
@@ -60,7 +72,7 @@ export function readOpensubtitlesNotice({credentials}) {
     : SubtitleNotice.OPENSUBTITLES_ACCOUNT;
 }
 
-function canSourceListUnstoredRows({cachedUserConfig, client}) {
+async function canSourceListUnstoredRows({cachedUserConfig, client}) {
   if (!client) {
     return false;
   }
@@ -70,7 +82,7 @@ function canSourceListUnstoredRows({cachedUserConfig, client}) {
   return (
     toCandidateCredentials({
       ...readSearchCredentials({cachedUserConfig, client}),
-      canUseWithoutCredential: client.canSearchWithoutCredential(),
+      canUseWithoutCredential: await client.canSearchWithoutCredential(),
     }).length > 0
   );
 }

@@ -2,12 +2,15 @@ import {once} from 'node:events';
 import {createServer, get, request} from 'node:http';
 import {noop} from 'es-toolkit';
 import {afterAll, beforeAll, beforeEach, describe, expect, it} from 'vitest';
+import {requestRemoteResource} from '../../src/lib/subtitle-sources/subtitle-source-request.js';
 import {
   takeBlockedRequests,
   throwIfRequestsBlocked,
 } from '../helpers/network.js';
 
 const REACHED = 'reached';
+const PROBE_HOST = 'network-guard-probe.invalid';
+const PROBE_SERVICE = 'network-guard-probe';
 
 let server = null;
 let port = 0;
@@ -81,6 +84,25 @@ describe('outbound network guard', () => {
     await once(socket, 'error');
     expect(upgrades).toBe(0);
     expect(takeBlockedRequests()).toEqual([url]);
+  });
+
+  it('stops a source client request, sent through its own undici dispatcher, and records it', async () => {
+    const sourceRequest = requestRemoteResource({
+      serviceName: PROBE_SERVICE,
+      url: `https://${PROBE_HOST}/subtitles.json`,
+    });
+
+    await expect(sourceRequest).rejects.toThrow();
+    expect(takeBlockedRequests()).toEqual([`tls://${PROBE_HOST}:443`]);
+  });
+
+  it('fails the test even when the code swallows the stopped source client request', async () => {
+    await requestRemoteResource({
+      serviceName: PROBE_SERVICE,
+      url: `http://${PROBE_HOST}/subtitles.json`,
+    }).catch(noop);
+
+    expect(() => throwIfRequestsBlocked()).toThrow(`tcp://${PROBE_HOST}:80`);
   });
 
   it('records a CONNECT tunnel off loopback, which msw always lets through', async () => {

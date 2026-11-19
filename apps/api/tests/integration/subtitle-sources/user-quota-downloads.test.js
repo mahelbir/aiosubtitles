@@ -32,6 +32,7 @@ const SHIPPED_CLIENT_FIELDS = [
   'downloadBudgets',
   'canSearchWithoutCredential',
   'canDownloadWithoutCredential',
+  'canUseSharedCredential',
 ];
 
 const USER_QUOTA_SOURCES = [
@@ -121,50 +122,87 @@ async function readKeyedUserConfig({
   return userConfigCache.get(userConfig.id);
 }
 
+async function runBackgroundDownloads(userQuotaSource) {
+  const fixtureClient = createFixtureSubtitleSourceClient({
+    ...pick(userQuotaSource.shippedClient, SHIPPED_CLIENT_FIELDS),
+    downloadSubtitle: vi.fn(async () => {
+      throw new Error('The fixture site has no file.');
+    }),
+  });
+  const subtitleSourceRegistry = createSubtitleSourceRegistry([fixtureClient]);
+  const videoContext = makeVideoContext(userQuotaSource.videoId);
+  const cachedUserConfig = await readKeyedUserConfig(userQuotaSource);
+  const candidates = await storeCandidates(userQuotaSource, videoContext);
+  const [foregroundCredentials, backgroundCredentials] = await Promise.all([
+    readDownloadCredentials({cachedUserConfig, client: fixtureClient}),
+    readDownloadCredentials({
+      cachedUserConfig,
+      client: fixtureClient,
+      isBackground: true,
+    }),
+  ]);
+  expect(candidates).not.toHaveLength(0);
+  expect(foregroundCredentials).toHaveLength(1);
+
+  await downloadFreeCandidates({
+    client: fixtureClient,
+    candidates,
+    videoContext,
+    credentials: backgroundCredentials,
+    cachedUserConfig,
+    subtitleSourceRegistry,
+  });
+  scheduleListBackgroundWork({
+    cachedUserConfig,
+    videoContext,
+    candidates,
+    credentialsBySource: {
+      [fixtureClient.subtitleSource]: backgroundCredentials,
+    },
+    subtitleSourceRegistry,
+  });
+  await drainBackgroundQueues();
+  return fixtureClient.downloadSubtitle;
+}
+
+function toSourceCases(userQuotaSources) {
+  return userQuotaSources.map(userQuotaSource => [
+    SubtitleSource.label(userQuotaSource.shippedClient.subtitleSource),
+    userQuotaSource,
+  ]);
+}
+
 describe('background downloads on the user quota', () => {
   it.each(
-    USER_QUOTA_SOURCES.map(userQuotaSource => [
-      SubtitleSource.label(userQuotaSource.shippedClient.subtitleSource),
-      userQuotaSource,
-    ]),
+    toSourceCases(
+      USER_QUOTA_SOURCES.filter(
+        ({shippedClient}) => !shippedClient.canUseSharedCredential,
+      ),
+    ),
   )(
     "never spends a user's own %s key from background work",
     async (_, userQuotaSource) => {
-      const fixtureClient = createFixtureSubtitleSourceClient({
-        ...pick(userQuotaSource.shippedClient, SHIPPED_CLIENT_FIELDS),
-        downloadSubtitle: vi.fn(),
-      });
-      const subtitleSourceRegistry = createSubtitleSourceRegistry([
-        fixtureClient,
-      ]);
-      const videoContext = makeVideoContext(userQuotaSource.videoId);
-      const cachedUserConfig = await readKeyedUserConfig(userQuotaSource);
-      const candidates = await storeCandidates(userQuotaSource, videoContext);
-      const credentials = readDownloadCredentials({
-        cachedUserConfig,
-        client: fixtureClient,
-      });
-      expect(candidates).not.toHaveLength(0);
-      expect(credentials).toHaveLength(1);
+      const downloadSubtitle = await runBackgroundDownloads(userQuotaSource);
 
-      await downloadFreeCandidates({
-        client: fixtureClient,
-        candidates,
-        videoContext,
-        credentials,
-        cachedUserConfig,
-        subtitleSourceRegistry,
-      });
-      scheduleListBackgroundWork({
-        cachedUserConfig,
-        videoContext,
-        candidates,
-        credentialsBySource: {[fixtureClient.subtitleSource]: credentials},
-        subtitleSourceRegistry,
-      });
-      await drainBackgroundQueues();
+      expect(downloadSubtitle).not.toHaveBeenCalled();
+    },
+  );
 
-      expect(fixtureClient.downloadSubtitle).not.toHaveBeenCalled();
+  it.each(
+    toSourceCases(
+      USER_QUOTA_SOURCES.filter(
+        ({shippedClient}) => shippedClient.canUseSharedCredential,
+      ),
+    ),
+  )(
+    "downloads %s in the background on the server path only, never with the user's own token",
+    async (_, userQuotaSource) => {
+      const downloadSubtitle = await runBackgroundDownloads(userQuotaSource);
+
+      expect(downloadSubtitle).toHaveBeenCalled();
+      for (const [, credential] of downloadSubtitle.mock.calls) {
+        expect(credential).toBeNull();
+      }
     },
   );
 });

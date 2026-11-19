@@ -116,9 +116,11 @@ import {SubtitleAliasSource} from './subtitle-alias-source.js';
  * @property {string[]} credentialKinds
  * @property {boolean} isSearchHashSensitive
  * @property {boolean} [isSearchCredentialScoped]
+ * @property {boolean} [canUseSharedCredential]
+ * @property {boolean} [isDownloadKeyless]
  * @property {DownloadBudget[]} downloadBudgets
- * @property {() => boolean} canSearchWithoutCredential
- * @property {() => boolean} canDownloadWithoutCredential
+ * @property {() => boolean|Promise<boolean>} canSearchWithoutCredential
+ * @property {() => boolean|Promise<boolean>} canDownloadWithoutCredential
  * @property {(searchQuery: SubtitleSearchQuery, credential: SubtitleSourceCredential|null, callOptions?: SubtitleSourceCallOptions) => Promise<SubtitleSourceHit[]|null>} searchSubtitles
  * @property {(subtitleRef: SubtitleRef, credential: SubtitleSourceCredential|null, callOptions?: SubtitleSourceCallOptions) => Promise<SubtitleSourceDownload>} downloadSubtitle
  * @property {(credential: SubtitleSourceCredential, callOptions?: SubtitleSourceCallOptions) => Promise<CredentialCheck>} [checkCredential]

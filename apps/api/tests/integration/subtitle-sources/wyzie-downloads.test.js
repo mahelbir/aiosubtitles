@@ -137,7 +137,7 @@ describe('Wyzie background downloads', () => {
     const candidates = (
       await readVideoCandidates({videoId: VIDEO_ID, videoContext})
     ).filter(({subtitleSource}) => subtitleSource === SubtitleSource.WYZIE);
-    const credentials = readDownloadCredentials({
+    const credentials = await readDownloadCredentials({
       cachedUserConfig,
       client: wyzieFixtureClient,
     });

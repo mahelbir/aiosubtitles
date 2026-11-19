@@ -326,12 +326,12 @@ async function readJobUser(userConfigOptions = {}) {
   };
 }
 
-function runFreeDownloads({client, candidates, cachedUserConfig}) {
+async function runFreeDownloads({client, candidates, cachedUserConfig}) {
   return downloadFreeCandidates({
     client,
     candidates: candidatesOf(candidates, client.subtitleSource),
     videoContext: makeVideoContext(),
-    credentials: readDownloadCredentials({cachedUserConfig, client}),
+    credentials: await readDownloadCredentials({cachedUserConfig, client}),
     cachedUserConfig,
     subtitleSourceRegistry,
   });
@@ -356,15 +356,21 @@ async function runListBackgroundWork({candidates, cachedUserConfig}) {
     cachedUserConfig,
     videoContext: makeVideoContext(),
     candidates,
-    credentialsBySource: Object.fromEntries(
-      fixtureClients.map(client => [
-        client.subtitleSource,
-        readDownloadCredentials({cachedUserConfig, client}),
-      ]),
-    ),
+    credentialsBySource: await readCredentialsBySource(cachedUserConfig),
     subtitleSourceRegistry,
   });
   await drainBackgroundQueues();
+}
+
+async function readCredentialsBySource(cachedUserConfig) {
+  return Object.fromEntries(
+    await Promise.all(
+      fixtureClients.map(async client => [
+        client.subtitleSource,
+        await readDownloadCredentials({cachedUserConfig, client}),
+      ]),
+    ),
+  );
 }
 
 function downloadedSiteFileIds(client) {
@@ -722,7 +728,10 @@ describe('free background downloads', () => {
     });
 
     expect(
-      readDownloadCredentials({cachedUserConfig, client: communityClient}),
+      await readDownloadCredentials({
+        cachedUserConfig,
+        client: communityClient,
+      }),
     ).toHaveLength(1);
     expect(downloadedIds).toEqual([]);
     expect(communityClient.downloadSubtitle).not.toHaveBeenCalled();
@@ -740,12 +749,7 @@ describe('a queued background job', () => {
       cachedUserConfig,
       videoContext: makeVideoContext(),
       candidates,
-      credentialsBySource: Object.fromEntries(
-        fixtureClients.map(client => [
-          client.subtitleSource,
-          readDownloadCredentials({cachedUserConfig, client}),
-        ]),
-      ),
+      credentialsBySource: await readCredentialsBySource(cachedUserConfig),
       subtitleSourceRegistry,
     });
     return openGate;
@@ -1188,7 +1192,7 @@ describe('background budget refusals', () => {
       client: yifyClient,
       candidates: candidatesOf(candidates, SubtitleSource.YIFY),
       videoContext: makeVideoContext({catalogDurationMs: 7200000}),
-      credentials: readDownloadCredentials({
+      credentials: await readDownloadCredentials({
         cachedUserConfig,
         client: yifyClient,
       }),

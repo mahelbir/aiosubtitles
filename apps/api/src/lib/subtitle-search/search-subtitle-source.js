@@ -85,17 +85,19 @@ async function runSubtitleSourceSearch({
       videoHash: searchQuery.videoHash,
     }),
   }));
-  const [searchCacheEntries, subtitleSourceBreaker] = await Promise.all([
-    readSearchCacheEntries(
-      languageSearches.map(({searchCacheParts}) => searchCacheParts),
-      nowMs,
-    ),
-    readSubtitleSourceBreaker(subtitleSource, nowMs),
-  ]);
+  const [searchCacheEntries, subtitleSourceBreaker, canUseWithoutCredential] =
+    await Promise.all([
+      readSearchCacheEntries(
+        languageSearches.map(({searchCacheParts}) => searchCacheParts),
+        nowMs,
+      ),
+      readSubtitleSourceBreaker(subtitleSource, nowMs),
+      client.canSearchWithoutCredential(),
+    ]);
   const candidateCredentials = toCandidateCredentials({
     credentials,
     hasConfiguredCredential,
-    canUseWithoutCredential: client.canSearchWithoutCredential(),
+    canUseWithoutCredential,
   });
   const canSearch =
     !subtitleSourceBreaker.isOpen && candidateCredentials.length > 0;
@@ -250,7 +252,7 @@ async function runUncachedSearch({
   const candidateCredentials = toCandidateCredentials({
     credentials,
     hasConfiguredCredential,
-    canUseWithoutCredential: client.canSearchWithoutCredential(),
+    canUseWithoutCredential: await client.canSearchWithoutCredential(),
   });
   if (candidateCredentials.length === 0) {
     return [];

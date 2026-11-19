@@ -34,7 +34,18 @@ export function readSearchCredentials({cachedUserConfig, client}) {
   });
 }
 
-export function readDownloadCredentials({cachedUserConfig, client}) {
+export async function readDownloadCredentials({
+  cachedUserConfig,
+  client,
+  isBackground = false,
+}) {
+  if (client.isDownloadKeyless) {
+    return [null];
+  }
+  const canUseWithoutCredential = await client.canDownloadWithoutCredential();
+  if (isBackground && client.canUseSharedCredential) {
+    return canUseWithoutCredential ? [null] : [];
+  }
   return toCandidateCredentials({
     ...readSourceCredentials({
       cachedUserConfig,
@@ -43,7 +54,7 @@ export function readDownloadCredentials({cachedUserConfig, client}) {
         client.subtitleSource
       ] ?? [client.credentialKinds],
     }),
-    canUseWithoutCredential: client.canDownloadWithoutCredential(),
+    canUseWithoutCredential,
   });
 }
 
@@ -80,6 +91,9 @@ export function toCandidateCredentials({
 }) {
   if (typeof hasConfiguredCredential !== 'boolean') {
     throw new TypeError('hasConfiguredCredential must be a boolean.');
+  }
+  if (typeof canUseWithoutCredential !== 'boolean') {
+    throw new TypeError('canUseWithoutCredential must be a boolean.');
   }
   const canUseKeyless =
     canUseWithoutCredential && !hasConfiguredCredential && !credentials.length;

@@ -349,10 +349,10 @@ describe('jimakuMapping.buildDownloadRequest', () => {
     expect(JSON.stringify(downloadRequest)).not.toContain(API_KEY);
   });
 
-  it('refuses a download without a key', () => {
-    expect(
-      catchError(() => jimakuMapping.buildDownloadRequest(subtitleRef, null)),
-    ).toBeInstanceOf(SourceUnavailableError);
+  it('downloads the same public file without any key', () => {
+    expect(jimakuMapping.buildDownloadRequest(subtitleRef, null)).toEqual(
+      jimakuMapping.buildDownloadRequest(subtitleRef, keyCredential),
+    );
   });
 
   it('refuses a file id that names no entry', () => {

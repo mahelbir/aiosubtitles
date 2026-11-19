@@ -28,7 +28,8 @@ export const SUBTITLE_SOURCE_DESCRIPTIONS = Object.freeze({
     keyPageUrl: 'https://subsource.net/dashboard/api',
   },
   [SubtitleSource.BETASERIES]: {
-    helpText: 'Requires an API key.',
+    helpText:
+      "Optional. Add your own API key for searching, or the server's shared key is used when the server has one. Downloads need no key.",
     keyPageUrl: 'https://www.betaseries.com/compte/api',
   },
   [SubtitleSource.GESTDOWN]: {
@@ -40,7 +41,7 @@ export const SUBTITLE_SOURCE_DESCRIPTIONS = Object.freeze({
   },
   [SubtitleSource.ANISUB]: {
     helpText:
-      'Requires a token. With your token, you get 1000 requests a day of your own.',
+      "Optional. With your own token, you get 1000 requests a day of your own. Without one, the server's shared token or its public limits are used.",
     keyPageUrl: 'https://anisub.co/ayarlar',
   },
   [SubtitleSource.YIFY]: {
@@ -59,7 +60,8 @@ export const SUBTITLE_SOURCE_DESCRIPTIONS = Object.freeze({
     keyPageUrl: 'https://stremio-community-subtitles.top/configure',
   },
   [SubtitleSource.JIMAKU]: {
-    helpText: 'Requires an API key.',
+    helpText:
+      "Optional. Add your own API key, or the server's shared key is used when the server has one. Requests share the server's limits.",
     keyPageUrl: 'https://jimaku.cc/account',
   },
   [SubtitleSource.ANIMETOSHO]: {
