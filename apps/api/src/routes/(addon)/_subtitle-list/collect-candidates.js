@@ -1,6 +1,7 @@
 import {isNil, uniq} from 'es-toolkit';
 import {CredentialKind} from '@repo/shared/constants/credential.js';
 import {SubtitleSource} from '@repo/shared/constants/subtitle-source.js';
+import {listDownloadCredentialKinds} from '@repo/shared/lib/download-credential-kinds.js';
 import {listArchiveEntriesForVideo} from '@repo/subtitle-core/archive/pick-archive-entry.js';
 import {SubtitleNotice} from '../../../lib/stremio-row/stremio-row-enums.js';
 import {
@@ -36,12 +37,18 @@ export async function collectVideoCandidates({
   );
   const canListUnstoredRows = subtitleSource =>
     listingSources.has(subtitleSource);
-  const hasOpensubtitlesAccount =
-    readUsableCredentials({
-      cachedUserConfig,
-      subtitleSource: SubtitleSource.OPENSUBTITLES,
-      credentialKinds: [CredentialKind.ACCOUNT],
-    }).length > 0;
+  const ownDownloadSources = new Set(
+    uniq([...candidateSources, SubtitleSource.OPENSUBTITLES]).filter(
+      subtitleSource =>
+        readUsableCredentials({
+          cachedUserConfig,
+          subtitleSource,
+          credentialKinds: listDownloadCredentialKinds(subtitleSource),
+        }).length > 0,
+    ),
+  );
+  const hasOwnDownloadCredential = subtitleSource =>
+    ownDownloadSources.has(subtitleSource);
   return candidates
     .filter(
       candidate =>
@@ -53,9 +60,12 @@ export async function collectVideoCandidates({
     )
     .map(candidate => ({
       ...candidate,
+      isQuotaCostly:
+        candidate.isQuotaCostly &&
+        hasOwnDownloadCredential(candidate.subtitleSource),
       isAccountHidden:
-        !hasOpensubtitlesAccount &&
         candidate.subtitleSource === SubtitleSource.OPENSUBTITLES &&
+        !hasOwnDownloadCredential(SubtitleSource.OPENSUBTITLES) &&
         !hasFreeDownloadPath(candidate),
     }));
 }

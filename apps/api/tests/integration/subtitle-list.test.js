@@ -1751,6 +1751,38 @@ describe('the OpenSubtitles account notice', () => {
       [toUrlCode(storedHit)]: 'OpenSubtitles · The.Matrix.1999.720p.WEB-DL-BBB',
     });
   });
+
+  it('marks a quota-costly row with $ only for a user whose own key downloads it', async () => {
+    const thesubtitledbName = SubtitleSource.label(
+      SubtitleSource.THESUBTITLEDB,
+    );
+    const {userConfig: keylessUserConfig} = await createListUserConfig();
+    const {userConfig: keyedUserConfig} = await createListUserConfig({
+      credentials: [
+        makeApiKeyCredential(SubtitleSource.THESUBTITLEDB, 'thesubtitledb-key'),
+      ],
+    });
+    const quotaHit = makeHit({
+      subtitleSource: SubtitleSource.THESUBTITLEDB,
+      isQuotaCostly: true,
+    });
+    thesubtitledbClient.searchSubtitles.mockResolvedValue([quotaHit]);
+    await storeHits(MOVIE_ID, [quotaHit]);
+
+    const keylessSubtitles = await getSubtitleList({
+      userConfigId: keylessUserConfig.id,
+    });
+    const keyedSubtitles = await getSubtitleList({
+      userConfigId: keyedUserConfig.id,
+    });
+
+    expect(keylessSubtitles.map(({label}) => label)).toEqual([
+      `${thesubtitledbName} · ${MOVIE_RELEASE}`,
+    ]);
+    expect(keyedSubtitles.map(({label}) => label)).toEqual([
+      `$ · ${thesubtitledbName} · ${MOVIE_RELEASE}`,
+    ]);
+  });
 });
 
 describe('the subtitle list privacy', () => {
