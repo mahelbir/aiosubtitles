@@ -68,6 +68,23 @@ const SHARED_CREDENTIAL_SOURCES = [
 ];
 
 const SEE_LIMITS = 'See limits';
+const SUBTITLE_SOURCE_TAB_ORDER = [
+  SubtitleSource.SUBDL,
+  SubtitleSource.SUBSOURCE,
+  SubtitleSource.WYZIE,
+  SubtitleSource.THESUBTITLEDB,
+  SubtitleSource.STREMIO_COMMUNITY_SUBTITLES,
+  SubtitleSource.ALTYAZIDB,
+  SubtitleSource.OPENSUBTITLES,
+  SubtitleSource.BETASERIES,
+  SubtitleSource.JIMAKU,
+  SubtitleSource.ANISUB,
+  SubtitleSource.OPENSUBTITLES_V3,
+  SubtitleSource.YIFY,
+  SubtitleSource.GESTDOWN,
+  SubtitleSource.TVSUBTITLES,
+  SubtitleSource.ANIMETOSHO,
+];
 const CREDENTIAL_LIST_NAMES = {
   [CredentialKind.ACCOUNT]: 'Accounts',
   [CredentialKind.API_KEY]: 'API keys',
@@ -251,7 +268,7 @@ async function enterCredential(
 }
 
 test.describe('sources', () => {
-  test('lists one tab per registered source, in the order the API gives', async ({
+  test('lists one tab per registered source, credential required first, then optional, then none, each group from most to least known', async ({
     page,
     request,
   }) => {
@@ -260,11 +277,16 @@ test.describe('sources', () => {
       'GET',
       SUBTITLE_SOURCES_PATH,
     );
+    const registeredSubtitleSources = new Set(
+      subtitleSources.map(({subtitleSource}) => subtitleSource),
+    );
 
     await openConfigure(page);
 
     await expect(await openTabMenuItems(page)).toHaveText(
-      subtitleSources.map(({label}) => label),
+      SUBTITLE_SOURCE_TAB_ORDER.filter(subtitleSource =>
+        registeredSubtitleSources.has(subtitleSource),
+      ).map(subtitleSource => SubtitleSource.label(subtitleSource)),
     );
   });
 

@@ -1,8 +1,12 @@
 'use client';
 
 import {useSelector} from '@tanstack/react-form';
-import {uniq} from 'es-toolkit';
+import {sortBy, uniq} from 'es-toolkit';
 import {CredentialStatus} from '@repo/shared/constants/credential.js';
+import {
+  CredentialRequirement,
+  SubtitleSource,
+} from '@repo/shared/constants/subtitle-source.js';
 import {isSubtitleSourceSwitchLocked} from '@repo/shared/lib/subtitle-source-switch.js';
 import {PageSection} from '@/components/common/page-section';
 import {QueryBoundary} from '@/components/common/query-boundary';
@@ -14,6 +18,36 @@ import {SUBTITLE_SOURCE_TAB_URL_KEY} from '../../config/configure-sections';
 import {useStoredCredentials} from '../../hooks/use-stored-credentials';
 import {AllSourcesCheckbox} from './all-sources-checkbox';
 import {SourcePanel} from './source-panel';
+
+const SUBTITLE_SOURCE_ORDER = [
+  SubtitleSource.SUBDL,
+  SubtitleSource.SUBSOURCE,
+  SubtitleSource.WYZIE,
+  SubtitleSource.THESUBTITLEDB,
+  SubtitleSource.STREMIO_COMMUNITY_SUBTITLES,
+  SubtitleSource.ALTYAZIDB,
+  SubtitleSource.OPENSUBTITLES,
+  SubtitleSource.BETASERIES,
+  SubtitleSource.JIMAKU,
+  SubtitleSource.ANISUB,
+  SubtitleSource.OPENSUBTITLES_V3,
+  SubtitleSource.YIFY,
+  SubtitleSource.GESTDOWN,
+  SubtitleSource.TVSUBTITLES,
+  SubtitleSource.ANIMETOSHO,
+];
+
+// Sources that require a credential come first, then optional, then none, each group from most to least known.
+function sortSubtitleSourceOptions(subtitleSourceOptions) {
+  return sortBy(subtitleSourceOptions, [
+    ({credentialRequirement}) =>
+      CredentialRequirement.values.indexOf(credentialRequirement),
+    ({subtitleSource}) => {
+      const position = SUBTITLE_SOURCE_ORDER.indexOf(subtitleSource);
+      return position === -1 ? SUBTITLE_SOURCE_ORDER.length : position;
+    },
+  ]);
+}
 
 function SourceTabs({subtitleSourceOptions}) {
   const form = useFormContext();
@@ -72,7 +106,9 @@ function SourceTabs({subtitleSourceOptions}) {
 }
 
 export function SourcesSection() {
-  const subtitleSourcesQuery = useSubtitleSources();
+  const subtitleSourcesQuery = useSubtitleSources({
+    select: sortSubtitleSourceOptions,
+  });
 
   return (
     <PageSection
