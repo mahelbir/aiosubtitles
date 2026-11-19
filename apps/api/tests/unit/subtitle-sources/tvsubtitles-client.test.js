@@ -1,7 +1,7 @@
 import {Readable} from 'node:stream';
 import {afterEach, describe, expect, it, vi} from 'vitest';
-import {Maxios} from '@mepkg/maxios';
 import {SubtitleSource} from '@repo/shared/constants/subtitle-source.js';
+import {getRemoteResourceClient} from '../../../src/lib/subtitle-sources/remote-resource-client.js';
 import {listSubtitleSourceClients} from '../../../src/lib/subtitle-sources/subtitle-source-clients.js';
 import {SubtitleSourceBudgetScope} from '../../../src/lib/subtitle-sources/subtitle-source-contract.js';
 import {SourceUnavailableError} from '../../../src/lib/subtitle-sources/subtitle-source-errors.js';
@@ -23,7 +23,7 @@ afterEach(() => {
 
 function answerSite(answersByUrl) {
   return vi
-    .spyOn(Maxios.prototype, 'request')
+    .spyOn(getRemoteResourceClient(), 'request')
     .mockImplementation(async ({url}) => {
       const answer = answersByUrl[url];
       if (!answer) {

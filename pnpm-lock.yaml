@@ -248,8 +248,8 @@ importers:
         specifier: ^6.0.0
         version: 6.0.0
       '@mepkg/maxios':
-        specifier: 5.1.0
-        version: 5.1.0
+        specifier: 5.2.0
+        version: 5.2.0
       '@napi-rs/lzma':
         specifier: ^1.5.3
         version: 1.5.3
@@ -344,6 +344,9 @@ importers:
       pino-pretty:
         specifier: ^13.2.0
         version: 13.2.0
+      undici:
+        specifier: ^8.12.4
+        version: 8.12.4
 
   apps/client:
     dependencies:
@@ -1159,8 +1162,8 @@ packages:
     resolution: {integrity: sha512-88dE09YqLENz0Wp0d9xBrYi6aRff4N3h7coNEsVQVbgQq+1L+G4ikTKlJgEen/f7n0OC5STTjZU2p+k8ACesZA==}
     engines: {node: '>=18.0.0'}
 
-  '@mepkg/maxios@5.1.0':
-    resolution: {integrity: sha512-Vt2nY7EHwnb70/Uh348dQsp+vVXpMKlp8oVpCwgxABLMS/Ayk/ZO8MrYaStz8zN6Ox4l+PLlVFQIawZq0Lp2qw==}
+  '@mepkg/maxios@5.2.0':
+    resolution: {integrity: sha512-jFXM790rmKjoxuGdp/5VFN8zxptARlExCm7DIXf98b9vj1LtsuB5CImZwhM05kou7SZgQuWh1q9qID0IrMQ9wQ==}
     engines: {node: '>=22.19.0'}
 
   '@microsoft/fetch-event-source@2.0.1':
@@ -5124,10 +5127,6 @@ packages:
     resolution: {integrity: sha512-03KrMbjIFDWQR5RNPrSw3bd1r12JpyFQl9/yxjUbJtqkjmllqC5lFjZh6ujeuJCKr8EOQvRW872Oy/az+nLYxg==}
     engines: {node: '>=20.18.1'}
 
-  undici@8.12.2:
-    resolution: {integrity: sha512-XtuDWVdqTLr3NAxm2ly9/hU6kUsJOgGh1RASzMBbsw6aWCOaQzHdW+QQDfdERjfJ2V5vL5pRPa4RetO9UfivDg==}
-    engines: {node: '>=22.19.0'}
-
   undici@8.12.4:
     resolution: {integrity: sha512-8Mx+uNKKER2bA4AdtedkqRbwUCIJFr2nJckXRe5yrDqzePqwLP7VNcctN8/XdmDSbF7mS+jJKIszlL+vbam1VA==}
     engines: {node: '>=22.19.0'}
@@ -6119,7 +6118,7 @@ snapshots:
       es-toolkit: 1.53.1
       proper-lockfile: 4.1.2
 
-  '@mepkg/maxios@5.1.0':
+  '@mepkg/maxios@5.2.0':
     dependencies:
       decompress-response: 10.0.0
       es-toolkit: 1.53.1
@@ -10144,7 +10143,7 @@ snapshots:
       ssh-remote-port-forward: 1.0.4
       tar-fs: 3.1.3
       tmp: 0.2.7
-      undici: 8.12.2
+      undici: 8.12.4
     transitivePeerDependencies:
       - bare-abort-controller
       - bare-buffer
@@ -10310,8 +10309,6 @@ snapshots:
   undici-types@8.9.0: {}
 
   undici@7.30.1: {}
-
-  undici@8.12.2: {}
 
   undici@8.12.4: {}
 

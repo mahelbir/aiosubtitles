@@ -1,26 +1,15 @@
 import {syncBuiltinESMExports} from 'node:module';
-import net from 'node:net';
-import tls from 'node:tls';
 import {HttpResponse} from 'msw';
 import {afterAll, afterEach, beforeAll} from 'vitest';
+import {setRemoteResourceTransport} from '../../src/lib/subtitle-sources/remote-resource-client.js';
 import {
+  installNetworkDispatcher,
+  isLoopback,
   mockNetwork,
+  networkDispatcher,
   recordBlockedRequest,
   throwIfRequestsBlocked,
 } from '../helpers/network.js';
-
-const LOOPBACK_HOSTS = new Set(['127.0.0.1', '[::1]', 'localhost']);
-const LOOPBACK_SOCKET_HOSTS = new Set(['localhost', '::1', '[::1]']);
-const IPV4_LOOPBACK_PREFIX = '127.';
-const SOCKET_PATH_PATTERN = /\D/;
-const UNDICI_PACKAGE_PATH = '/node_modules/undici/';
-const CONNECT_STACK_DEPTH = 20;
-const GUARDED_CONNECTS = [
-  {socketModule: net, connectName: 'connect', protocol: 'tcp'},
-  {socketModule: net, connectName: 'createConnection', protocol: 'tcp'},
-  {socketModule: tls, connectName: 'connect', protocol: 'tls'},
-];
-const originalConnects = [];
 
 beforeAll(() => {
   /* msw passes an unhandled CONNECT through whatever the strategy below says,
@@ -53,90 +42,26 @@ beforeAll(() => {
         : new Error(`Unhandled ${frame.protocol} frame: ${url}`);
     },
   });
-  GUARDED_CONNECTS.forEach(({socketModule, connectName, protocol}, index) => {
-    originalConnects[index] = socketModule[connectName];
-    socketModule[connectName] = guardConnect(originalConnects[index], protocol);
-  });
   /* msw patches the CommonJS exports of `node:http` and `node:https`; a named
      ES import keeps the original until those are synced into its bindings. */
   syncBuiltinESMExports();
+  installNetworkDispatcher();
 });
 
 afterEach(() => {
   mockNetwork.resetHandlers();
   throwIfRequestsBlocked();
+  networkDispatcher.assertNoPendingInterceptors();
 });
 
-afterAll(() => {
+afterAll(async () => {
+  setRemoteResourceTransport();
+  await networkDispatcher.close();
   mockNetwork.close();
-  GUARDED_CONNECTS.forEach(({socketModule, connectName}, index) => {
-    socketModule[connectName] = originalConnects[index];
-  });
   syncBuiltinESMExports();
   throwIfRequestsBlocked();
 });
 
-function guardConnect(connect, protocol) {
-  return function guardedConnect(...connectArgs) {
-    const connectTarget = readConnectTarget(connectArgs);
-    if (
-      connectTarget === null ||
-      isLoopbackHost(connectTarget.host) ||
-      !isUndiciPackageConnect()
-    ) {
-      return connect.apply(this, connectArgs);
-    }
-    const blockedTarget = `${protocol}://${connectTarget.host}:${connectTarget.port}`;
-    recordBlockedRequest(blockedTarget);
-    const blockedSocket = new net.Socket();
-    process.nextTick(() =>
-      blockedSocket.destroy(
-        new Error(`Blocked outbound connection: ${blockedTarget}.`),
-      ),
-    );
-    return blockedSocket;
-  };
-}
-
-function readConnectTarget([connectOptions, connectHost]) {
-  if (typeof connectOptions === 'object' && connectOptions !== null) {
-    return connectOptions.path
-      ? null
-      : {host: connectOptions.host ?? 'localhost', port: connectOptions.port};
-  }
-  if (
-    typeof connectOptions === 'string' &&
-    SOCKET_PATH_PATTERN.test(connectOptions)
-  ) {
-    return null;
-  }
-  return {
-    host: typeof connectHost === 'string' ? connectHost : 'localhost',
-    port: connectOptions,
-  };
-}
-
-function isUndiciPackageConnect() {
-  const {stackTraceLimit} = Error;
-  Error.stackTraceLimit = CONNECT_STACK_DEPTH;
-  try {
-    return new Error().stack.includes(UNDICI_PACKAGE_PATH);
-  } finally {
-    Error.stackTraceLimit = stackTraceLimit;
-  }
-}
-
-function isLoopbackHost(host) {
-  return (
-    LOOPBACK_SOCKET_HOSTS.has(host) ||
-    (net.isIPv4(host) && host.startsWith(IPV4_LOOPBACK_PREFIX))
-  );
-}
-
 function getFrameUrl({protocol, data}) {
   return protocol === 'ws' ? data.connection.client.url.href : data.request.url;
-}
-
-function isLoopback(url) {
-  return LOOPBACK_HOSTS.has(new URL(url).hostname);
 }

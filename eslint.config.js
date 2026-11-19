@@ -21,6 +21,13 @@ const dayjsImportRestriction = {
   message: 'Import the timezone-aware wrapper from lib/datetime.js instead.',
 };
 
+const maxiosImportRestriction = {
+  name: '@mepkg/maxios',
+  importNames: ['Maxios', 'maxios', 'TlsClient'],
+  message:
+    'Send through getRemoteResourceClient() from lib/subtitle-sources/remote-resource-client.js instead.',
+};
+
 const SUBTITLE_CORE_IO_MESSAGE = 'subtitle-core stays pure: no I/O.';
 
 export default [
@@ -56,7 +63,7 @@ export default [
       'no-restricted-imports': [
         'error',
         {
-          paths: [dayjsImportRestriction],
+          paths: [dayjsImportRestriction, maxiosImportRestriction],
         },
       ],
       curly: ['error', 'all'],
@@ -140,6 +147,7 @@ export default [
         {
           paths: [
             dayjsImportRestriction,
+            maxiosImportRestriction,
             ...[
               'node:fs',
               'node:fs/promises',
@@ -172,7 +180,15 @@ export default [
     // The wrapper is the one place allowed to import the real dayjs.
     files: ['**/lib/datetime.js'],
     ignores: ['packages/subtitle-core/src/**'],
-    rules: {'no-restricted-imports': 'off'},
+    rules: {
+      'no-restricted-imports': ['error', {paths: [maxiosImportRestriction]}],
+    },
+  },
+  {
+    files: ['apps/api/src/lib/subtitle-sources/remote-resource-client.js'],
+    rules: {
+      'no-restricted-imports': ['error', {paths: [dayjsImportRestriction]}],
+    },
   },
   {
     files: [

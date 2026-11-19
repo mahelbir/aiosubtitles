@@ -1,7 +1,11 @@
 import {Readable} from 'node:stream';
+import {gzipSync} from 'node:zlib';
 import {afterEach, describe, expect, it, vi} from 'vitest';
-import {Maxios} from '@mepkg/maxios';
 import {SubtitleSource} from '@repo/shared/constants/subtitle-source.js';
+import {
+  getRemoteResourceClient,
+  setRemoteResourceTransport,
+} from '../../../src/lib/subtitle-sources/remote-resource-client.js';
 import {createGuardedLookup} from '../../../src/lib/subtitle-sources/source-address-guard.js';
 import {SourceUnavailableError} from '../../../src/lib/subtitle-sources/subtitle-source-errors.js';
 import {
@@ -9,11 +13,34 @@ import {
   requestSubtitleSource,
 } from '../../../src/lib/subtitle-sources/subtitle-source-request.js';
 import {toErrorText} from '../../helpers/caught-error.js';
+import {
+  installNetworkDispatcher,
+  networkDispatcher,
+} from '../../helpers/network.js';
 
 const REMOTE_URL = 'https://catalog.test/meta/movie/tt0133093.json';
+const REMOTE_ORIGIN = 'https://catalog.test';
+const FILE_PATH = '/files/subtitle.srt';
+const RESPONSE_BYTES_MAX = 20971520;
+
+function answerFile(fileBytes, {status = 200, headers = {}} = {}) {
+  networkDispatcher
+    .get(REMOTE_ORIGIN)
+    .intercept({path: FILE_PATH})
+    .reply(status, fileBytes, {headers});
+}
+
+function requestFile(requestOptions = {}) {
+  return requestRemoteResource({
+    serviceName: 'kitsu',
+    url: `${REMOTE_ORIGIN}${FILE_PATH}`,
+    responseType: 'bytes',
+    ...requestOptions,
+  }).catch(caught => caught);
+}
 
 function answerOnce({status = 200, payload}) {
-  return vi.spyOn(Maxios.prototype, 'request').mockResolvedValueOnce({
+  return vi.spyOn(getRemoteResourceClient(), 'request').mockResolvedValueOnce({
     status,
     headers: {'content-type': 'application/json'},
     data: Readable.from([Buffer.from(JSON.stringify(payload))]),
@@ -22,12 +49,13 @@ function answerOnce({status = 200, payload}) {
 
 function refuseEverySend() {
   return vi
-    .spyOn(Maxios.prototype, 'request')
+    .spyOn(getRemoteResourceClient(), 'request')
     .mockRejectedValue(new Error('A request was sent.'));
 }
 
 afterEach(() => {
   vi.restoreAllMocks();
+  installNetworkDispatcher();
 });
 
 describe('requestRemoteResource', () => {
@@ -58,7 +86,7 @@ describe('requestRemoteResource', () => {
 
   it('refuses a private host before sending', async () => {
     const requestSpy = vi
-      .spyOn(Maxios.prototype, 'request')
+      .spyOn(getRemoteResourceClient(), 'request')
       .mockResolvedValueOnce({
         status: 302,
         headers: {location: 'http://127.0.0.1/meta.json'},
@@ -106,6 +134,73 @@ describe('requestRemoteResource', () => {
 
     expect(error.cause.message).toBe(lookupError.code);
     expect(requestSpy).not.toHaveBeenCalled();
+  });
+
+  it('refuses a host that resolves to a private address, through the lookup, with the error of the address guard', async () => {
+    const resolve = vi.fn((hostname, options, callback) =>
+      callback(null, [{address: '10.0.0.5', family: 4}]),
+    );
+    setRemoteResourceTransport({lookup: createGuardedLookup(resolve)});
+    const textCheckError = await requestRemoteResource({
+      serviceName: 'kitsu',
+      url: 'https://10.0.0.5/meta.json',
+    }).catch(caught => caught);
+
+    const error = await requestRemoteResource({
+      serviceName: 'kitsu',
+      url: 'https://inside.catalog.test/meta.json',
+    }).catch(caught => caught);
+
+    expect(resolve).toHaveBeenCalledWith(
+      'inside.catalog.test',
+      expect.anything(),
+      expect.any(Function),
+    );
+    expect(error).toBeInstanceOf(SourceUnavailableError);
+    expect(error.constructor).toBe(textCheckError.constructor);
+    expect(error.message).toBe(textCheckError.message);
+    expect(error.cause.message).toBe('ERR_PRIVATE_HOST');
+    expect(error.cause.message).toBe(textCheckError.cause.message);
+    expect(toErrorText(error)).not.toContain('inside.catalog.test');
+  });
+});
+
+describe('requestRemoteResource response cap', () => {
+  it('reads a body at the 20 MiB cap', async () => {
+    answerFile(Buffer.alloc(RESPONSE_BYTES_MAX));
+
+    const response = await requestFile();
+
+    expect(response.body.byteLength).toBe(RESPONSE_BYTES_MAX);
+  });
+
+  it('refuses a body one byte over the cap while it streams', async () => {
+    answerFile(Buffer.alloc(RESPONSE_BYTES_MAX + 1));
+
+    const error = await requestFile();
+
+    expect(error).toBeInstanceOf(SourceUnavailableError);
+    expect(error.cause.message).toBe('max_content_length');
+  });
+
+  it('refuses a compressed body that inflates over the cap', async () => {
+    const compressedBytes = gzipSync(Buffer.alloc(RESPONSE_BYTES_MAX + 1));
+    answerFile(compressedBytes, {headers: {'content-encoding': 'gzip'}});
+
+    const error = await requestFile();
+
+    expect(compressedBytes.byteLength).toBeLessThan(RESPONSE_BYTES_MAX);
+    expect(error).toBeInstanceOf(SourceUnavailableError);
+    expect(error.cause.message).toBe('max_content_length');
+  });
+
+  it('holds a listed status under the cap too', async () => {
+    answerFile(Buffer.alloc(RESPONSE_BYTES_MAX + 1), {status: 406});
+
+    const error = await requestFile({acceptedStatuses: [406]});
+
+    expect(error).toBeInstanceOf(SourceUnavailableError);
+    expect(error.cause.message).toBe('max_content_length');
   });
 });
 

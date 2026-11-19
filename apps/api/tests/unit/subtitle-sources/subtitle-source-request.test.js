@@ -1,6 +1,7 @@
 import {Readable} from 'node:stream';
 import {afterEach, describe, expect, it, vi} from 'vitest';
-import {Maxios, MaxiosRequestError, MaxiosResponseError} from '@mepkg/maxios';
+import {MaxiosRequestError, MaxiosResponseError} from '@mepkg/maxios';
+import {getRemoteResourceClient} from '../../../src/lib/subtitle-sources/remote-resource-client.js';
 import {
   SourceCredentialError,
   SourceRateLimitError,
@@ -40,10 +41,6 @@ const RESPONSE_BYTES_MAX = 20971520;
 const RETRY_AFTER_DEFAULT_MS = 60000;
 const RETRY_AFTER_MAX_MS = 86400000;
 const SOURCE_URL = 'https://source.test/list';
-const subtitleSourceClientStandIn = new Maxios({
-  cookies: false,
-  headers: {'User-Agent': 'AIOSubtitles v1.0.0', Accept: '*/*'},
-});
 const SECRET = 'SECRET-KEY-1';
 const MAXIOS_REQUEST_OPTION_KEYS = [
   'url',
@@ -60,6 +57,7 @@ const MAXIOS_REQUEST_OPTION_KEYS = [
   'maxRedirects',
   'responseType',
   'validateStatus',
+  'maxContentLength',
 ];
 
 function makeMaxiosResponse({status = 200, headers = {}, body = ''} = {}) {
@@ -194,7 +192,7 @@ describe('buildSubtitleSourceRequestOptions', () => {
   });
 
   it('keeps a user agent and accept the caller sets, in any case, once', async () => {
-    const builtRequest = await subtitleSourceClientStandIn.buildRequest(
+    const builtRequest = await getRemoteResourceClient().buildRequest(
       buildSubtitleSourceRequestOptions({
         url: SOURCE_URL,
         headers: {'user-agent': 'Fixture Agent', accept: 'application/json'},
@@ -212,7 +210,7 @@ describe('buildSubtitleSourceRequestOptions', () => {
     expect(SUBTITLE_SOURCE_BROWSER_USER_AGENT).toEqual(expect.any(String));
     expect(SUBTITLE_SOURCE_BROWSER_USER_AGENT).not.toBe('');
     expect(SUBTITLE_SOURCE_BROWSER_USER_AGENT).not.toBe('AIOSubtitles v1.0.0');
-    const builtRequest = await subtitleSourceClientStandIn.buildRequest(
+    const builtRequest = await getRemoteResourceClient().buildRequest(
       buildSubtitleSourceRequestOptions({
         url: SOURCE_URL,
         headers: {'User-Agent': SUBTITLE_SOURCE_BROWSER_USER_AGENT},
@@ -225,7 +223,7 @@ describe('buildSubtitleSourceRequestOptions', () => {
   });
 
   it('adds a client header without dropping the defaults', async () => {
-    const builtRequest = await subtitleSourceClientStandIn.buildRequest(
+    const builtRequest = await getRemoteResourceClient().buildRequest(
       buildSubtitleSourceRequestOptions({
         url: SOURCE_URL,
         headers: {Referer: 'https://source.test/'},
@@ -241,7 +239,7 @@ describe('buildSubtitleSourceRequestOptions', () => {
   });
 
   it('builds a request Maxios accepts without sending it', async () => {
-    const builtRequest = await subtitleSourceClientStandIn.buildRequest(
+    const builtRequest = await getRemoteResourceClient().buildRequest(
       buildSubtitleSourceRequestOptions({
         url: SOURCE_URL,
         method: 'POST',
@@ -281,6 +279,12 @@ describe('buildSubtitleSourceRequestOptions', () => {
   it('leaves every redirect to the helper', () => {
     expect(buildSubtitleSourceRequestOptions({url: SOURCE_URL})).toMatchObject({
       maxRedirects: 0,
+    });
+  });
+
+  it('has Maxios refuse a response over 20 MiB while it streams', () => {
+    expect(buildSubtitleSourceRequestOptions({url: SOURCE_URL})).toMatchObject({
+      maxContentLength: RESPONSE_BYTES_MAX,
     });
   });
 
@@ -651,36 +655,6 @@ describe('readSubtitleSourceResponse', () => {
         },
       ),
     ).toMatchObject({status: 403, body: {error: 'quota'}});
-  });
-
-  it('accepts a body at the byte cap', () => {
-    expect(
-      readSubtitleSourceResponse(
-        makeMaxiosResponse({body: Buffer.alloc(RESPONSE_BYTES_MAX)}),
-        {subtitleSource: 'subdl', responseType: 'bytes'},
-      )?.body?.byteLength,
-    ).toBe(RESPONSE_BYTES_MAX);
-  });
-
-  it('rejects a body one byte over the cap', () => {
-    expect(
-      catchReadError(
-        makeMaxiosResponse({body: Buffer.alloc(RESPONSE_BYTES_MAX + 1)}),
-        {subtitleSource: 'subdl', responseType: 'bytes'},
-      ),
-    ).toBeInstanceOf(SourceUnavailableError);
-  });
-
-  it('holds a listed status under the byte cap too', () => {
-    expect(
-      catchReadError(
-        makeMaxiosResponse({
-          status: 406,
-          body: Buffer.alloc(RESPONSE_BYTES_MAX + 1),
-        }),
-        {acceptedStatuses: [406], responseType: 'bytes'},
-      ),
-    ).toBeInstanceOf(SourceUnavailableError);
   });
 
   it('never puts the url of a failed answer into an error', () => {

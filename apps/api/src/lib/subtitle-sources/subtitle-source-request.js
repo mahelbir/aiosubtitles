@@ -1,5 +1,5 @@
 import {isIP} from 'node:net';
-import {Maxios} from '@mepkg/maxios';
+import {buffer} from 'node:stream/consumers';
 import {parse as parseContentDisposition} from 'content-disposition';
 import {pickBy} from 'es-toolkit';
 import {castArray} from 'es-toolkit/compat';
@@ -9,6 +9,7 @@ import {
   ADDON_NAME,
 } from '@repo/shared/constants/app.js';
 import {httpUrlField} from '@repo/shared/schemas/common.js';
+import {getRemoteResourceClient} from './remote-resource-client.js';
 import {
   createPrivateHostError,
   isBlockedAddress,
@@ -67,13 +68,6 @@ const HTTP_DATE_PATTERN = /^[A-Za-z]{3}/;
 const ERROR_CODE_PATTERN = /^[A-Za-z][\w-]{0,63}$/;
 const CHARSET_PATTERN = /charset\s*=\s*"?([^";\s]+)/i;
 const DEFAULT_CHARSET = 'utf-8';
-
-const subtitleSourceClient = new Maxios({
-  cookies: false,
-  timeout: SUBTITLE_SOURCE_REQUEST_TIMEOUT,
-  maxRedirects: 0,
-  headers: SUBTITLE_SOURCE_DEFAULT_HEADERS,
-});
 
 function readHeader(headers, headerName) {
   return castArray(headers[headerName])[0] ?? null;
@@ -313,6 +307,7 @@ export function buildSubtitleSourceRequestOptions({
     ),
     timeout: SUBTITLE_SOURCE_REQUEST_TIMEOUT,
     maxRedirects: 0,
+    maxContentLength: SUBTITLE_SOURCE_RESPONSE_BYTES_MAX,
     responseType: 'stream',
     validateStatus: null,
   };
@@ -424,9 +419,6 @@ export function readSubtitleSourceResponse(
   const {status, headers, data: bodyBytes} = maxiosResponse;
   try {
     if (shouldReadSubtitleSourceBody(status, acceptedStatuses)) {
-      if (bodyBytes.byteLength > SUBTITLE_SOURCE_RESPONSE_BYTES_MAX) {
-        throw new RangeError('Response body over the byte cap.');
-      }
       if (
         responseType === 'bytes' &&
         !acceptedStatuses.includes(status) &&
@@ -479,7 +471,7 @@ export async function readSubtitleSourceBodyBytes(
   acceptedStatuses,
 ) {
   if (shouldReadSubtitleSourceBody(status, acceptedStatuses)) {
-    return readCappedBody(data);
+    return buffer(data);
   }
   data.destroy();
   return Buffer.alloc(0);
@@ -494,7 +486,8 @@ async function sendSubtitleSourceRequest(
     ...subtitleSourceRequest,
     signal,
   });
-  const maxiosResponse = await subtitleSourceClient.request(requestOptions);
+  const maxiosResponse =
+    await getRemoteResourceClient().request(requestOptions);
   const locationHeader = findRedirectLocation(
     maxiosResponse,
     readOptions.acceptedStatuses,

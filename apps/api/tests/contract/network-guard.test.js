@@ -2,8 +2,10 @@ import {once} from 'node:events';
 import {createServer, get, request} from 'node:http';
 import {noop} from 'es-toolkit';
 import {afterAll, beforeAll, beforeEach, describe, expect, it} from 'vitest';
+import {getRemoteResourceClient} from '../../src/lib/subtitle-sources/remote-resource-client.js';
 import {requestRemoteResource} from '../../src/lib/subtitle-sources/subtitle-source-request.js';
 import {
+  networkDispatcher,
   takeBlockedRequests,
   throwIfRequestsBlocked,
 } from '../helpers/network.js';
@@ -87,22 +89,48 @@ describe('outbound network guard', () => {
   });
 
   it('stops a source client request, sent through its own undici dispatcher, and records it', async () => {
+    const url = `https://${PROBE_HOST}/subtitles.json`;
     const sourceRequest = requestRemoteResource({
       serviceName: PROBE_SERVICE,
-      url: `https://${PROBE_HOST}/subtitles.json`,
+      url,
     });
 
     await expect(sourceRequest).rejects.toThrow();
-    expect(takeBlockedRequests()).toEqual([`tls://${PROBE_HOST}:443`]);
+    expect(takeBlockedRequests()).toEqual([url]);
   });
 
   it('fails the test even when the code swallows the stopped source client request', async () => {
+    const url = `http://${PROBE_HOST}/subtitles.json`;
     await requestRemoteResource({
       serviceName: PROBE_SERVICE,
-      url: `http://${PROBE_HOST}/subtitles.json`,
+      url,
     }).catch(noop);
 
-    expect(() => throwIfRequestsBlocked()).toThrow(`tcp://${PROBE_HOST}:80`);
+    expect(() => throwIfRequestsBlocked()).toThrow(url);
+  });
+
+  it('stops a source client request that skips the url check and records it', async () => {
+    const url = `https://${PROBE_HOST}/raw.json`;
+
+    await expect(getRemoteResourceClient().get(url)).rejects.toThrow();
+    expect(takeBlockedRequests()).toEqual([url]);
+  });
+
+  it('lets a source client request to a loopback server through', async () => {
+    const response = await getRemoteResourceClient().get(
+      `http://127.0.0.1:${port}/`,
+      {responseType: 'text'},
+    );
+
+    expect(response.data).toBe(REACHED);
+    expect(takeBlockedRequests()).toEqual([]);
+  });
+
+  it('sends source client requests through the test dispatcher, never a lookup', () => {
+    expect(getRemoteResourceClient().config).toMatchObject({
+      dispatcher: networkDispatcher,
+      lookup: null,
+    });
   });
 
   it('records a CONNECT tunnel off loopback, which msw always lets through', async () => {
