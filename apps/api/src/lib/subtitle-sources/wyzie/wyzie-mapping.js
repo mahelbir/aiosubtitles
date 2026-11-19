@@ -54,7 +54,10 @@ const HASH_MATCH_REASON = 'hash';
 const REFUSAL_STATUSES = [StatusCodes.PAYMENT_REQUIRED, StatusCodes.FORBIDDEN];
 const FREE_PLAN_PATTERN = /free plan/i;
 const KEY_ON_HOLD_PATTERN = /on hold/i;
-const WYZIE_LANGUAGE_CODES = new Map([[SubtitleLanguage.POB, 'pt-br']]);
+const WYZIE_LANGUAGE_CODES = new Map([
+  [SubtitleLanguage.POB, 'pt-br'],
+  [SubtitleLanguage.SPL, 'ea'],
+]);
 const UPSELL_CUE_END_MS = 6000;
 const UPSELL_TEXT_PATTERN = /you['’]re on the free plan/i;
 

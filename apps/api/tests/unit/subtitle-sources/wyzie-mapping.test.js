@@ -24,6 +24,7 @@ const WYZIE_ORIGIN = 'https://sub.wyzie.io';
 const API_KEY = 'fixture-wyzie-key-a';
 const VIDEO_HASH = '8e245d9679d31e12';
 const SEARCH_FIXTURE = 'subtitle-sources/wyzie/search.json';
+const REGIONAL_SEARCH_FIXTURE = 'subtitle-sources/wyzie/search-regional.json';
 const SOURCES_FIXTURE = 'subtitle-sources/wyzie/sources-key.json';
 const USAGE_FIXTURE = 'subtitle-sources/wyzie/usage.json';
 const UPSELL_TEXT =
@@ -268,6 +269,21 @@ describe('wyzieMapping.buildSearchRequest', () => {
   });
 
   it.each([
+    [['spl'], 'ea'],
+    [['spa', 'spl'], 'es,ea'],
+  ])('asks latin american spanish %j as ea', (languageCodes, language) => {
+    expect(
+      readQuery(
+        wyzieMapping.buildSearchRequest(
+          {...movieQuery, languageCodes},
+          keyCredential,
+          FREE_CODENAMES,
+        ).url,
+      ).language,
+    ).toBe(language);
+  });
+
+  it.each([
     ['without a credential', movieQuery, null, FREE_CODENAMES],
     ['without a codename', movieQuery, keyCredential, []],
     [
@@ -450,6 +466,69 @@ describe('wyzieMapping.toSearchHits', () => {
         }),
       ),
     ).toBeInstanceOf(SourceUnavailableError);
+  });
+});
+
+describe('wyzieMapping regional rows', () => {
+  const regionalQuery = {...movieQuery, languageCodes: ['spa', 'spl', 'zho']};
+
+  async function readRegionalHits() {
+    return wyzieMapping.toSearchHits(
+      toOkResponse(await readFixture(REGIONAL_SEARCH_FIXTURE)),
+      {
+        searchQuery: regionalQuery,
+        credential: keyCredential,
+        codenames: FREE_CODENAMES,
+      },
+    );
+  }
+
+  it('reads an ea row as latin american spanish with an ea recipe', async () => {
+    const hit = findHit(await readRegionalHits(), 'charlie:3100002');
+    expect(hit.languageCode).toBe('spl');
+    expect(readQuery(hit.siteFileUrl)).toEqual({
+      id: 'tt0133093',
+      language: 'ea',
+      source: 'charlie',
+    });
+    expect(wyzieMapping.readRecipeLanguageCode(hit)).toBe('spl');
+  });
+
+  it('reads a zt row as chinese with a zh recipe', async () => {
+    const hit = findHit(await readRegionalHits(), 'charlie:3100004');
+    expect(hit.languageCode).toBe('zho');
+    expect(readQuery(hit.siteFileUrl).language).toBe('zh');
+  });
+
+  it('keeps the es, ea, zh and zt rows and drops the AI es-419 row', async () => {
+    expect(
+      (await readRegionalHits()).map(({siteFileId, languageCode}) => [
+        siteFileId,
+        languageCode,
+      ]),
+    ).toEqual([
+      ['charlie:3100001', 'spa'],
+      ['charlie:3100002', 'spl'],
+      ['charlie:3100003', 'zho'],
+      ['charlie:3100004', 'zho'],
+    ]);
+  });
+
+  it('finds the fresh link of an ea row in its ea re-search', async () => {
+    const hit = findHit(await readRegionalHits(), 'charlie:3100002');
+    const searchBody = (await readFixture(REGIONAL_SEARCH_FIXTURE)).map(
+      row => ({
+        ...row,
+        url: row.url.replace('fixture-tok-user-a', 'fixture-tok-user-b'),
+      }),
+    );
+    expect(
+      wyzieMapping.findDownloadUrl(toOkResponse(searchBody), hit, {
+        credential: keyCredential,
+      }),
+    ).toBe(
+      'https://sub.wyzie.io/c/4d1e2f31/id/3100002?format=srt&encoding=UTF-8&lang=ea&id=tt0133093&tok=fixture-tok-user-b-32',
+    );
   });
 });
 

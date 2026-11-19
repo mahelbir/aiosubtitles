@@ -96,7 +96,8 @@ BetaSeries, Stremio Community Subtitles and TVsubtitles. Every other site is ask
   - Cantonese (`zh-ca`) and bilingual Chinese (`ze`) are never asked: AIOSubtitles has no such language.
   - Norwegian Bokmål is still sent as `nb`, which the site does not know: 0 rows. Sending `no` would not help: a `no`
     row reads back as Norwegian, the search keeps only rows in an asked language, and one stored file holds one
-    language, so a row cannot count as both.
+    language, so a row cannot count as both. Nothing marks a `no` row as Bokmål rather than Nynorsk, so no clean
+    mapping exists: for The Matrix, `no` gave 9 rows, all `no`, and `nb` gave 0 (live probe on 2026-11-20).
 
 ### OpenSubtitles v3
 
@@ -119,8 +120,8 @@ BetaSeries, Stremio Community Subtitles and TVsubtitles. Every other site is ask
   American Spanish as `ea` and Norwegian as `no`.
 - **Gaps:**
   - Bilingual Chinese (`ze`) and Cantonese (`zc`) are never asked: AIOSubtitles has no such language.
-  - Norwegian Bokmål is still sent as `nb`, while the site's rows use `no` (_inferred_), for the same reason as on
-    OpenSubtitles.
+  - Norwegian Bokmål is still sent as `nb`, while the site's rows use `no`, for the same reason as on OpenSubtitles.
+    For The Matrix, `no` gave 16 rows, all `no`, and `nb` gave 0 (live probe on 2026-11-20).
 
 ### SubSource
 
@@ -140,18 +141,24 @@ BetaSeries, Stremio Community Subtitles and TVsubtitles. Every other site is ask
   longer online.
 - **Content:** movies and series.
 - **How we ask:** upper-case two-letter codes; Brazilian Portuguese as `BR_PT`, Chinese as `ZH` and `ZH_BG`.
-- **Gaps:** Latin American Spanish is never asked: the site's docs name no code for it. Not probed live, because a
-  search spends quota.
+- **Gaps:** Latin American Spanish is never asked: no code for it was found. The site ignores a code it does not know
+  and answers every language: `ES_LA`, `ES-419` and `LA` each gave the same unfiltered page for The Matrix. Every
+  Spanish row for The Matrix and Breaking Bad S1E1 was `ES`, labelled "spanish". `EA` is untested: the site answered
+  429 (live probe on 2026-11-20).
 
 ### Wyzie
 
 - **Languages:** two-letter codes plus `pt-br`. Of its upstream sources we use `charlie` and `xray`, and `oscar`, which
-  holds Hebrew only. We leave out `quebec`, which serves many machine-translated languages.
+  holds Hebrew only. We leave out `quebec`, which serves many machine-translated languages. `charlie` rows also carry
+  the OpenSubtitles codes `ea` ("Spanish (LA)") and `zt` ("Chinese (traditional)") (live probe on 2026-11-20).
 - **Content:** movies, series and anime.
-- **How we ask:** two-letter codes, Brazilian Portuguese as `pt-br`. `oscar` is added only when Hebrew is asked.
-- **Gaps:** Latin American Spanish is never asked: the docs name only ISO 639-1 codes plus AI codes such as `pt-br`,
-  and no code for it. Whether Wyzie takes `es-419` or `zh-tw` is unknown. Not probed live, because a search spends
-  billed requests.
+- **How we ask:** two-letter codes, Brazilian Portuguese as `pt-br` and Latin American Spanish as `ea`. `oscar` is
+  added only when Hebrew is asked. An `ea` row reads as Latin American Spanish and a `zt` row as Chinese. Live
+  answers for The Matrix (live probe on 2026-11-20):
+  - `ea` gave only the 2 "Spanish (LA)" rows on `charlie`, and none on `xray`; `en,ea` gave both languages;
+  - `es` gave the Spanish rows plus those 2 `ea` rows, and `es-419` gave the same set as `es`;
+  - `zh` and `zh-tw` both gave the `zh` and `zt` rows, so plain `zh` already reaches traditional Chinese.
+- **Gaps:** none.
 
 ### Gestdown
 
@@ -185,7 +192,8 @@ BetaSeries, Stremio Community Subtitles and TVsubtitles. Every other site is ask
 
 Shared codes live in `apps/api/src/lib/subtitle-sources/site-language-codes.js`; a code only one site uses lives in
 that site's mapping file, which passes its own codes to the shared helpers. OpenSubtitles extends the shared locale
-codes with `zh-tw`, `ea` and `az-az`; Gestdown, SubSource, OpenSubtitles v3 and YIFY keep their own lists.
+codes with `zh-tw`, `ea` and `az-az`; Wyzie asks `pt-br` and `ea` from its own list and reads rows through the shared
+codes; Gestdown, SubSource, OpenSubtitles v3 and YIFY keep their own lists.
 
 AIOSubtitles itself has a single Chinese and no traditional variant, and no Cantonese or bilingual Chinese. Its only
 regional codes are Brazilian Portuguese and Latin American Spanish.
