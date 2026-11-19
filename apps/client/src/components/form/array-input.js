@@ -29,6 +29,7 @@ const keepEveryItem = () => true;
 
 function ArrayListInput({
   label,
+  'aria-label': ariaLabel,
   help,
   className,
   max = Infinity,
@@ -105,7 +106,7 @@ function ArrayListInput({
       data-invalid={Boolean(error)}
       data-disabled={disabled}
     >
-      <FieldSet disabled={disabled}>
+      <FieldSet disabled={disabled} aria-label={ariaLabel}>
         {label && <FieldLegend variant="label">{label}</FieldLegend>}
         <FieldGroup ref={listRef} className="gap-3 *:shrink-0">
           {itemKeys.map((itemKey, index) => (

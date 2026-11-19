@@ -37,7 +37,7 @@ const PETS = [
 
 const PET_LISTS = [
   {kind: 'kedi', label: 'Kediler', itemLabel: 'Kedi', max: 3},
-  {kind: 'köpek', label: 'Köpekler', itemLabel: 'Köpek', max: 3},
+  {kind: 'köpek', ariaLabel: 'Köpekler', itemLabel: 'Köpek', max: 3},
 ];
 
 const petFormSchema = z.object({
@@ -132,10 +132,11 @@ export function ArrayInputFixture() {
         </FormField>
       </Form>
       <Form form={petForm} aria-label="Hayvan formu">
-        {PET_LISTS.map(({kind, label, itemLabel, max}) => (
+        {PET_LISTS.map(({kind, label, ariaLabel, itemLabel, max}) => (
           <FormField key={kind} name="pets" mode="array">
             <FilteredArrayInput
               label={label}
+              aria-label={ariaLabel}
               max={max}
               addLabel={`${itemLabel} ekle`}
               help="Sıralamayı oklarla değiştirin."

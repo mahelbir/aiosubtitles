@@ -395,6 +395,23 @@ test.describe('filtered array input', () => {
     ]);
   });
 
+  test('a list named by aria-label shows no legend and keeps its group name', async ({
+    page,
+  }) => {
+    await openFixture(page, 'array-input');
+
+    await Promise.all([
+      expect(
+        page.getByRole('group', {name: 'Köpekler', exact: true}),
+      ).toBeVisible(),
+      expect(page.getByText('Köpekler', {exact: true})).toHaveCount(0),
+      expect(
+        page.getByRole('group', {name: 'Kediler', exact: true}),
+      ).toBeVisible(),
+      expect(page.getByText('Kediler', {exact: true})).toBeVisible(),
+    ]);
+  });
+
   test('moving an item swaps it with its list neighbour and leaves the other list in place', async ({
     page,
   }) => {

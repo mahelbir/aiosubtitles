@@ -110,13 +110,14 @@ export function CredentialList({
           credential.credentialKind !== credentialKind,
       ).length,
   );
-  const {label: defaultLabel, addLabel} = CREDENTIAL_LISTS[credentialKind];
+  const {label: listName, addLabel} = CREDENTIAL_LISTS[credentialKind];
 
   return (
     <>
       <FormField name="credentials" mode="array">
         <FilteredArrayInput
-          label={label ?? defaultLabel}
+          label={label}
+          aria-label={label ? undefined : listName}
           max={credentialLimit - otherKindCount}
           addLabel={addLabel}
           filter={credential =>
