@@ -1,3 +1,4 @@
+import {range} from 'es-toolkit';
 import {stubFalse, stubTrue} from 'es-toolkit/compat';
 import {CredentialKind} from '@repo/shared/constants/credential.js';
 import {toSharedCredentialsKey} from '@repo/shared/lib/shared-credential-kinds.js';
@@ -78,16 +79,27 @@ function isUsable(sourceState, sharedSecret, nowMs) {
   );
 }
 
-function pickSharedSecret({sharedSecrets, sourceState}, nowMs) {
-  for (let offset = 0; offset < sharedSecrets.length; offset += 1) {
-    const sharedIndex = (sourceState.nextIndex + offset) % sharedSecrets.length;
+function listVisitOrder({sharedSecrets, sourceState}, preferredPick) {
+  return range(sharedSecrets.length)
+    .map(offset => (sourceState.nextIndex + offset) % sharedSecrets.length)
+    .filter(sharedIndex => sharedIndex !== preferredPick?.sharedIndex);
+}
+
+function* walkSharedSecrets(
+  {sharedSecrets, sourceState},
+  {preferredPick, visitOrder},
+  readNowMs,
+) {
+  if (preferredPick) {
+    yield preferredPick;
+  }
+  for (const sharedIndex of visitOrder) {
     const sharedSecret = sharedSecrets[sharedIndex];
-    if (isUsable(sourceState, sharedSecret, nowMs)) {
+    if (isUsable(sourceState, sharedSecret, readNowMs())) {
       sourceState.nextIndex = sharedIndex + 1;
-      return {sharedIndex, sharedSecret};
+      yield {sharedIndex, sharedSecret};
     }
   }
-  return null;
 }
 
 function pickPreferredSecret(
@@ -247,22 +259,18 @@ export function createSharedCredentialPool({
         return runCall(credential);
       }
       const sharedPool = await readSharedPool({subtitleSource, credentialKind});
-      for (
-        let attempt = 0;
-        attempt < sharedPool.sharedSecrets.length;
-        attempt += 1
-      ) {
-        const sharedPick =
-          (attempt === 0 &&
-            pickPreferredSecret(sharedPool, readNowMs(), preferredPick =>
-              isPreferredCredential(
-                toSharedCredential(sharedPool, preferredPick),
-              ),
-            )) ||
-          pickSharedSecret(sharedPool, readNowMs());
-        if (!sharedPick) {
-          break;
-        }
+      const preferredPick = pickPreferredSecret(
+        sharedPool,
+        readNowMs(),
+        secretPick =>
+          isPreferredCredential(toSharedCredential(sharedPool, secretPick)),
+      );
+      const sharedPicks = walkSharedSecrets(
+        sharedPool,
+        {preferredPick, visitOrder: listVisitOrder(sharedPool, preferredPick)},
+        readNowMs,
+      );
+      for (const sharedPick of sharedPicks) {
         const isReserved = await reserveCall({
           budgetCredentialId: toSharedBudgetCredentialId(
             sharedPool,

@@ -831,6 +831,60 @@ describe('sharedCredentialPool reserving each server call', () => {
     expect(answers).toEqual([KEY_B, KEY_A, KEY_B]);
   });
 
+  it('tries each shared key once while another call moves the rotation, and reaches the key with room', async () => {
+    const refusal = Promise.withResolvers();
+    const firstReserveCall = vi
+      .fn()
+      .mockReturnValueOnce(refusal.promise)
+      .mockImplementation(
+        async ({budgetCredentialId}) =>
+          budgetCredentialId !==
+          firstReserveCall.mock.calls[0][0].budgetCredentialId,
+      );
+    const runCall = vi.fn(async credential => answerWithKey(credential));
+    const {sharedCredentialPool} = createTestSharedCredentialPool({
+      [JIMAKU]: toSharedApiKeys(KEY_A, KEY_B),
+    });
+
+    const firstAnswer = callShared(sharedCredentialPool, runCall, {
+      reserveCall: firstReserveCall,
+    });
+    await vi.waitFor(() => expect(firstReserveCall).toHaveBeenCalledOnce());
+    await expect(
+      callShared(sharedCredentialPool, runCall, {reserveCall: grantEvery()}),
+    ).resolves.toBe(KEY_B);
+    refusal.resolve(false);
+
+    await expect(firstAnswer).resolves.toBe(KEY_B);
+    const reservedIds = firstReserveCall.mock.calls.map(
+      ([{budgetCredentialId}]) => budgetCredentialId,
+    );
+    expect(reservedIds).toHaveLength(2);
+    expect(new Set(reservedIds).size).toBe(2);
+    expect(reservedIds).not.toContain(null);
+  });
+
+  it('never tries the preferred key a second time in the same call', async () => {
+    const reserveCall = vi
+      .fn()
+      .mockResolvedValueOnce(false)
+      .mockResolvedValue(true);
+    const runCall = vi.fn(async credential => answerWithKey(credential));
+    const {sharedCredentialPool} = createTestSharedCredentialPool({
+      [JIMAKU]: toSharedApiKeys(KEY_A, KEY_B),
+    });
+    await callShared(sharedCredentialPool, runCall);
+    const isPreferredCredential = credential => credential.apiKey === KEY_B;
+
+    await expect(
+      callShared(sharedCredentialPool, runCall, {
+        reserveCall,
+        isPreferredCredential,
+      }),
+    ).resolves.toBe(KEY_A);
+    expect(reserveCall).toHaveBeenCalledTimes(2);
+  });
+
   it('falls to the keyless call once every shared reservation is refused', async () => {
     const reserveCall = refuseShared();
     const runCall = vi.fn(async credential => answerWithKey(credential));
