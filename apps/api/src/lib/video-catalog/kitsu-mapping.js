@@ -1,4 +1,4 @@
-import {identity, isNil} from 'es-toolkit';
+import {identity, isNil, noop} from 'es-toolkit';
 import {RedisCache} from '../../redis/cache.js';
 import {redis} from '../../redis/index.js';
 import {
@@ -94,7 +94,7 @@ export function pickKitsuVideo(kitsuMapping, kitsuEpisode) {
 async function claimKitsuMappingRefresh(kitsuId) {
   try {
     const isClaimed = await redis.set(
-      `${KITSU_MAPPING_REFRESH_PREFIX}${kitsuId}`,
+      toKitsuMappingRefreshKey(kitsuId),
       '1',
       'EX',
       KITSU_MAPPING_REFRESH_TTL,
@@ -104,6 +104,14 @@ async function claimKitsuMappingRefresh(kitsuId) {
   } catch {
     return false;
   }
+}
+
+async function releaseKitsuMappingRefresh(kitsuId) {
+  await redis.del(toKitsuMappingRefreshKey(kitsuId)).catch(noop);
+}
+
+function toKitsuMappingRefreshKey(kitsuId) {
+  return `${KITSU_MAPPING_REFRESH_PREFIX}${kitsuId}`;
 }
 
 export function createKitsuVideoResolver({
@@ -127,7 +135,12 @@ export function createKitsuVideoResolver({
     ) {
       return kitsuVideo;
     }
-    return pickKitsuVideo(await refreshCatalogValue(kitsuId), kitsuEpisode);
+    try {
+      return pickKitsuVideo(await refreshCatalogValue(kitsuId), kitsuEpisode);
+    } catch (error) {
+      await releaseKitsuMappingRefresh(kitsuId);
+      throw error;
+    }
   };
 }
 

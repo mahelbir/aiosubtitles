@@ -111,6 +111,38 @@ describe('the Kitsu mapping', () => {
     expect(requestRemoteResource).toHaveBeenCalledTimes(2);
   });
 
+  it('retries a failed re-resolve before the refresh window ends', async () => {
+    const requestRemoteResource = vi
+      .fn()
+      .mockResolvedValueOnce({status: 200, headers: {}, body: kitsuMetaBody})
+      .mockRejectedValueOnce(
+        new SourceUnavailableError({
+          subtitleSource: CatalogService.KITSU,
+          cause: new Error('ECONNRESET'),
+        }),
+      )
+      .mockResolvedValue({
+        status: 200,
+        headers: {},
+        body: withSixthEpisode(kitsuMetaBody),
+      });
+    const resolveKitsuVideo = createKitsuVideoResolver({requestRemoteResource});
+
+    await resolveKitsuVideo({kitsuId: '7442', kitsuEpisode: 5});
+    await expect(
+      resolveKitsuVideo({kitsuId: '7442', kitsuEpisode: 6}),
+    ).rejects.toBeInstanceOf(SourceUnavailableError);
+
+    await expect(
+      resolveKitsuVideo({kitsuId: '7442', kitsuEpisode: 6}),
+    ).resolves.toEqual({
+      imdbId: 'tt2560140',
+      catalogSeason: 1,
+      catalogEpisode: 6,
+    });
+    expect(requestRemoteResource).toHaveBeenCalledTimes(3);
+  });
+
   it('caches the mapping', async () => {
     const requestRemoteResource = answerWith(kitsuMetaBody);
     const resolveKitsuVideo = createKitsuVideoResolver({requestRemoteResource});
