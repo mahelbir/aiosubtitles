@@ -42,8 +42,9 @@ function makeQueryClient() {
     onSettled: (_data, _error, _variables, _context, mutation) =>
       invalidateDeclared(client, mutation, 'settled'),
     onError: (error, _variables, _context, mutation) => {
-      const {isFormBound, isErrorHandled} = mutation.meta ?? {};
-      if (isErrorHandled) {
+      const {isFormBound, isErrorHandled, isRenderedError} =
+        mutation.meta ?? {};
+      if (isErrorHandled || isRenderedError?.(error)) {
         return;
       }
       if (isFormBound && error?.errorCode === ErrorCode.VALIDATION_ERROR) {

@@ -1,6 +1,11 @@
 import {describe, expect, it} from 'vitest';
 import {z} from 'zod';
-import {defineSettings, getSettingsRule} from '../src/lib/settings.js';
+import {
+  EXPECTED_SETTINGS_KEY,
+  defineSettings,
+  getConflictingPaths,
+  getSettingsRule,
+} from '../src/lib/settings.js';
 
 const definition = defineSettings({
   editableFields: {
@@ -103,5 +108,52 @@ describe('getChecksWithin', () => {
 
   it('runs every rule when no keys are named', () => {
     expect(definition.getChecksWithin()).toHaveLength(1);
+  });
+});
+
+describe('the expected values beside a change', () => {
+  it('ride along under their own key', () => {
+    expect(
+      definition.updateSchema.parse({
+        limit: 7,
+        [EXPECTED_SETTINGS_KEY]: {limit: 3},
+      }),
+    ).toEqual({limit: 7, [EXPECTED_SETTINGS_KEY]: {limit: 3}});
+  });
+
+  it('keep to the shape of a change', () => {
+    expect(
+      definition.updateSchema.safeParse({
+        limit: 7,
+        [EXPECTED_SETTINGS_KEY]: {limt: 3},
+      }).success,
+    ).toBe(false);
+  });
+});
+
+describe('getConflictingPaths', () => {
+  it('names each expected value the current settings no longer hold', () => {
+    expect(
+      getConflictingPaths(
+        {label: 'draft', limit: 3},
+        {label: 'remote', limit: 3, isEnabled: false},
+      ),
+    ).toEqual(['label']);
+  });
+
+  it('compares a nested value on its own path', () => {
+    expect(
+      getConflictingPaths(
+        {notice: {isShown: true}},
+        {notice: {isShown: false, text: 'kept'}},
+      ),
+    ).toEqual(['notice.isShown']);
+  });
+
+  it('compares a list as one value', () => {
+    expect(getConflictingPaths({tags: ['a']}, {tags: ['a', 'b']})).toEqual([
+      'tags',
+    ]);
+    expect(getConflictingPaths({tags: ['a']}, {tags: ['a']})).toEqual([]);
   });
 });

@@ -483,6 +483,28 @@ test.describe('mutation toasts', () => {
       await expectToasts(page, [FAILURE_MESSAGE]);
     });
 
+    test('a mutation that renders a failure itself gets no global toast for it', async ({
+      page,
+    }) => {
+      await clickButton(page, 'Kaydet, hatayı kendisi göstersin');
+
+      await expectFixtureState(page).toMatchObject({
+        mutations: {rendered: 'error'},
+      });
+      await expectToasts(page, []);
+    });
+
+    test('a mutation still gets the global toast for a failure it does not render', async ({
+      page,
+    }) => {
+      await clickButton(page, 'Kaydet, başka hatayı göstersin');
+
+      await expectFixtureState(page).toMatchObject({
+        mutations: {otherRendered: 'error'},
+      });
+      await expectToasts(page, [FAILURE_MESSAGE]);
+    });
+
     test('useToastMutation shows its own error text instead of the global toast', async ({
       page,
     }) => {

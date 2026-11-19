@@ -254,6 +254,14 @@ export function isFieldDirty(formApi, name) {
   );
 }
 
+export function markFieldClean(formApi, name) {
+  for (const [path, meta] of Object.entries(formApi.state.fieldMeta)) {
+    if (meta?.isDirty && isWithinField(path, name)) {
+      formApi.setFieldMeta(path, prev => ({...prev, isDirty: false}));
+    }
+  }
+}
+
 export function getChangedValues(values, baseline) {
   const changed = {};
   for (const [key, value] of Object.entries(values)) {

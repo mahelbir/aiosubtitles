@@ -115,6 +115,7 @@ export function hasBlockingError(query) {
 /**
  * @param {import("@tanstack/react-query").UseMutationOptions & Object} selfOptions
  * @param {boolean} [selfOptions.isFormBound]
+ * @param {function(Error): boolean} [selfOptions.isRenderedError]
  * @param {boolean} [selfOptions.toast]
  * @param {boolean} [selfOptions.hasIndicator]
  * @param {Array|Array[]} [selfOptions.invalidates]
@@ -126,6 +127,7 @@ export function hasBlockingError(query) {
 export function useAppMutation(selfOptions, callerOptions, queryClient) {
   const {
     isFormBound = false,
+    isRenderedError,
     toast,
     hasIndicator = true,
     invalidates,
@@ -138,6 +140,7 @@ export function useAppMutation(selfOptions, callerOptions, queryClient) {
       meta: {
         ...mutationOptions.meta,
         isFormBound,
+        isRenderedError,
         hasIndicator,
         invalidates,
         invalidateOn,

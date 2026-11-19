@@ -3,6 +3,7 @@
 import {useState} from 'react';
 import {useQueryClient} from '@tanstack/react-query';
 import {mapValues} from 'es-toolkit';
+import {StatusCodes} from 'http-status-codes';
 import {Button} from '@/components/ui/button';
 import {useBusy} from '@/hooks/use-busy';
 import {appAlert} from '@/lib/app-alert';
@@ -27,6 +28,8 @@ const MUTATION_BUTTONS = [
   {name: 'forced', label: 'Kaydet, bildirimi zorla'},
   {name: 'silenced', label: 'Kaydet, bildirimi kapat'},
   {name: 'formBound', label: 'Formdan kaydet'},
+  {name: 'rendered', label: 'Kaydet, hatayı kendisi göstersin'},
+  {name: 'otherRendered', label: 'Kaydet, başka hatayı göstersin'},
   {name: 'toasted', label: 'Bildirimli kaydet'},
   {name: 'invalidating', label: 'Kaydet ve yenile'},
   {name: 'settling', label: 'Kaydet, her durumda yenile'},
@@ -60,6 +63,13 @@ export function AlertsFixture() {
     }),
     silenced: usePostFixtureEntry({toast: false}),
     formBound: usePostFixtureEntry({isFormBound: true}),
+    rendered: usePostFixtureEntry({
+      isRenderedError: error =>
+        error.status === StatusCodes.INTERNAL_SERVER_ERROR,
+    }),
+    otherRendered: usePostFixtureEntry({
+      isRenderedError: error => error.status === StatusCodes.CONFLICT,
+    }),
     toasted: useToastFixtureEntry({
       toast: {
         pending: 'Gönderiliyor…',
