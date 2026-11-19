@@ -369,7 +369,7 @@ describe('betaseriesClient.checkCredential', () => {
   });
 });
 
-describe('betaseries credential use (D32)', () => {
+describe('betaseries credential use', () => {
   async function readCandidates({
     credentials,
     hasConfiguredCredential,

@@ -373,7 +373,7 @@ describe('anisubClient.downloadSubtitle without a user token', () => {
     });
   });
 
-  it("passes a user token's rejection on, so it never falls back to the keyless path (D32)", async () => {
+  it("passes a user token's rejection on, so it never falls back to the keyless path", async () => {
     requestSubtitleSource.mockResolvedValueOnce({
       status: StatusCodes.UNAUTHORIZED,
       headers: {'content-type': 'application/json'},

@@ -2,14 +2,13 @@
 
 import {useId} from 'react';
 import {useSelector} from '@tanstack/react-form';
-import {ExternalLinkIcon} from 'lucide-react';
 import {
   hasListImprovementSwitch,
   isListImprovementCredential,
   isListImprovementOn,
 } from '@repo/shared/lib/list-improvement-switch.js';
 import {isSubtitleSourceSwitchLocked} from '@repo/shared/lib/subtitle-source-switch.js';
-import {LinkButton} from '@/components/common/link-button';
+import {ExternalLinkButton} from '@/components/common/link-button';
 import {
   Field,
   FieldContent,
@@ -18,6 +17,7 @@ import {
   FieldLabel,
 } from '@/components/ui/field';
 import {Switch} from '@/components/ui/switch';
+import {formatDateInput} from '@/lib/datetime';
 import {useFormContext} from '@/lib/form-context';
 import {SUBTITLE_SOURCE_DESCRIPTIONS} from '../../config/subtitle-source-descriptions';
 import {isCredentialEntered} from '../../lib/credential-form-values';
@@ -114,21 +114,26 @@ function ListImprovementSwitch({subtitleSource, description}) {
   );
 }
 
-function SourceHelp({helpText, keyPageUrl}) {
+function SourceHelp({helpText, keyPageUrl, limitPageUrl, limitCheckedDate}) {
   return (
     <div className="flex flex-col items-start gap-1">
       <p className="text-sm text-muted-foreground">{helpText}</p>
-      {keyPageUrl && (
-        <LinkButton
-          variant="link"
-          size="sm"
-          href={keyPageUrl}
-          target="_blank"
-          rel="noreferrer"
-        >
-          Get a key
-          <ExternalLinkIcon data-icon="inline-end" />
-        </LinkButton>
+      {limitCheckedDate && (
+        <p className="text-sm text-muted-foreground">
+          {`Limits checked ${formatDateInput(limitCheckedDate)}.`}
+        </p>
+      )}
+      {(keyPageUrl || limitPageUrl) && (
+        <div className="flex flex-wrap gap-x-4">
+          {keyPageUrl && (
+            <ExternalLinkButton href={keyPageUrl}>Get a key</ExternalLinkButton>
+          )}
+          {limitPageUrl && (
+            <ExternalLinkButton href={limitPageUrl}>
+              See limits
+            </ExternalLinkButton>
+          )}
+        </div>
       )}
     </div>
   );
@@ -146,6 +151,8 @@ export function SourcePanel({subtitleSourceOption}) {
         <SourceHelp
           helpText={description.helpText}
           keyPageUrl={description.keyPageUrl}
+          limitPageUrl={description.limitPageUrl}
+          limitCheckedDate={description.limitCheckedDate}
         />
       )}
       {credentialKinds.map(credentialKind => (

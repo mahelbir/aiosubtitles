@@ -54,6 +54,10 @@ const CHECK_AGAIN = 'Check again';
 const STORED_SECRET_MESSAGE = 'Enter both the username and the password.';
 const QUOTA_TOTAL_PATTERN = /downloads? left today in total$/;
 const OPENSUBTITLES = SubtitleSource.label(SubtitleSource.OPENSUBTITLES);
+const OPENSUBTITLES_CREDENTIAL_LIST_HEADINGS = [
+  'Accounts',
+  'Use your own API key (optional)',
+];
 const OPENSUBTITLES_V3 = SubtitleSource.label(SubtitleSource.OPENSUBTITLES_V3);
 const THESUBTITLEDB = SubtitleSource.label(SubtitleSource.THESUBTITLEDB);
 const SUBSOURCE = SubtitleSource.label(SubtitleSource.SUBSOURCE);
@@ -62,6 +66,25 @@ const SHARED_CREDENTIAL_SOURCES = [
   SubtitleSource.JIMAKU,
   SubtitleSource.BETASERIES,
 ];
+
+const SEE_LIMITS = 'See limits';
+const CREDENTIAL_LIST_NAMES = {
+  [CredentialKind.ACCOUNT]: 'Accounts',
+  [CredentialKind.API_KEY]: 'API keys',
+};
+const LIMIT_CHECKED_PATTERN = /^Limits checked .+ \d{4}\.$/;
+const LIMIT_PAGE_URLS = {
+  [SubtitleSource.OPENSUBTITLES]:
+    'https://opensubtitles.stoplight.io/docs/opensubtitles-api/e3750fd63a100-getting-started',
+  [SubtitleSource.THESUBTITLEDB]:
+    'https://thesubtitledb.org/developer/api#limits',
+  [SubtitleSource.SUBSOURCE]: 'https://subsource.net/api-docs',
+  [SubtitleSource.SUBDL]: 'https://subdl.com/developers',
+  [SubtitleSource.ANISUB]: 'https://anisub.co/api-dokumantasyon',
+  [SubtitleSource.WYZIE]: 'https://docs.wyzie.io/subs/usage/api-keys#tiers',
+  [SubtitleSource.JIMAKU]: 'https://jimaku.cc/api/docs',
+  [SubtitleSource.ALTYAZIDB]: 'https://altyazidb.com/api-docs.php#me',
+};
 
 const SOURCE_HELP = [
   {
@@ -79,7 +102,7 @@ const SOURCE_HELP = [
     subtitleSource: SubtitleSource.ALTYAZIDB,
     keyPageUrl: 'https://altyazidb.com/index.php?do=register',
     helpText:
-      'Requires an API key. Too many requests return a temporary block.',
+      'Requires an API key. A member key gets 60 requests a minute, 300 an hour and 500 a day.',
   },
   {
     subtitleSource: SubtitleSource.THESUBTITLEDB,
@@ -245,25 +268,72 @@ test.describe('sources', () => {
     );
   });
 
-  test('every source tab shows its help text and its key page link', async ({
+  test('every source tab shows its help text, its key page link and its limit page link with the date it was checked', async ({
     page,
   }) => {
     await openConfigure(page);
 
     for (const {subtitleSource, keyPageUrl, helpText} of SOURCE_HELP) {
       const label = SubtitleSource.label(subtitleSource);
+      const limitPageUrl = LIMIT_PAGE_URLS[subtitleSource];
       const panel = await openTabMenuItem(page, label);
       await expect(panel, label).toContainText(helpText);
       const keyPageLink = panel.getByRole('link', {
         name: GET_A_KEY,
         exact: true,
       });
+      const limitPageLink = panel.getByRole('link', {
+        name: SEE_LIMITS,
+        exact: true,
+      });
+      const limitCheckedText = panel.getByText(LIMIT_CHECKED_PATTERN);
       if (keyPageUrl) {
         await expect(keyPageLink, label).toHaveAttribute('href', keyPageUrl);
       } else {
         await expect(keyPageLink, label).toHaveCount(0);
       }
+      if (limitPageUrl) {
+        await expect(limitPageLink, label).toHaveAttribute(
+          'href',
+          limitPageUrl,
+        );
+        await expect(limitCheckedText, label).toBeVisible();
+      } else {
+        await expect(limitPageLink, label).toHaveCount(0);
+        await expect(limitCheckedText, label).toHaveCount(0);
+      }
     }
+  });
+
+  test('only OpenSubtitles heads its credential lists, the other lists keep their names hidden', async ({
+    page,
+  }) => {
+    await openConfigure(page);
+
+    const openSubtitlesPanel = await openTabMenuItem(page, OPENSUBTITLES);
+    for (const listHeading of OPENSUBTITLES_CREDENTIAL_LIST_HEADINGS) {
+      await expect(
+        openSubtitlesPanel.getByRole('group', {
+          name: listHeading,
+          exact: true,
+        }),
+      ).toBeVisible();
+      await expect(
+        openSubtitlesPanel.getByText(listHeading, {exact: true}),
+      ).toBeVisible();
+    }
+
+    const theSubtitleDbPanel = await openTabMenuItem(page, THESUBTITLEDB);
+    const apiKeyListName = CREDENTIAL_LIST_NAMES[CredentialKind.API_KEY];
+    await expect(
+      theSubtitleDbPanel.getByRole('group', {
+        name: apiKeyListName,
+        exact: true,
+      }),
+    ).toBeVisible();
+    await expect(
+      theSubtitleDbPanel.getByText(apiKeyListName, {exact: true}),
+    ).toHaveCount(0);
   });
 
   test('Jimaku, BetaSeries and AniSub read as optional, and switch off without a key', async ({
@@ -846,9 +916,6 @@ test.describe('sources', () => {
     const panel = await openTabMenuItem(page, OPENSUBTITLES);
     await expect(
       panel.getByText('17 downloads left today', {exact: true}),
-    ).toBeVisible();
-    await expect(
-      panel.getByText('Use your own API key (optional)', {exact: true}),
     ).toBeVisible();
     await expect(panel.getByText(QUOTA_TOTAL_PATTERN)).toHaveCount(0);
   });

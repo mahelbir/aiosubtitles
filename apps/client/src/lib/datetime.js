@@ -119,6 +119,10 @@ export function formatDateRange(start, end, {unix, ...options} = {}) {
   return `${formatBound(startDate)} – ${formatBound(endDate)}`;
 }
 
+export function formatDateInput(value) {
+  return formatDate(value, DATE_INPUT_ZONE);
+}
+
 export function formatDateInputRange(from, to) {
   return formatDateRange(from, to, DATE_INPUT_ZONE);
 }

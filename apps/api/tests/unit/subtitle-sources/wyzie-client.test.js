@@ -383,7 +383,7 @@ describe('wyzieClient download (ruling N1)', () => {
   });
 });
 
-describe('wyzieClient without a key (D32)', () => {
+describe('wyzieClient without a key', () => {
   it('searches nothing without a credential', async () => {
     const requestSubtitleSource = await createFakeSite();
     const {client} = createTestClient(requestSubtitleSource);
@@ -401,7 +401,7 @@ describe('wyzieClient without a key (D32)', () => {
   });
 });
 
-describe('wyzie credentials of a user (D32)', () => {
+describe('wyzie credentials of a user', () => {
   const userConfigId = crypto.randomUUID();
 
   function makeWyzieCredentialRow(credentialStatus) {

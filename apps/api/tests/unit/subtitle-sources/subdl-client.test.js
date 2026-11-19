@@ -167,7 +167,7 @@ describe('subdlClient.checkCredential', () => {
   });
 });
 
-describe('subdl credential use (D32)', () => {
+describe('subdl credential use', () => {
   function readCandidates({credentials, hasConfiguredCredential}) {
     return {
       searchCandidates: toCandidateCredentials({

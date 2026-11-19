@@ -280,7 +280,7 @@ describe('jimakuClient.checkCredential', () => {
   });
 });
 
-describe('jimaku credential use (D32)', () => {
+describe('jimaku credential use', () => {
   async function readCandidates({
     credentials,
     hasConfiguredCredential,
@@ -415,7 +415,7 @@ describe('jimakuClient with shared keys', () => {
     ]);
   });
 
-  it("stops at Jimaku's per-address limit without trying the other shared keys (D49)", async () => {
+  it("stops at Jimaku's per-address limit without trying the other shared keys", async () => {
     const {client} = makeClient(154587, {
       [SubtitleSource.JIMAKU]: [SHARED_KEY, OTHER_SHARED_KEY],
     });

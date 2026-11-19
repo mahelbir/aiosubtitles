@@ -83,7 +83,8 @@ variants, the `@layer base` reset and the reduced-motion block.
   helpers (`mergeProps`, `useRender`) are imported directly; a `render` target outside `ui/` merges its props with its
   host's through `mergeProps`, its className through `cn`.
 - Base UI uses a `render` prop where Radix used `asChild`. A link that looks like a button is `LinkButton` — a real
-  link carrying the button variants — never a `Button` rendering a `Link`.
+  link carrying the button variants — never a `Button` rendering a `Link`. A link leaving the app is
+  `ExternalLinkButton`, and a link set in running text takes the button's `inline` size, so it lines up with the text.
 - **Information is revealed by a `Popover` opened on hover; a `Tooltip` only labels.** When opening the popup is the
   trigger's whole purpose — a note, an info tip, the detail behind a badge — it is a hover `Popover`, since Base UI
   disables tooltips on touch. A tooltip sits on a control
