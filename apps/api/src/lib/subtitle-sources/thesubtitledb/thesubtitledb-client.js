@@ -2,6 +2,7 @@ import {CredentialKind} from '@repo/shared/constants/credential.js';
 import {SubtitleSource} from '@repo/shared/constants/subtitle-source.js';
 import {sharedCredentialPool as defaultSharedCredentialPool} from '../shared-credential-pool.js';
 import {SubtitleSourceBudgetScope} from '../subtitle-source-contract.js';
+import {throwIfKeylessPaused} from '../subtitle-source-errors.js';
 import {requestSubtitleSource as requestSite} from '../subtitle-source-request.js';
 import {thesubtitledbMapping} from './thesubtitledb-mapping.js';
 
@@ -20,6 +21,7 @@ export function createThesubtitledbClient({
     subtitleSource,
     credentialKinds: [CredentialKind.API_KEY],
     isSearchHashSensitive: false,
+    isKeylessLimitSeparate: true,
     downloadBudgets: [
       {
         budgetScope: SubtitleSourceBudgetScope.SUBTITLE_SOURCE,
@@ -47,13 +49,20 @@ export function createThesubtitledbClient({
         await requestSubtitleSource({...searchRequest, signal}),
       );
     },
-    downloadSubtitle(subtitleRef, credential, {signal} = {}) {
+    downloadSubtitle(
+      subtitleRef,
+      credential,
+      {signal, isKeylessPaused = false} = {},
+    ) {
       return sharedCredentialPool.callWithCredential({
         subtitleSource,
         credentialKind: CredentialKind.API_KEY,
         credential,
-        runCall: async activeCredential =>
-          thesubtitledbMapping.toDownload(
+        runCall: async activeCredential => {
+          if (!activeCredential) {
+            throwIfKeylessPaused({subtitleSource, isKeylessPaused});
+          }
+          return thesubtitledbMapping.toDownload(
             await requestSubtitleSource({
               ...thesubtitledbMapping.buildDownloadRequest(
                 subtitleRef,
@@ -61,7 +70,8 @@ export function createThesubtitledbClient({
               ),
               signal,
             }),
-          ),
+          );
+        },
       });
     },
     async checkCredential(credential, {signal} = {}) {

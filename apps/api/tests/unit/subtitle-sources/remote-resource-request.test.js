@@ -231,4 +231,25 @@ describe('requestSubtitleSource', () => {
     expect(error.serviceName).toBe(SubtitleSource.THESUBTITLEDB);
     expect(error.message).toBe('TheSubtitleDB is unavailable.');
   });
+
+  it('marks a 429 on a call sent without a credential as keyless', async () => {
+    answerFile('', {status: 429, headers: {'retry-after': '30'}});
+
+    await expect(requestFile()).resolves.toMatchObject({
+      name: 'SourceRateLimitError',
+      retryAfterMs: 30000,
+      credentialId: null,
+      isKeylessCall: true,
+    });
+  });
+
+  it('never marks a 429 on a keyed call as keyless', async () => {
+    answerFile('', {status: 429, headers: {'retry-after': '30'}});
+
+    await expect(requestFile({credentialId: 'c1'})).resolves.toMatchObject({
+      name: 'SourceRateLimitError',
+      credentialId: 'c1',
+      isKeylessCall: false,
+    });
+  });
 });

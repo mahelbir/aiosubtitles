@@ -13,7 +13,7 @@ import {Subtitle} from '../../db/models/subtitle.js';
 import {createLogger} from '../logger.js';
 import {recordSubtitleSourceFailure} from '../record-subtitle-source-failure.js';
 import {SubtitleMessage} from '../stremio-row/stremio-row-enums.js';
-import {readSubtitleSourceBreaker} from '../subtitle-search/subtitle-source-breaker.js';
+import {readSubtitleSourceBreakers} from '../subtitle-search/subtitle-source-breaker.js';
 import {
   toBudgetRecoveryWindowMs,
   trySpendSubtitleSourceBudget,
@@ -23,7 +23,10 @@ import {
   readDownloadCredentials,
 } from '../subtitle-source-credentials.js';
 import {SubtitleAliasSource} from '../subtitle-sources/subtitle-alias-source.js';
-import {SourceUnavailableError} from '../subtitle-sources/subtitle-source-errors.js';
+import {
+  SourceKeylessPauseError,
+  SourceUnavailableError,
+} from '../subtitle-sources/subtitle-source-errors.js';
 import {isPrivateSubtitleSourceUrl} from '../subtitle-sources/subtitle-source-request.js';
 import {
   bindPackEntry,
@@ -219,7 +222,7 @@ async function downloadFromSources({
   if (candidateCredentials.length === 0) {
     return cachedUserConfig ? DOWNLOAD_FAILED : USER_CONFIG_DELETED;
   }
-  if (await isBreakerOpen(client)) {
+  if ((await readDownloadBreakers(client)).keyedCall.isOpen) {
     return STOPPED_REFUSAL;
   }
   const sourceDownload = await downloadWithCredentials({
@@ -278,13 +281,12 @@ async function findV3Subtitle(subtitleId) {
   });
 }
 
-async function isBreakerOpen(client, nowMs = Date.now()) {
-  const {isOpen} = await readSubtitleSourceBreaker(
-    client.subtitleSource,
+function readDownloadBreakers(client, nowMs = Date.now()) {
+  return readSubtitleSourceBreakers(
+    client,
     nowMs,
     toBudgetRecoveryWindowMs(client.downloadBudgets),
   );
-  return isOpen;
 }
 
 async function orderByQuota(client, candidateCredentials) {
@@ -336,7 +338,8 @@ async function downloadWithCredentials({
   const toRefusal = refusal => (hasSiteCall ? null : refusal);
   for (const credential of candidateCredentials) {
     const nowMs = Date.now();
-    if (await isBreakerOpen(client, nowMs)) {
+    const {keyedCall, keylessCall} = await readDownloadBreakers(client, nowMs);
+    if (keyedCall.isOpen) {
       return toRefusal(STOPPED_REFUSAL);
     }
     if (canSpendCredential && !(await canSpendCredential())) {
@@ -361,12 +364,17 @@ async function downloadWithCredentials({
     hasSiteCall = true;
     try {
       return {
-        sourceDownload: await client.downloadSubtitle(subtitleRef, credential),
+        sourceDownload: await client.downloadSubtitle(subtitleRef, credential, {
+          isKeylessPaused: keylessCall.isOpen,
+        }),
         fileOrigin: credential
           ? SubtitleFileOrigin.USER_CREDENTIAL
           : SubtitleFileOrigin.DIRECT,
       };
     } catch (error) {
+      if (error instanceof SourceKeylessPauseError) {
+        return STOPPED_REFUSAL;
+      }
       logDownloadFailure(client.subtitleSource, error);
       await recordSubtitleSourceFailure({client, error, nowMs: Date.now()});
     }

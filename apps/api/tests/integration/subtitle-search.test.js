@@ -1039,6 +1039,140 @@ describe('the budget recovery window', () => {
   });
 });
 
+describe('a keyless rate limit on a source whose key leaves it', () => {
+  function createSeparateLimitClient(overrides = {}) {
+    return createFixtureSubtitleSourceClient({
+      credentialKinds: [CredentialKind.API_KEY],
+      downloadBudgets: [subtitleSourceBudget, credentialBudget],
+      isKeylessLimitSeparate: true,
+      ...overrides,
+    });
+  }
+
+  it('pauses keyless searches and keeps searching with a user key', async () => {
+    const searchHit = makeSubtitleSourceHit();
+    const client = createSeparateLimitClient({
+      searchSubtitles: vi.fn(async (searchQuery, credential) => {
+        if (credential === null) {
+          throw new SourceRateLimitError({
+            subtitleSource: SUBTITLE_SOURCE,
+            retryAfterMs: RETRY_AFTER_MS,
+            isKeylessCall: true,
+          });
+        }
+        return [searchHit];
+      }),
+    });
+
+    const limitedHits = await searchSubtitleSource({
+      client,
+      searchQuery: makeTurkishQuery(),
+      ...WITHOUT_CREDENTIALS,
+      nowMs: NOW_MS,
+    });
+    const pausedHits = await searchSubtitleSource({
+      client,
+      searchQuery: makeTurkishQuery({videoId: 'tt0068646'}),
+      ...WITHOUT_CREDENTIALS,
+      nowMs: NOW_MS + 1000,
+    });
+    const keyedHits = await searchSubtitleSource({
+      client,
+      searchQuery: makeTurkishQuery({videoId: 'tt0071562'}),
+      credentials: [makeSubtitleSourceCredential()],
+      hasConfiguredCredential: true,
+      nowMs: NOW_MS + 2000,
+    });
+
+    expect(limitedHits).toEqual([]);
+    expect(pausedHits).toEqual([]);
+    expect(keyedHits).toEqual([searchHit]);
+    expect(
+      client.searchSubtitles.mock.calls.map(([, credential]) => credential),
+    ).toEqual([null, expect.objectContaining({apiKey: 'fixture-api-key'})]);
+    await expect(
+      readSubtitleSourceBreaker(SUBTITLE_SOURCE, NOW_MS + 1000),
+    ).resolves.toEqual({isOpen: false, budgetFactor: 1});
+  });
+
+  it('pauses a key user search too when the search never sends the key', async () => {
+    const client = createSeparateLimitClient({isSearchKeyless: true});
+    await openSubtitleSourceBreaker({
+      subtitleSource: SUBTITLE_SOURCE,
+      retryAfterMs: RETRY_AFTER_MS,
+      nowMs: NOW_MS,
+      isKeylessOnly: true,
+    });
+
+    const keyedHits = await searchSubtitleSource({
+      client,
+      searchQuery: makeTurkishQuery(),
+      credentials: [makeSubtitleSourceCredential()],
+      hasConfiguredCredential: true,
+      nowMs: NOW_MS + 1000,
+    });
+
+    expect(keyedHits).toEqual([]);
+    expect(client.searchSubtitles).not.toHaveBeenCalled();
+  });
+
+  it('halves only the keyless download budget', async () => {
+    const client = createSeparateLimitClient();
+    await openSubtitleSourceBreaker({
+      subtitleSource: SUBTITLE_SOURCE,
+      retryAfterMs: RETRY_AFTER_MS,
+      nowMs: NOW_MS,
+      isKeylessOnly: true,
+    });
+
+    const keylessSpends = await spendTimes(3, {
+      client,
+      credentialId: null,
+      isBackground: true,
+      nowMs: NOW_MS,
+    });
+    const keyedSpends = await spendTimes(6, {
+      client,
+      credentialId: 'fixture-credential',
+      isBackground: true,
+      nowMs: NOW_MS,
+    });
+
+    expect(keylessSpends).toEqual([true, true, false]);
+    expect(keyedSpends).toEqual([true, true, true, true, true, false]);
+  });
+
+  it('pauses keyed searches too on a source whose key shares the keyless limit', async () => {
+    const client = createSeparateLimitClient({
+      isKeylessLimitSeparate: false,
+      searchSubtitles: vi.fn(async () => {
+        throw new SourceRateLimitError({
+          subtitleSource: SUBTITLE_SOURCE,
+          retryAfterMs: RETRY_AFTER_MS,
+          isKeylessCall: true,
+        });
+      }),
+    });
+
+    await searchSubtitleSource({
+      client,
+      searchQuery: makeTurkishQuery(),
+      ...WITHOUT_CREDENTIALS,
+      nowMs: NOW_MS,
+    });
+    const keyedHits = await searchSubtitleSource({
+      client,
+      searchQuery: makeTurkishQuery({videoId: 'tt0071562'}),
+      credentials: [makeSubtitleSourceCredential()],
+      hasConfiguredCredential: true,
+      nowMs: NOW_MS + 1000,
+    });
+
+    expect(keyedHits).toEqual([]);
+    expect(client.searchSubtitles).toHaveBeenCalledTimes(1);
+  });
+});
+
 describe('a live search and its stored hits', () => {
   const cacheKey = `subtitle-search-cache:v1:${SUBTITLE_SOURCE}:tt0111161:tur`;
 

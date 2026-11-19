@@ -98,6 +98,7 @@ describe('betaseriesClient', () => {
     expect(betaseriesClient.credentialKinds).toEqual([CredentialKind.API_KEY]);
     expect(betaseriesClient.canUseSharedCredential).toBe(true);
     expect(betaseriesClient.isDownloadKeyless).toBe(true);
+    expect(betaseriesClient.isKeylessLimitSeparate).not.toBe(true);
   });
 
   it('searches without a user key only while the server has a shared key, and always downloads without one', async () => {

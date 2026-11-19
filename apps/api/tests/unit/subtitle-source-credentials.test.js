@@ -9,6 +9,7 @@ import {sealCredentialSecret} from '../../src/lib/credential-secret.js';
 import {
   applyListImprovementSwitch,
   readDownloadCredentials,
+  readSearchCredentials,
   toCandidateCredentials,
 } from '../../src/lib/subtitle-source-credentials.js';
 
@@ -134,6 +135,44 @@ describe('readDownloadCredentials', () => {
         isBackground: true,
       }),
     ).resolves.toEqual([expect.objectContaining({apiKey: USER_KEY})]);
+  });
+});
+
+describe('readSearchCredentials', () => {
+  it("gives a keyed search the user's own key", () => {
+    expect(
+      readSearchCredentials({
+        cachedUserConfig: keyedUserConfig,
+        client: makeClient({canUseSharedCredential: true, hasServerPath: true}),
+      }),
+    ).toEqual({
+      credentials: [expect.objectContaining({apiKey: USER_KEY})],
+      hasConfiguredCredential: true,
+    });
+  });
+
+  it('never moves a search that sends no key to the keyless path for a user whose key is unusable', () => {
+    const unusableUserConfig = {
+      ...keyedUserConfig,
+      credentials: keyedUserConfig.credentials.map(credential => ({
+        ...credential,
+        credentialStatus: CredentialStatus.INVALID,
+      })),
+    };
+    const searchCredentials = readSearchCredentials({
+      cachedUserConfig: unusableUserConfig,
+      client: {
+        ...makeClient({canUseSharedCredential: true, hasServerPath: true}),
+        isSearchKeyless: true,
+      },
+    });
+
+    expect(
+      toCandidateCredentials({
+        ...searchCredentials,
+        canUseWithoutCredential: true,
+      }),
+    ).toEqual([]);
   });
 });
 

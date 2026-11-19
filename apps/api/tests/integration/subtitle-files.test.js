@@ -34,8 +34,10 @@ import {createSubtitleSourceRegistry} from '../../src/lib/subtitle-sources/subti
 import {SubtitleSourceBudgetScope} from '../../src/lib/subtitle-sources/subtitle-source-contract.js';
 import {
   SourceCredentialError,
+  SourceKeylessPauseError,
   SourceUnavailableError,
 } from '../../src/lib/subtitle-sources/subtitle-source-errors.js';
+import {downloadSubtitleFile} from '../../src/lib/subtitle-store/download-subtitle-file.js';
 import {expandArchive} from '../../src/lib/subtitle-store/pack-binding.js';
 import {persistSearchHits} from '../../src/lib/subtitle-store/persist-search-hits.js';
 import {readSubtitleFile} from '../../src/lib/subtitle-store/read-subtitle-file.js';
@@ -126,11 +128,19 @@ const altyazidbClient = createFixtureSubtitleSourceClient({
   downloadSubtitle: vi.fn(),
 });
 
+const thesubtitledbClient = createFixtureSubtitleSourceClient({
+  subtitleSource: SubtitleSource.THESUBTITLEDB,
+  credentialKinds: [CredentialKind.API_KEY],
+  isKeylessLimitSeparate: true,
+  downloadSubtitle: vi.fn(),
+});
+
 const fixtureClients = [
   opensubtitlesClient,
   opensubtitlesV3Client,
   yifyClient,
   altyazidbClient,
+  thesubtitledbClient,
 ];
 
 setTestAppOptions({
@@ -995,6 +1005,107 @@ describe('a download for another source', () => {
 
     expectMessage(response, SubtitleMessage.SUBTITLE_DOWNLOAD_FAILED);
     expect(yifyClient.downloadSubtitle).not.toHaveBeenCalled();
+  });
+
+  describe('while the keyless path of a source is paused', () => {
+    beforeEach(async () => {
+      thesubtitledbClient.downloadSubtitle.mockResolvedValue(
+        toDownload(MOVIE_SRT),
+      );
+      await openSubtitleSourceBreaker({
+        subtitleSource: SubtitleSource.THESUBTITLEDB,
+        retryAfterMs: 120000,
+        nowMs: Date.now(),
+        isKeylessOnly: true,
+      });
+    });
+
+    it('keeps downloading with the user own key', async () => {
+      const {userConfig, userConfigCredentials} = await createUserConfig({
+        credentials: [
+          makeApiKeyCredential(SubtitleSource.THESUBTITLEDB, 'own-api-key'),
+        ],
+      });
+      const {urlCode} = await storeHit(MOVIE_ID, {
+        subtitleSource: SubtitleSource.THESUBTITLEDB,
+      });
+
+      const response = await getSubtitleFile({
+        userConfigId: userConfig.id,
+        videoId: MOVIE_ID,
+        urlCode,
+      });
+
+      expectFile(response, {body: MOVIE_SRT});
+      expect(downloadCredentialIds(thesubtitledbClient)).toEqual([
+        userConfigCredentials[0].id,
+      ]);
+    });
+
+    it('tells the client of the pause, so its shared keys may still serve a user without a key', async () => {
+      const {userConfig} = await createUserConfig();
+      const {urlCode} = await storeHit(MOVIE_ID, {
+        subtitleSource: SubtitleSource.THESUBTITLEDB,
+      });
+
+      const response = await getSubtitleFile({
+        userConfigId: userConfig.id,
+        videoId: MOVIE_ID,
+        urlCode,
+      });
+
+      expectFile(response, {body: MOVIE_SRT});
+      const [[, credential, callOptions]] =
+        thesubtitledbClient.downloadSubtitle.mock.calls;
+      expect(credential).toBeNull();
+      expect(callOptions).toEqual({isKeylessPaused: true});
+    });
+
+    it('answers download-failed when the client refuses its keyless call', async () => {
+      const {userConfig} = await createUserConfig();
+      const {urlCode} = await storeHit(MOVIE_ID, {
+        subtitleSource: SubtitleSource.THESUBTITLEDB,
+      });
+      thesubtitledbClient.downloadSubtitle.mockRejectedValue(
+        new SourceKeylessPauseError({
+          subtitleSource: SubtitleSource.THESUBTITLEDB,
+        }),
+      );
+
+      const response = await getSubtitleFile({
+        userConfigId: userConfig.id,
+        videoId: MOVIE_ID,
+        urlCode,
+      });
+
+      expectMessage(response, SubtitleMessage.SUBTITLE_DOWNLOAD_FAILED);
+    });
+
+    it('stops background downloads of the source once the client refuses its keyless call', async () => {
+      const {userConfig} = await createUserConfig();
+      const {urlCode} = await storeHit(MOVIE_ID, {
+        subtitleSource: SubtitleSource.THESUBTITLEDB,
+      });
+      thesubtitledbClient.downloadSubtitle.mockRejectedValue(
+        new SourceKeylessPauseError({
+          subtitleSource: SubtitleSource.THESUBTITLEDB,
+        }),
+      );
+
+      const subtitleDownload = await downloadSubtitleFile({
+        subtitle: await findSubtitleByUrlCode(urlCode),
+        videoContext: {
+          videoId: MOVIE_ID,
+          catalogSeason: null,
+          catalogEpisode: null,
+        },
+        cachedUserConfig: await userConfigCache.get(userConfig.id),
+        isBackground: true,
+        subtitleSourceRegistry: createSubtitleSourceRegistry(fixtureClients),
+      });
+
+      expect(subtitleDownload).toMatchObject({isBudgetRefused: true});
+    });
   });
 
   it('fetches a file once for two concurrent requests', async () => {

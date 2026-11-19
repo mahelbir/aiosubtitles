@@ -22,6 +22,8 @@ export async function recordSubtitleSourceFailure({client, error, nowMs}) {
       retryAfterMs: error.retryAfterMs,
       nowMs,
       recoveryWindowMs: toBudgetRecoveryWindowMs(client.downloadBudgets),
+      isKeylessOnly:
+        error.isKeylessCall && client.isKeylessLimitSeparate === true,
     });
   }
   return false;

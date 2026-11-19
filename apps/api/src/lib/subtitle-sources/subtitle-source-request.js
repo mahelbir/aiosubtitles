@@ -239,7 +239,7 @@ export function readSubtitleSourceJson(bodyBytes, headers) {
 
 export function toSubtitleSourceStatusError(
   {status, headers},
-  {subtitleSource, credentialId = null},
+  {subtitleSource, credentialId = null, isKeylessCall = false},
 ) {
   const retryAfterMs = findRetryAfterMs(headers);
   if (status === StatusCodes.TOO_MANY_REQUESTS) {
@@ -247,6 +247,7 @@ export function toSubtitleSourceStatusError(
       subtitleSource,
       retryAfterMs: retryAfterMs ?? SUBTITLE_SOURCE_RETRY_AFTER_DEFAULT,
       credentialId,
+      isKeylessCall,
     });
   }
   if (status === StatusCodes.SERVICE_UNAVAILABLE && retryAfterMs !== null) {
@@ -412,6 +413,7 @@ export function readSubtitleSourceResponse(
   {
     subtitleSource,
     credentialId = null,
+    isKeylessCall = false,
     acceptedStatuses = [],
     responseType = 'json',
   },
@@ -446,6 +448,7 @@ export function readSubtitleSourceResponse(
     throw toSubtitleSourceStatusError(maxiosResponse, {
       subtitleSource,
       credentialId,
+      isKeylessCall,
     });
   } catch (error) {
     throw toSubtitleSourceError(error, {subtitleSource});
@@ -536,6 +539,7 @@ export async function requestRemoteResource({
         readOptions: {
           subtitleSource: serviceName,
           credentialId,
+          isKeylessCall: credentialId === null,
           acceptedStatuses,
           responseType,
         },

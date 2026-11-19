@@ -2,6 +2,7 @@ import {CredentialKind} from '@repo/shared/constants/credential.js';
 import {SubtitleSource} from '@repo/shared/constants/subtitle-source.js';
 import {sharedCredentialPool as defaultSharedCredentialPool} from '../shared-credential-pool.js';
 import {SubtitleSourceBudgetScope} from '../subtitle-source-contract.js';
+import {throwIfKeylessPaused} from '../subtitle-source-errors.js';
 import {requestSubtitleSource as requestSite} from '../subtitle-source-request.js';
 import {anisubMapping} from './anisub-mapping.js';
 
@@ -41,7 +42,8 @@ export function createAnisubClient({
     );
   }
 
-  async function downloadKeyless(subtitleRef, signal) {
+  async function downloadKeyless(subtitleRef, {signal, isKeylessPaused}) {
+    throwIfKeylessPaused({subtitleSource, isKeylessPaused});
     const fileResponse = await requestSubtitleSource({
       ...anisubMapping.buildDownloadRequest(subtitleRef),
       signal,
@@ -57,6 +59,8 @@ export function createAnisubClient({
     subtitleSource,
     credentialKinds: [CredentialKind.ACCESS_TOKEN],
     isSearchHashSensitive: false,
+    isSearchKeyless: true,
+    isKeylessLimitSeparate: true,
     canUseSharedCredential: true,
     downloadBudgets: [
       {
@@ -83,9 +87,14 @@ export function createAnisubClient({
         searchQuery,
       );
     },
-    downloadSubtitle(subtitleRef, credential, {signal} = {}) {
+    downloadSubtitle(
+      subtitleRef,
+      credential,
+      {signal, isKeylessPaused = false} = {},
+    ) {
+      const keylessOptions = {signal, isKeylessPaused};
       if (!credential && !anisubMapping.hasTokenFileLink(subtitleRef)) {
-        return downloadKeyless(subtitleRef, signal);
+        return downloadKeyless(subtitleRef, keylessOptions);
       }
       return sharedCredentialPool.callWithCredential({
         subtitleSource,
@@ -94,7 +103,7 @@ export function createAnisubClient({
         runCall: activeCredential =>
           activeCredential
             ? downloadWithToken(subtitleRef, activeCredential, signal)
-            : downloadKeyless(subtitleRef, signal),
+            : downloadKeyless(subtitleRef, keylessOptions),
       });
     },
     async checkCredential(credential, {signal} = {}) {

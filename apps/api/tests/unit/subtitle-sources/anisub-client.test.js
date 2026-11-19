@@ -9,6 +9,7 @@ import {
 import {listSubtitleSourceClients} from '../../../src/lib/subtitle-sources/subtitle-source-clients.js';
 import {SubtitleSourceBudgetScope} from '../../../src/lib/subtitle-sources/subtitle-source-contract.js';
 import {
+  SourceKeylessPauseError,
   SourceRateLimitError,
   SourceUnavailableError,
 } from '../../../src/lib/subtitle-sources/subtitle-source-errors.js';
@@ -124,6 +125,11 @@ describe('anisubClient', () => {
 
   it('searches by id, not by video hash', () => {
     expect(anisubClient.isSearchHashSensitive).toBe(false);
+  });
+
+  it('keeps a token download off the keyless limit, while every search is keyless', () => {
+    expect(anisubClient.isKeylessLimitSeparate).toBe(true);
+    expect(anisubClient.isSearchKeyless).toBe(true);
   });
 
   it('declares the documented download limits', () => {
@@ -279,6 +285,56 @@ describe('anisubClient.downloadSubtitle without a user token', () => {
       credentialId: null,
     });
     expect(fileRequest).toMatchObject({url: CDN_FILE_URL, credentialId: null});
+  });
+
+  it('keeps downloading under a shared token while the keyless path is paused', async () => {
+    const fileBytes = Buffer.from('cdn file bytes');
+    requestSubtitleSource
+      .mockResolvedValueOnce(await toLinkResponse())
+      .mockResolvedValueOnce(toFileResponse(fileBytes));
+
+    await expect(
+      makeClient({
+        [SubtitleSource.ANISUB]: toSharedAccessTokens(SHARED_TOKEN),
+      }).downloadSubtitle(siteRef, null, {isKeylessPaused: true}),
+    ).resolves.toMatchObject({fileBytes});
+    const [[tokenRequest]] = requestSubtitleSource.mock.calls;
+    expect(tokenRequest.headers).toMatchObject({
+      Authorization: `Bearer ${SHARED_TOKEN}`,
+    });
+  });
+
+  it('refuses the public file url, with no request, while the keyless path is paused', async () => {
+    await expect(
+      makeClient().downloadSubtitle(siteRef, null, {isKeylessPaused: true}),
+    ).rejects.toBeInstanceOf(SourceKeylessPauseError);
+    await expect(
+      makeClient({
+        [SubtitleSource.ANISUB]: toSharedAccessTokens(SHARED_TOKEN),
+      }).downloadSubtitle(
+        {
+          ...siteRef,
+          siteFileUrl: 'https://anisub.co/stremio/file/sub-71001.srt',
+        },
+        null,
+        {isKeylessPaused: true},
+      ),
+    ).rejects.toBeInstanceOf(SourceKeylessPauseError);
+    expect(requestSubtitleSource).not.toHaveBeenCalled();
+  });
+
+  it("downloads under the user's own token while the keyless path is paused", async () => {
+    const fileBytes = Buffer.from('cdn file bytes');
+    requestSubtitleSource
+      .mockResolvedValueOnce(await toLinkResponse())
+      .mockResolvedValueOnce(toFileResponse(fileBytes));
+
+    await expect(
+      makeClient().downloadSubtitle(siteRef, tokenCredential, {
+        isKeylessPaused: true,
+      }),
+    ).resolves.toMatchObject({fileBytes});
+    expect(requestSubtitleSource).toHaveBeenCalledTimes(2);
   });
 
   it('returns the bytes the public file url answers with as the file', async () => {

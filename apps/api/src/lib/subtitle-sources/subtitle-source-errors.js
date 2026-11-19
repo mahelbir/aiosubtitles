@@ -17,10 +17,16 @@ export class SubtitleSourceError extends Error {
 }
 
 export class SourceRateLimitError extends SubtitleSourceError {
-  constructor({subtitleSource, retryAfterMs, credentialId = null}) {
+  constructor({
+    subtitleSource,
+    retryAfterMs,
+    credentialId = null,
+    isKeylessCall = false,
+  }) {
     super({subtitleSource, message: 'rate limit reached.'});
     this.retryAfterMs = retryAfterMs;
     this.credentialId = credentialId;
+    this.isKeylessCall = isKeylessCall;
   }
 }
 
@@ -28,6 +34,18 @@ export class SourceCredentialError extends SubtitleSourceError {
   constructor({subtitleSource, credentialId}) {
     super({subtitleSource, message: 'rejected the credential.'});
     this.credentialId = credentialId;
+  }
+}
+
+export class SourceKeylessPauseError extends SubtitleSourceError {
+  constructor({subtitleSource}) {
+    super({subtitleSource, message: 'pauses its keyless calls.'});
+  }
+}
+
+export function throwIfKeylessPaused({subtitleSource, isKeylessPaused}) {
+  if (isKeylessPaused) {
+    throw new SourceKeylessPauseError({subtitleSource});
   }
 }
 

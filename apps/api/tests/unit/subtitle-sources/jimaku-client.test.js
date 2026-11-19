@@ -90,6 +90,7 @@ describe('jimakuClient', () => {
     expect(jimakuClient.credentialKinds).toEqual([CredentialKind.API_KEY]);
     expect(jimakuClient.canUseSharedCredential).toBe(true);
     expect(jimakuClient.isDownloadKeyless).toBe(true);
+    expect(jimakuClient.isKeylessLimitSeparate).not.toBe(true);
   });
 
   it('searches without a user key only while the server has a shared key, and always downloads without one', async () => {

@@ -5,7 +5,8 @@ import {SubtitleSourceBudgetScope} from '../subtitle-sources/subtitle-source-con
 import {
   BUDGET_FACTOR_RECOVERY_WINDOW_MAX_MS,
   BUDGET_FACTOR_RECOVERY_WINDOW_MIN_MS,
-  readSubtitleSourceBreaker,
+  pickCallBreaker,
+  readSubtitleSourceBreakers,
 } from './subtitle-source-breaker.js';
 
 export const DEFAULT_DOWNLOAD_BUDGET = Object.freeze({
@@ -88,10 +89,13 @@ export async function trySpendSubtitleSourceBudget({
   nowMs = Date.now(),
 }) {
   const spentBudgets = listSpentBudgets(client.downloadBudgets, credentialId);
-  const {budgetFactor} = await readSubtitleSourceBreaker(
-    client.subtitleSource,
-    nowMs,
-    toBudgetRecoveryWindowMs(client.downloadBudgets),
+  const {budgetFactor} = pickCallBreaker(
+    await readSubtitleSourceBreakers(
+      client,
+      nowMs,
+      toBudgetRecoveryWindowMs(client.downloadBudgets),
+    ),
+    {isKeylessCall: !credentialId},
   );
   const budgetKeys = spentBudgets.map(({budgetScope, windowMs}) =>
     toBudgetKey({

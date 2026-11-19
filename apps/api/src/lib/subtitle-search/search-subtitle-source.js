@@ -13,7 +13,10 @@ import {
   waitForSearchLocks,
   writeSearchCacheEntries,
 } from './subtitle-search-cache.js';
-import {readSubtitleSourceBreaker} from './subtitle-source-breaker.js';
+import {
+  pickCallBreaker,
+  readSubtitleSourceBreakers,
+} from './subtitle-source-breaker.js';
 
 const logger = createLogger('subtitle-search');
 const pendingSearches = new Set();
@@ -85,23 +88,24 @@ async function runSubtitleSourceSearch({
       videoHash: searchQuery.videoHash,
     }),
   }));
-  const [searchCacheEntries, subtitleSourceBreaker, canUseWithoutCredential] =
+  const [searchCacheEntries, subtitleSourceBreakers, canUseWithoutCredential] =
     await Promise.all([
       readSearchCacheEntries(
         languageSearches.map(({searchCacheParts}) => searchCacheParts),
         nowMs,
       ),
-      readSubtitleSourceBreaker(subtitleSource, nowMs),
+      readSubtitleSourceBreakers(client, nowMs),
       client.canSearchWithoutCredential(),
     ]);
-  const candidateCredentials = toCandidateCredentials({
-    credentials,
-    hasConfiguredCredential,
-    canUseWithoutCredential,
-  });
-  const canSearch =
-    !subtitleSourceBreaker.isOpen && candidateCredentials.length > 0;
-  if (!canSearch) {
+  const candidateCredentials = dropPausedCredentials(
+    {client, subtitleSourceBreakers},
+    toCandidateCredentials({
+      credentials,
+      hasConfiguredCredential,
+      canUseWithoutCredential,
+    }),
+  );
+  if (candidateCredentials.length === 0) {
     return [];
   }
   if (!isQueryResolved(searchQuery)) {
@@ -156,6 +160,18 @@ async function runSubtitleSourceSearch({
     ),
   ]);
   return liveHits;
+}
+
+function dropPausedCredentials(
+  {client, subtitleSourceBreakers},
+  candidateCredentials,
+) {
+  return candidateCredentials.filter(
+    credential =>
+      !pickCallBreaker(subtitleSourceBreakers, {
+        isKeylessCall: credential === null || client.isSearchKeyless === true,
+      }).isOpen,
+  );
 }
 
 function isVideoTypeMismatch({videoType, catalogEpisode, kitsuEpisode}) {
@@ -249,19 +265,19 @@ async function runUncachedSearch({
   nowMs,
   readNowMs,
 }) {
-  const candidateCredentials = toCandidateCredentials({
-    credentials,
-    hasConfiguredCredential,
-    canUseWithoutCredential: await client.canSearchWithoutCredential(),
-  });
-  if (candidateCredentials.length === 0) {
-    return [];
-  }
-  const subtitleSourceBreaker = await readSubtitleSourceBreaker(
-    client.subtitleSource,
-    nowMs,
+  const [canUseWithoutCredential, subtitleSourceBreakers] = await Promise.all([
+    client.canSearchWithoutCredential(),
+    readSubtitleSourceBreakers(client, nowMs),
+  ]);
+  const candidateCredentials = dropPausedCredentials(
+    {client, subtitleSourceBreakers},
+    toCandidateCredentials({
+      credentials,
+      hasConfiguredCredential,
+      canUseWithoutCredential,
+    }),
   );
-  if (subtitleSourceBreaker.isOpen) {
+  if (candidateCredentials.length === 0) {
     return [];
   }
   try {

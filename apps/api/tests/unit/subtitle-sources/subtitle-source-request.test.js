@@ -1157,6 +1157,27 @@ describe('buildRedirectHop', () => {
     expect(readAfterHop(redirectHop, 429)).toMatchObject({
       name: 'SourceRateLimitError',
       credentialId: null,
+      isKeylessCall: false,
+    });
+  });
+
+  it('keeps a keyless call keyless after a cross-origin hop', () => {
+    const keylessHop = {
+      ...keyedHop,
+      readOptions: {
+        ...keyedHop.readOptions,
+        credentialId: null,
+        isKeylessCall: true,
+      },
+    };
+    const redirectHop = buildRedirectHop(keylessHop, {
+      status: 302,
+      locationHeader: 'https://cdn.source.test/file.zip',
+    });
+    expect(readAfterHop(redirectHop, 429)).toMatchObject({
+      name: 'SourceRateLimitError',
+      credentialId: null,
+      isKeylessCall: true,
     });
   });
 
@@ -1356,7 +1377,31 @@ describe('toSubtitleSourceStatusError', () => {
       {subtitleSource: 'thesubtitledb', credentialId: 'c1'},
     );
     expect(error).toBeInstanceOf(SourceRateLimitError);
-    expect(error).toMatchObject({retryAfterMs: 600000, credentialId: null});
+    expect(error).toMatchObject({
+      retryAfterMs: 600000,
+      credentialId: null,
+      isKeylessCall: false,
+    });
+  });
+
+  it('reads a 429 on a keyless call as a keyless rate limit', () => {
+    const error = toSubtitleSourceStatusError(
+      {status: 429, headers: {'retry-after': '30'}},
+      {subtitleSource: 'thesubtitledb', isKeylessCall: true},
+    );
+    expect(error).toBeInstanceOf(SourceRateLimitError);
+    expect(error).toMatchObject({credentialId: null, isKeylessCall: true});
+  });
+
+  it('never reads a 503 on a keyless call as keyless', () => {
+    const error = toSubtitleSourceStatusError(
+      {status: 503, headers: {'retry-after': '600'}},
+      {subtitleSource: 'thesubtitledb', isKeylessCall: true},
+    );
+    expect(error).toMatchObject({
+      name: 'SourceRateLimitError',
+      isKeylessCall: false,
+    });
   });
 
   it('blames a 401 on the credential only when one was sent', () => {

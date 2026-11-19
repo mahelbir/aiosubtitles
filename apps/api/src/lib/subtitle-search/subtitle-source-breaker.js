@@ -7,6 +7,7 @@ export const BUDGET_FACTOR_RECOVERY_WINDOW_MIN_MS = 60000;
 export const BUDGET_FACTOR_RECOVERY_WINDOW_MAX_MS = 3600000;
 
 const BREAKER_PREFIX = 'subtitle-source-breaker:v1:';
+const KEYLESS_BREAKER_SUFFIX = ':keyless';
 const BUDGET_FACTOR_RECOVERY_WINDOWS = Math.log2(1 / BUDGET_FACTOR_MIN);
 
 const READ_BREAKER_LUA = `
@@ -50,14 +51,31 @@ redis.defineCommand('openSubtitleSourceBreaker', {
   `,
 });
 
+function toBreakerKey(subtitleSource, isKeylessOnly = false) {
+  return `${BREAKER_PREFIX}${subtitleSource}${isKeylessOnly ? KEYLESS_BREAKER_SUFFIX : ''}`;
+}
+
+async function readBreaker(breakerKey, nowMs, recoveryWindowMs) {
+  const [breakerUntil, budgetFactor] = await redis.readSubtitleSourceBreaker(
+    breakerKey,
+    nowMs,
+    recoveryWindowMs,
+  );
+  return {
+    isOpen: nowMs < Number(breakerUntil),
+    budgetFactor: Number(budgetFactor),
+  };
+}
+
 export async function openSubtitleSourceBreaker({
   subtitleSource,
   retryAfterMs,
   nowMs,
   recoveryWindowMs = BUDGET_FACTOR_RECOVERY_WINDOW_MIN_MS,
+  isKeylessOnly = false,
 }) {
   await redis.openSubtitleSourceBreaker(
-    `${BREAKER_PREFIX}${subtitleSource}`,
+    toBreakerKey(subtitleSource, isKeylessOnly),
     nowMs,
     recoveryWindowMs,
     retryAfterMs,
@@ -66,18 +84,43 @@ export async function openSubtitleSourceBreaker({
   );
 }
 
-export async function readSubtitleSourceBreaker(
+export function readSubtitleSourceBreaker(
   subtitleSource,
   nowMs,
   recoveryWindowMs = BUDGET_FACTOR_RECOVERY_WINDOW_MIN_MS,
 ) {
-  const [breakerUntil, budgetFactor] = await redis.readSubtitleSourceBreaker(
-    `${BREAKER_PREFIX}${subtitleSource}`,
-    nowMs,
-    recoveryWindowMs,
-  );
+  return readBreaker(toBreakerKey(subtitleSource), nowMs, recoveryWindowMs);
+}
+
+export async function readSubtitleSourceBreakers(
+  client,
+  nowMs,
+  recoveryWindowMs = BUDGET_FACTOR_RECOVERY_WINDOW_MIN_MS,
+) {
+  const [keyedCall, keylessOnly] = await Promise.all([
+    readSubtitleSourceBreaker(client.subtitleSource, nowMs, recoveryWindowMs),
+    client.isKeylessLimitSeparate
+      ? readBreaker(
+          toBreakerKey(client.subtitleSource, true),
+          nowMs,
+          recoveryWindowMs,
+        )
+      : null,
+  ]);
   return {
-    isOpen: nowMs < Number(breakerUntil),
-    budgetFactor: Number(budgetFactor),
+    keyedCall,
+    keylessCall: keylessOnly
+      ? {
+          isOpen: keyedCall.isOpen || keylessOnly.isOpen,
+          budgetFactor: Math.min(
+            keyedCall.budgetFactor,
+            keylessOnly.budgetFactor,
+          ),
+        }
+      : keyedCall,
   };
+}
+
+export function pickCallBreaker({keyedCall, keylessCall}, {isKeylessCall}) {
+  return isKeylessCall ? keylessCall : keyedCall;
 }

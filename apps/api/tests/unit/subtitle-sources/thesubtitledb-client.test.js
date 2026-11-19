@@ -6,6 +6,7 @@ import {listSubtitleSourceClients} from '../../../src/lib/subtitle-sources/subti
 import {SubtitleSourceBudgetScope} from '../../../src/lib/subtitle-sources/subtitle-source-contract.js';
 import {
   SourceCredentialError,
+  SourceKeylessPauseError,
   SourceRateLimitError,
 } from '../../../src/lib/subtitle-sources/subtitle-source-errors.js';
 import {requestSubtitleSource} from '../../../src/lib/subtitle-sources/subtitle-source-request.js';
@@ -79,6 +80,10 @@ describe('thesubtitledbClient', () => {
 
   it('searches by id, not by video hash', () => {
     expect(thesubtitledbClient.isSearchHashSensitive).toBe(false);
+  });
+
+  it('keeps a keyed call off the per-IP keyless limit', () => {
+    expect(thesubtitledbClient.isKeylessLimitSeparate).toBe(true);
   });
 
   it('declares the documented download limits, keyless per server and keyed per key', () => {
@@ -193,6 +198,54 @@ describe('thesubtitledbClient download', () => {
     ).resolves.toMatchObject({fileBytes});
     const [, [keylessRequest]] = requestSubtitleSource.mock.calls;
     expect(keylessRequest).toMatchObject({headers: {}, credentialId: null});
+  });
+
+  it('keeps downloading under a shared key while the keyless path is paused', async () => {
+    requestSubtitleSource.mockResolvedValueOnce(toFileResponse());
+
+    await expect(
+      makeClient({
+        [SubtitleSource.THESUBTITLEDB]: toSharedApiKeys(SHARED_API_KEY),
+      }).downloadSubtitle(subtitleRef, null, {isKeylessPaused: true}),
+    ).resolves.toMatchObject({fileBytes});
+    const [[downloadRequest]] = requestSubtitleSource.mock.calls;
+    expect(downloadRequest.headers).toEqual({
+      Authorization: `Bearer ${SHARED_API_KEY}`,
+    });
+  });
+
+  it('refuses its keyless download, with no request, while the keyless path is paused', async () => {
+    await expect(
+      makeClient().downloadSubtitle(subtitleRef, null, {isKeylessPaused: true}),
+    ).rejects.toBeInstanceOf(SourceKeylessPauseError);
+    expect(requestSubtitleSource).not.toHaveBeenCalled();
+  });
+
+  it('refuses the keyless fallback once every shared key is limited while the keyless path is paused', async () => {
+    requestSubtitleSource.mockImplementationOnce(async siteRequest => {
+      throw new SourceRateLimitError({
+        subtitleSource: SubtitleSource.THESUBTITLEDB,
+        retryAfterMs: 60000,
+        credentialId: siteRequest.credentialId,
+      });
+    });
+
+    await expect(
+      makeClient({
+        [SubtitleSource.THESUBTITLEDB]: toSharedApiKeys(SHARED_API_KEY),
+      }).downloadSubtitle(subtitleRef, null, {isKeylessPaused: true}),
+    ).rejects.toBeInstanceOf(SourceKeylessPauseError);
+    expect(requestSubtitleSource).toHaveBeenCalledOnce();
+  });
+
+  it("downloads under the user's own key while the keyless path is paused", async () => {
+    requestSubtitleSource.mockResolvedValueOnce(toFileResponse());
+
+    await expect(
+      makeClient().downloadSubtitle(subtitleRef, userCredential, {
+        isKeylessPaused: true,
+      }),
+    ).resolves.toMatchObject({fileBytes});
   });
 
   it("passes a user key's rejection on, so it never falls back to a shared key or the keyless path", async () => {
