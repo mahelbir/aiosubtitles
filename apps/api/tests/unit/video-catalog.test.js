@@ -1,5 +1,9 @@
 import {describe, expect, it, vi} from 'vitest';
 import {
+  SourceRateLimitError,
+  SourceUnavailableError,
+} from '../../src/lib/subtitle-sources/subtitle-source-errors.js';
+import {
   buildCatalogMetaRequest,
   parseCatalogRuntimeMs,
   toCatalogMeta,
@@ -10,6 +14,7 @@ import {
   buildKitsuMetaRequest,
   loadKitsuSiteId,
   pickKitsuVideo,
+  toAnidbId,
   toAnilistId,
   toKitsuMapping,
 } from '../../src/lib/video-catalog/kitsu-mapping.js';
@@ -295,6 +300,80 @@ describe('the Kitsu mappings', () => {
       }),
     ).resolves.toBeNull();
     expect(requestRemoteResource).toHaveBeenCalledTimes(3);
+  });
+
+  it('reads the AniDB anime id from the mappings', () => {
+    expect(
+      toAnidbId({
+        data: [
+          kitsuMappingsBody.data[0],
+          {
+            id: '5003',
+            type: 'mappings',
+            attributes: {externalSite: 'anidb', externalId: '9541'},
+          },
+        ],
+      }),
+    ).toBe('9541');
+    expect(toAnidbId(kitsuMappingsBody)).toBeNull();
+    expect(toAnidbId(null)).toBeNull();
+  });
+
+  it('treats a body that is not a mapping list as an unavailable Kitsu', () => {
+    expect(() => toAnilistId({errors: [{title: 'Changed'}]})).toThrow(
+      SourceUnavailableError,
+    );
+    expect(() => toAnidbId({data: {id: '5002'}})).toThrow(
+      SourceUnavailableError,
+    );
+  });
+
+  it('fails the lookup on a Kitsu body of another shape', async () => {
+    const requestRemoteResource = vi.fn(async () => ({
+      status: 200,
+      headers: {},
+      body: {errors: [{title: 'Changed'}]},
+    }));
+
+    await expect(
+      loadKitsuSiteId('46474', {
+        externalSite: 'anilist/anime',
+        requestRemoteResource,
+      }),
+    ).rejects.toBeInstanceOf(SourceUnavailableError);
+  });
+
+  it('answers no mapping for an anime Kitsu does not know', async () => {
+    const requestRemoteResource = vi.fn(async () => ({
+      status: 404,
+      headers: {},
+      body: null,
+    }));
+
+    await expect(
+      loadKitsuSiteId('46474', {
+        externalSite: 'anidb',
+        requestRemoteResource,
+      }),
+    ).resolves.toBeNull();
+    expect(requestRemoteResource).toHaveBeenCalledTimes(1);
+  });
+
+  it("turns Kitsu's own rate limit into an unavailable lookup", async () => {
+    const requestRemoteResource = vi.fn(async () => {
+      throw new SourceRateLimitError({
+        subtitleSource: CatalogService.KITSU,
+        retryAfterMs: 60000,
+      });
+    });
+
+    const lookup = loadKitsuSiteId('46474', {
+      externalSite: 'anidb',
+      requestRemoteResource,
+    });
+
+    await expect(lookup).rejects.toBeInstanceOf(SourceUnavailableError);
+    await expect(lookup).rejects.not.toBeInstanceOf(SourceRateLimitError);
   });
 
   it('stops at the first short page', async () => {

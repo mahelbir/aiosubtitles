@@ -120,6 +120,11 @@ const SOURCE_HELP = [
     keyPageUrl: 'https://jimaku.cc/account',
     helpText: 'Requires an API key.',
   },
+  {
+    subtitleSource: SubtitleSource.ANIMETOSHO,
+    keyPageUrl: null,
+    helpText: "No key needed. Requests share the server's limits.",
+  },
 ];
 
 function getSourceSwitch(panel, label) {

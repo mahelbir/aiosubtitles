@@ -11,6 +11,7 @@ packages/shared/tests/fixtures
 apps/api/tests/fixtures/client-export
 apps/api/tests/fixtures/subtitle-sources/yify/*.html
 apps/api/tests/fixtures/subtitle-sources/tvsubtitles/*.html
+apps/api/tests/fixtures/subtitle-sources/animetosho/sample-*.json
 apps/eval/metrics*.md
 apps/eval/reports/
 apps/eval/tests/fixtures/reference-mini

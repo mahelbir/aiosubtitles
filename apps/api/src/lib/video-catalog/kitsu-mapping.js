@@ -1,6 +1,10 @@
-import {isNil} from 'es-toolkit';
+import {identity, isNil} from 'es-toolkit';
 import {RedisCache} from '../../redis/cache.js';
 import {redis} from '../../redis/index.js';
+import {
+  SourceRateLimitError,
+  SourceUnavailableError,
+} from '../subtitle-sources/subtitle-source-errors.js';
 import {requestRemoteResource as sendRemoteResourceRequest} from '../subtitle-sources/subtitle-source-request.js';
 import {createCatalogLookup} from './catalog-lookup.js';
 import {CatalogService} from './catalog-service.js';
@@ -18,11 +22,15 @@ const KITSU_API_URL = 'https://kitsu.app/api/edge';
 
 const KITSU_ANILIST_PREFIX = 'kitsu-anilist:v1:';
 
+const KITSU_ANIDB_PREFIX = 'kitsu-anidb:v1:';
+
 const KITSU_MAPPINGS_PAGE_LIMIT = 20;
 
 const KITSU_MAPPINGS_PAGES_MAX = 3;
 
 const ANILIST_SITE = 'anilist/anime';
+
+const ANIDB_SITE = 'anidb';
 
 const KITSU_SITE_ID_PATTERN = /^\d+$/;
 
@@ -136,16 +144,50 @@ export function buildKitsuMappingsRequest(kitsuId, pageOffset = 0) {
   };
 }
 
-function listKitsuMappings(mappingsBody) {
-  return Array.isArray(mappingsBody?.data) ? mappingsBody.data : [];
+function toKitsuUnavailableError(reason) {
+  return new SourceUnavailableError({
+    subtitleSource: CatalogService.KITSU,
+    cause: new Error(reason),
+  });
 }
 
-function toKitsuSiteId(mappingsBody, externalSite) {
-  const siteMapping = listKitsuMappings(mappingsBody).find(
+function listKitsuMappings(mappingsBody) {
+  if (mappingsBody === null) {
+    return [];
+  }
+  if (!Array.isArray(mappingsBody?.data)) {
+    throw toKitsuUnavailableError('Kitsu mappings are not a list.');
+  }
+  return mappingsBody.data;
+}
+
+async function requestKitsuMappings(
+  kitsuId,
+  pageOffset,
+  requestRemoteResource,
+) {
+  try {
+    return await requestRemoteResource(
+      buildKitsuMappingsRequest(kitsuId, pageOffset),
+    );
+  } catch (error) {
+    if (error instanceof SourceRateLimitError) {
+      throw toKitsuUnavailableError('Kitsu rate limit.');
+    }
+    throw error;
+  }
+}
+
+function findKitsuSiteId(kitsuMappings, externalSite) {
+  const siteMapping = kitsuMappings.find(
     kitsuMapping => kitsuMapping?.attributes?.externalSite === externalSite,
   );
   const siteId = String(siteMapping?.attributes?.externalId ?? '').trim();
   return KITSU_SITE_ID_PATTERN.test(siteId) ? siteId : null;
+}
+
+function toKitsuSiteId(mappingsBody, externalSite) {
+  return findKitsuSiteId(listKitsuMappings(mappingsBody), externalSite);
 }
 
 function toAnilistNumber(anilistId) {
@@ -154,6 +196,10 @@ function toAnilistNumber(anilistId) {
 
 export function toAnilistId(mappingsBody) {
   return toAnilistNumber(toKitsuSiteId(mappingsBody, ANILIST_SITE));
+}
+
+export function toAnidbId(mappingsBody) {
+  return toKitsuSiteId(mappingsBody, ANIDB_SITE);
 }
 
 export async function loadKitsuSiteId(
@@ -165,35 +211,59 @@ export async function loadKitsuSiteId(
     pageOffset < KITSU_MAPPINGS_PAGE_LIMIT * KITSU_MAPPINGS_PAGES_MAX;
     pageOffset += KITSU_MAPPINGS_PAGE_LIMIT
   ) {
-    const {body} = await requestRemoteResource(
-      buildKitsuMappingsRequest(kitsuId, pageOffset),
+    const {body} = await requestKitsuMappings(
+      kitsuId,
+      pageOffset,
+      requestRemoteResource,
     );
-    const siteId = toKitsuSiteId(body, externalSite);
-    if (
-      siteId !== null ||
-      listKitsuMappings(body).length < KITSU_MAPPINGS_PAGE_LIMIT
-    ) {
+    const kitsuMappings = listKitsuMappings(body);
+    const siteId = findKitsuSiteId(kitsuMappings, externalSite);
+    if (siteId !== null || kitsuMappings.length < KITSU_MAPPINGS_PAGE_LIMIT) {
       return siteId;
     }
   }
   return null;
 }
 
+function createKitsuSiteIdReader({
+  prefix,
+  externalSite,
+  toSiteValue,
+  requestRemoteResource,
+}) {
+  const siteIdCache = new RedisCache({
+    prefix,
+    ttl: () => KITSU_MAPPING_TTL,
+    load: async kitsuId =>
+      toSiteValue(
+        await loadKitsuSiteId(kitsuId, {externalSite, requestRemoteResource}),
+      ),
+  });
+  return kitsuId => siteIdCache.get(kitsuId);
+}
+
 export function createAnilistIdReader({
   requestRemoteResource = sendRemoteResourceRequest,
 } = {}) {
-  const anilistIdCache = new RedisCache({
+  return createKitsuSiteIdReader({
     prefix: KITSU_ANILIST_PREFIX,
-    ttl: () => KITSU_MAPPING_TTL,
-    load: async kitsuId =>
-      toAnilistNumber(
-        await loadKitsuSiteId(kitsuId, {
-          externalSite: ANILIST_SITE,
-          requestRemoteResource,
-        }),
-      ),
+    externalSite: ANILIST_SITE,
+    toSiteValue: toAnilistNumber,
+    requestRemoteResource,
   });
-  return kitsuId => anilistIdCache.get(kitsuId);
+}
+
+export function createAnidbIdReader({
+  requestRemoteResource = sendRemoteResourceRequest,
+} = {}) {
+  return createKitsuSiteIdReader({
+    prefix: KITSU_ANIDB_PREFIX,
+    externalSite: ANIDB_SITE,
+    toSiteValue: identity,
+    requestRemoteResource,
+  });
 }
 
 export const readKitsuAnilistId = createAnilistIdReader();
+
+export const readKitsuAnidbId = createAnidbIdReader();

@@ -1,5 +1,6 @@
 import {SubtitleSource} from '@repo/shared/constants/subtitle-source.js';
 import {altyazidbClient} from './altyazidb/altyazidb-client.js';
+import {animetoshoClient} from './animetosho/animetosho-client.js';
 import {anisubClient} from './anisub/anisub-client.js';
 import {betaseriesClient} from './betaseries/betaseries-client.js';
 import {gestdownClient} from './gestdown/gestdown-client.js';
@@ -36,6 +37,7 @@ export function createSubtitleSourceRegistry(clients) {
 export const {getSubtitleSourceClient, listSubtitleSourceClients} =
   createSubtitleSourceRegistry([
     altyazidbClient,
+    animetoshoClient,
     anisubClient,
     betaseriesClient,
     gestdownClient,

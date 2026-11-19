@@ -27,6 +27,7 @@
     "@fastify/type-provider-zod": "^1.0.3",
     "@mahelbir/settings": "^6.0.0",
     "@mepkg/maxios": "5.1.0",
+    "@napi-rs/lzma": "^1.5.3",
     "@repo/shared": "workspace:*",
     "@repo/subtitle-core": "workspace:*",
     "@repo/tooling": "workspace:*",

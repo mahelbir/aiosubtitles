@@ -62,4 +62,7 @@ export const SUBTITLE_SOURCE_DESCRIPTIONS = Object.freeze({
     helpText: 'Requires an API key.',
     keyPageUrl: 'https://jimaku.cc/account',
   },
+  [SubtitleSource.ANIMETOSHO]: {
+    helpText: "No key needed. Requests share the server's limits.",
+  },
 });
