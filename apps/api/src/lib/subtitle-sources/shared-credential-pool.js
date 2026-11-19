@@ -1,9 +1,11 @@
-import {stubFalse} from 'es-toolkit/compat';
+import {stubFalse, stubTrue} from 'es-toolkit/compat';
 import {CredentialKind} from '@repo/shared/constants/credential.js';
 import {toSharedCredentialsKey} from '@repo/shared/lib/shared-credential-kinds.js';
+import {deriveSecretKey, fingerprintSecret} from '../crypto.js';
 import {createLogger} from '../logger.js';
 import {settings as appSettings} from '../settings.js';
 import {
+  SourceCallRefusedError,
   SourceCredentialError,
   SourceRateLimitError,
 } from './subtitle-source-errors.js';
@@ -14,6 +16,24 @@ const SHARED_CREDENTIAL_ID_PREFIX = 'shared-credential';
 const SHARED_CREDENTIALS_SETTING = 'sharedCredentials';
 
 const sharedCredentialLogger = createLogger('shared-credentials');
+
+const sharedBudgetFingerprintKey = deriveSecretKey('shared-credential-budget');
+
+export async function reserveKeylessCall({
+  subtitleSource,
+  reserveCall = stubTrue,
+}) {
+  if (!(await reserveCall({budgetCredentialId: null}))) {
+    throw new SourceCallRefusedError({subtitleSource});
+  }
+}
+
+function toSharedBudgetCredentialId(
+  {subtitleSource, credentialKind},
+  {sharedSecret},
+) {
+  return `${SHARED_CREDENTIAL_ID_PREFIX}:${subtitleSource}:${credentialKind}:${fingerprintSecret(sharedSecret, sharedBudgetFingerprintKey)}`;
+}
 
 function toSharedSecretKey(credentialKind, credentialSecret) {
   return JSON.stringify(
@@ -220,6 +240,7 @@ export function createSharedCredentialPool({
       credential,
       isBreakerOnEveryLimit = false,
       isPreferredCredential = stubFalse,
+      reserveCall = stubTrue,
       runCall,
     }) {
       if (credential) {
@@ -242,6 +263,15 @@ export function createSharedCredentialPool({
         if (!sharedPick) {
           break;
         }
+        const isReserved = await reserveCall({
+          budgetCredentialId: toSharedBudgetCredentialId(
+            sharedPool,
+            sharedPick,
+          ),
+        });
+        if (!isReserved) {
+          continue;
+        }
         const sharedCredential = toSharedCredential(sharedPool, sharedPick);
         try {
           return await runCall(sharedCredential);
@@ -256,6 +286,7 @@ export function createSharedCredentialPool({
       }
       const retryAfterMs = readLimitedRetryAfterMs(sharedPool, readNowMs());
       if (retryAfterMs === null || !isBreakerOnEveryLimit) {
+        await reserveKeylessCall({subtitleSource, reserveCall});
         return runCall(null);
       }
       throw new SourceRateLimitError({

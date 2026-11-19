@@ -13,7 +13,10 @@ import {Subtitle} from '../../db/models/subtitle.js';
 import {createLogger} from '../logger.js';
 import {recordSubtitleSourceFailure} from '../record-subtitle-source-failure.js';
 import {SubtitleMessage} from '../stremio-row/stremio-row-enums.js';
-import {readSubtitleSourceBreakers} from '../subtitle-search/subtitle-source-breaker.js';
+import {
+  pickCallBreaker,
+  readSubtitleSourceBreakers,
+} from '../subtitle-search/subtitle-source-breaker.js';
 import {
   toBudgetRecoveryWindowMs,
   trySpendSubtitleSourceBudget,
@@ -24,7 +27,7 @@ import {
 } from '../subtitle-source-credentials.js';
 import {SubtitleAliasSource} from '../subtitle-sources/subtitle-alias-source.js';
 import {
-  SourceKeylessPauseError,
+  SourceCallRefusedError,
   SourceUnavailableError,
 } from '../subtitle-sources/subtitle-source-errors.js';
 import {isPrivateSubtitleSourceUrl} from '../subtitle-sources/subtitle-source-request.js';
@@ -338,48 +341,101 @@ async function downloadWithCredentials({
   const toRefusal = refusal => (hasSiteCall ? null : refusal);
   for (const credential of candidateCredentials) {
     const nowMs = Date.now();
-    const {keyedCall, keylessCall} = await readDownloadBreakers(client, nowMs);
-    if (keyedCall.isOpen) {
+    const isServerPathCall =
+      credential === null && client.canDownloadWithSharedCredential === true;
+    const callBreaker = pickCallBreaker(
+      await readDownloadBreakers(client, nowMs),
+      {isKeylessCall: credential === null && !isServerPathCall},
+    );
+    if (callBreaker.isOpen) {
       return toRefusal(STOPPED_REFUSAL);
     }
     if (canSpendCredential && !(await canSpendCredential())) {
       return toRefusal(STOPPED_REFUSAL);
     }
-    const {isSpent, refusedWindowMs, refusedRequestMax, retryAtMs} =
-      await trySpendSubtitleSourceBudget({
+    const serverPath = isServerPathCall
+      ? createServerPathReserver({client, isBackground})
+      : null;
+    if (!serverPath) {
+      const spendAnswer = await trySpendSubtitleSourceBudget({
         client,
         credentialId: credential?.credentialId ?? null,
         isBackground,
         nowMs,
       });
-    if (!isSpent) {
-      budgetRefusal = toWiderRefusal(
-        budgetRefusal,
-        refusedRequestMax === 0
-          ? STOPPED_REFUSAL
-          : {isBudgetRefused: true, refusedWindowMs, retryAtMs},
-      );
-      continue;
+      if (!spendAnswer.isSpent) {
+        budgetRefusal = toWiderRefusal(
+          budgetRefusal,
+          toBudgetRefusal(spendAnswer),
+        );
+        continue;
+      }
+      hasSiteCall = true;
     }
-    hasSiteCall = true;
     try {
       return {
-        sourceDownload: await client.downloadSubtitle(subtitleRef, credential, {
-          isKeylessPaused: keylessCall.isOpen,
-        }),
+        sourceDownload: await client.downloadSubtitle(
+          subtitleRef,
+          credential,
+          serverPath ? {reserveCall: serverPath.reserveCall} : {},
+        ),
         fileOrigin: credential
           ? SubtitleFileOrigin.USER_CREDENTIAL
           : SubtitleFileOrigin.DIRECT,
       };
     } catch (error) {
-      if (error instanceof SourceKeylessPauseError) {
-        return STOPPED_REFUSAL;
+      hasSiteCall ||= serverPath?.hasGrantedCall === true;
+      if (error instanceof SourceCallRefusedError) {
+        budgetRefusal = toWiderRefusal(
+          budgetRefusal,
+          serverPath?.keylessRefusal ?? STOPPED_REFUSAL,
+        );
+        continue;
       }
       logDownloadFailure(client.subtitleSource, error);
       await recordSubtitleSourceFailure({client, error, nowMs: Date.now()});
     }
   }
   return toRefusal(budgetRefusal);
+}
+
+function createServerPathReserver({client, isBackground}) {
+  const serverPath = {
+    hasGrantedCall: false,
+    keylessRefusal: null,
+    async reserveCall({budgetCredentialId}) {
+      const nowMs = Date.now();
+      const isKeylessCall = budgetCredentialId === null;
+      if (
+        isKeylessCall &&
+        (await readDownloadBreakers(client, nowMs)).keylessCall.isOpen
+      ) {
+        serverPath.keylessRefusal = STOPPED_REFUSAL;
+        return false;
+      }
+      const spendAnswer = await trySpendSubtitleSourceBudget({
+        client,
+        credentialId: budgetCredentialId,
+        isBackground,
+        nowMs,
+      });
+      if (!spendAnswer.isSpent) {
+        if (isKeylessCall) {
+          serverPath.keylessRefusal = toBudgetRefusal(spendAnswer);
+        }
+        return false;
+      }
+      serverPath.hasGrantedCall = true;
+      return true;
+    },
+  };
+  return serverPath;
+}
+
+function toBudgetRefusal({refusedWindowMs, refusedRequestMax, retryAtMs}) {
+  return refusedRequestMax === 0
+    ? STOPPED_REFUSAL
+    : {isBudgetRefused: true, refusedWindowMs, retryAtMs};
 }
 
 function toWiderRefusal(currentRefusal, nextRefusal) {

@@ -108,7 +108,7 @@ import {SubtitleAliasSource} from './subtitle-alias-source.js';
 /**
  * @typedef {object} SubtitleSourceCallOptions
  * @property {AbortSignal} [signal]
- * @property {boolean} [isKeylessPaused]
+ * @property {(reservation: {budgetCredentialId: string|null}) => Promise<boolean>} [reserveCall]
  */
 
 /**
@@ -123,6 +123,7 @@ import {SubtitleAliasSource} from './subtitle-alias-source.js';
  * @property {boolean} [isSearchKeyless]
  * @property {boolean} [isDownloadKeyless]
  * @property {boolean} [isKeylessLimitSeparate]
+ * @property {boolean} [canDownloadWithSharedCredential]
  * @property {DownloadBudget[]} downloadBudgets
  * @property {() => boolean|Promise<boolean>} isAvailable
  * @property {() => boolean|Promise<boolean>} canSearchWithoutCredential

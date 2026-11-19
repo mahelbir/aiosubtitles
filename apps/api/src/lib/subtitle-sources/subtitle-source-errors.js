@@ -37,15 +37,9 @@ export class SourceCredentialError extends SubtitleSourceError {
   }
 }
 
-export class SourceKeylessPauseError extends SubtitleSourceError {
+export class SourceCallRefusedError extends SubtitleSourceError {
   constructor({subtitleSource}) {
-    super({subtitleSource, message: 'pauses its keyless calls.'});
-  }
-}
-
-export function throwIfKeylessPaused({subtitleSource, isKeylessPaused}) {
-  if (isKeylessPaused) {
-    throw new SourceKeylessPauseError({subtitleSource});
+    super({subtitleSource, message: 'has no room for a server call.'});
   }
 }
 

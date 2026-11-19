@@ -17,6 +17,24 @@ describe('the subtitle source registry', () => {
     ).toEqual([...SubtitleSource.values].toSorted());
   });
 
+  it('reserves server-path download calls only for the sources whose shared keys download', () => {
+    expect(
+      registeredClients
+        .filter(([, client]) => client.canDownloadWithSharedCredential)
+        .map(([subtitleSource]) => subtitleSource)
+        .toSorted(),
+    ).toEqual([SubtitleSource.ANISUB, SubtitleSource.THESUBTITLEDB].toSorted());
+  });
+
+  it.each(
+    registeredClients.filter(([, client]) => client.isKeylessLimitSeparate),
+  )(
+    '%s, whose key leaves the keyless limit, reserves its server-path download calls',
+    (subtitleSource, client) => {
+      expect(client.canDownloadWithSharedCredential).toBe(true);
+    },
+  );
+
   it.each(registeredClients)(
     '%s takes the credential kinds its source declares',
     (subtitleSource, client) => {

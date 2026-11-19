@@ -12,7 +12,7 @@ import {
   toServedSearchQuery,
 } from '../../../src/lib/subtitle-sources/subtitle-source-contract.js';
 import {
-  SourceKeylessPauseError,
+  SourceCallRefusedError,
   SourceRateLimitError,
   SourceUnavailableError,
 } from '../../../src/lib/subtitle-sources/subtitle-source-errors.js';
@@ -155,6 +155,7 @@ describe('anisubClient', () => {
   it('keeps a token download off the keyless limit, while every search is keyless', () => {
     expect(anisubClient.isKeylessLimitSeparate).toBe(true);
     expect(anisubClient.isSearchKeyless).toBe(true);
+    expect(anisubClient.canDownloadWithSharedCredential).toBe(true);
   });
 
   it('declares the documented download limits', () => {
@@ -312,7 +313,8 @@ describe('anisubClient.downloadSubtitle without a user token', () => {
     expect(fileRequest).toMatchObject({url: CDN_FILE_URL, credentialId: null});
   });
 
-  it('keeps downloading under a shared token while the keyless path is paused', async () => {
+  it('reserves one call for a shared token download of two requests', async () => {
+    const reserveCall = vi.fn(async () => true);
     const fileBytes = Buffer.from('cdn file bytes');
     requestSubtitleSource
       .mockResolvedValueOnce(await toLinkResponse())
@@ -321,18 +323,47 @@ describe('anisubClient.downloadSubtitle without a user token', () => {
     await expect(
       makeClient({
         [SubtitleSource.ANISUB]: toSharedAccessTokens(SHARED_TOKEN),
-      }).downloadSubtitle(siteRef, null, {isKeylessPaused: true}),
+      }).downloadSubtitle(siteRef, null, {reserveCall}),
     ).resolves.toMatchObject({fileBytes});
+    expect(reserveCall.mock.calls).toEqual([
+      [
+        {
+          budgetCredentialId: expect.stringMatching(
+            /^shared-credential:anisub:access-token:/,
+          ),
+        },
+      ],
+    ]);
+    expect(requestSubtitleSource).toHaveBeenCalledTimes(2);
     const [[tokenRequest]] = requestSubtitleSource.mock.calls;
     expect(tokenRequest.headers).toMatchObject({
       Authorization: `Bearer ${SHARED_TOKEN}`,
     });
   });
 
-  it('refuses the public file url, with no request, while the keyless path is paused', async () => {
+  it('reserves one call for the public file url of a row without a token link', async () => {
+    const reserveCall = vi.fn(async () => true);
+    requestSubtitleSource.mockResolvedValueOnce(
+      toFileResponse(Buffer.from('public file bytes')),
+    );
+
+    await makeClient({
+      [SubtitleSource.ANISUB]: toSharedAccessTokens(SHARED_TOKEN),
+    }).downloadSubtitle(
+      {...siteRef, siteFileUrl: 'https://anisub.co/stremio/file/sub-71001.srt'},
+      null,
+      {reserveCall},
+    );
+
+    expect(reserveCall.mock.calls).toEqual([[{budgetCredentialId: null}]]);
+  });
+
+  it('makes no public file request when its reservation is refused', async () => {
+    const reserveCall = vi.fn(async () => false);
+
     await expect(
-      makeClient().downloadSubtitle(siteRef, null, {isKeylessPaused: true}),
-    ).rejects.toBeInstanceOf(SourceKeylessPauseError);
+      makeClient().downloadSubtitle(siteRef, null, {reserveCall}),
+    ).rejects.toBeInstanceOf(SourceCallRefusedError);
     await expect(
       makeClient({
         [SubtitleSource.ANISUB]: toSharedAccessTokens(SHARED_TOKEN),
@@ -342,24 +373,23 @@ describe('anisubClient.downloadSubtitle without a user token', () => {
           siteFileUrl: 'https://anisub.co/stremio/file/sub-71001.srt',
         },
         null,
-        {isKeylessPaused: true},
+        {reserveCall},
       ),
-    ).rejects.toBeInstanceOf(SourceKeylessPauseError);
+    ).rejects.toBeInstanceOf(SourceCallRefusedError);
     expect(requestSubtitleSource).not.toHaveBeenCalled();
   });
 
-  it("downloads under the user's own token while the keyless path is paused", async () => {
+  it("never reserves a call made with the user's own token", async () => {
+    const reserveCall = vi.fn(async () => true);
     const fileBytes = Buffer.from('cdn file bytes');
     requestSubtitleSource
       .mockResolvedValueOnce(await toLinkResponse())
       .mockResolvedValueOnce(toFileResponse(fileBytes));
 
     await expect(
-      makeClient().downloadSubtitle(siteRef, tokenCredential, {
-        isKeylessPaused: true,
-      }),
+      makeClient().downloadSubtitle(siteRef, tokenCredential, {reserveCall}),
     ).resolves.toMatchObject({fileBytes});
-    expect(requestSubtitleSource).toHaveBeenCalledTimes(2);
+    expect(reserveCall).not.toHaveBeenCalled();
   });
 
   it('returns the bytes the public file url answers with as the file', async () => {

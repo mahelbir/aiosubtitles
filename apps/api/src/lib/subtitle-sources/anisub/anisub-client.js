@@ -1,12 +1,14 @@
 import {CredentialKind} from '@repo/shared/constants/credential.js';
 import {SubtitleLanguage} from '@repo/shared/constants/subtitle-language.js';
 import {SubtitleSource} from '@repo/shared/constants/subtitle-source.js';
-import {sharedCredentialPool as defaultSharedCredentialPool} from '../shared-credential-pool.js';
+import {
+  sharedCredentialPool as defaultSharedCredentialPool,
+  reserveKeylessCall,
+} from '../shared-credential-pool.js';
 import {
   SubtitleSourceBudgetScope,
   SubtitleSourceVideoType,
 } from '../subtitle-source-contract.js';
-import {throwIfKeylessPaused} from '../subtitle-source-errors.js';
 import {requestSubtitleSource as requestSite} from '../subtitle-source-request.js';
 import {anisubMapping} from './anisub-mapping.js';
 
@@ -46,8 +48,7 @@ export function createAnisubClient({
     );
   }
 
-  async function downloadKeyless(subtitleRef, {signal, isKeylessPaused}) {
-    throwIfKeylessPaused({subtitleSource, isKeylessPaused});
+  async function downloadKeyless(subtitleRef, signal) {
     const fileResponse = await requestSubtitleSource({
       ...anisubMapping.buildDownloadRequest(subtitleRef),
       signal,
@@ -71,6 +72,7 @@ export function createAnisubClient({
     isSearchKeyless: true,
     isKeylessLimitSeparate: true,
     canUseSharedCredential: true,
+    canDownloadWithSharedCredential: true,
     downloadBudgets: [
       {
         budgetScope: SubtitleSourceBudgetScope.SUBTITLE_SOURCE,
@@ -96,23 +98,24 @@ export function createAnisubClient({
         searchQuery,
       );
     },
-    downloadSubtitle(
+    async downloadSubtitle(
       subtitleRef,
       credential,
-      {signal, isKeylessPaused = false} = {},
+      {signal, reserveCall} = {},
     ) {
-      const keylessOptions = {signal, isKeylessPaused};
       if (!credential && !anisubMapping.hasTokenFileLink(subtitleRef)) {
-        return downloadKeyless(subtitleRef, keylessOptions);
+        await reserveKeylessCall({subtitleSource, reserveCall});
+        return downloadKeyless(subtitleRef, signal);
       }
       return sharedCredentialPool.callWithCredential({
         subtitleSource,
         credentialKind: CredentialKind.ACCESS_TOKEN,
         credential,
+        reserveCall,
         runCall: activeCredential =>
           activeCredential
             ? downloadWithToken(subtitleRef, activeCredential, signal)
-            : downloadKeyless(subtitleRef, keylessOptions),
+            : downloadKeyless(subtitleRef, signal),
       });
     },
     async checkCredential(credential, {signal} = {}) {

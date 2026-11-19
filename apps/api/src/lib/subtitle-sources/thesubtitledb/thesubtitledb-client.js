@@ -6,7 +6,6 @@ import {
   SubtitleSourceBudgetScope,
   SubtitleSourceVideoType,
 } from '../subtitle-source-contract.js';
-import {throwIfKeylessPaused} from '../subtitle-source-errors.js';
 import {readSettledHitLists} from '../subtitle-source-hit-lists.js';
 import {requestSubtitleSource as requestSite} from '../subtitle-source-request.js';
 import {thesubtitledbMapping} from './thesubtitledb-mapping.js';
@@ -32,6 +31,7 @@ export function createThesubtitledbClient({
       SubtitleSourceVideoType.SERIES,
     ],
     isKeylessLimitSeparate: true,
+    canDownloadWithSharedCredential: true,
     downloadBudgets: [
       {
         budgetScope: SubtitleSourceBudgetScope.SUBTITLE_SOURCE,
@@ -64,20 +64,14 @@ export function createThesubtitledbClient({
       );
       return readSettledHitLists(settledResults).flat();
     },
-    downloadSubtitle(
-      subtitleRef,
-      credential,
-      {signal, isKeylessPaused = false} = {},
-    ) {
+    downloadSubtitle(subtitleRef, credential, {signal, reserveCall} = {}) {
       return sharedCredentialPool.callWithCredential({
         subtitleSource,
         credentialKind: CredentialKind.API_KEY,
         credential,
-        runCall: async activeCredential => {
-          if (!activeCredential) {
-            throwIfKeylessPaused({subtitleSource, isKeylessPaused});
-          }
-          return thesubtitledbMapping.toDownload(
+        reserveCall,
+        runCall: async activeCredential =>
+          thesubtitledbMapping.toDownload(
             await requestSubtitleSource({
               ...thesubtitledbMapping.buildDownloadRequest(
                 subtitleRef,
@@ -85,8 +79,7 @@ export function createThesubtitledbClient({
               ),
               signal,
             }),
-          );
-        },
+          ),
       });
     },
     async checkCredential(credential, {signal} = {}) {

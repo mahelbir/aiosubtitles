@@ -55,7 +55,8 @@ The other sources publish no limit page.
 ## How the server paces itself
 
 - A download made with the user's own key spends that key's budget when the source declares one.
-- Every other download, whether keyless or made with a server key, spends one budget shared by the whole server.
+- A download made with a server key (TheSubtitleDB, AniSub) spends that key's own budget, so each shared key adds room. When a key's budget is spent, the next key takes the download, then the keyless path.
+- A download made with no key spends one budget shared by the whole server.
 - A 429 or a 503 with `Retry-After` from the site opens a short breaker for the whole source. A per-key limit marks only that key "Limit reached".
 - On TheSubtitleDB and AniSub a key has a limit of its own, so a 429 on a call made without a key pauses only the calls sent with no key at all. Downloads with the user's own key or a server key keep going. AniSub searches never send a key, so they pause for everyone.
 - Searches spend no budget. They are cached and shared between users.

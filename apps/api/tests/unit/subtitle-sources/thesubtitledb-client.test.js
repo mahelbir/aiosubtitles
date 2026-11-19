@@ -5,8 +5,8 @@ import {SubtitleSource} from '@repo/shared/constants/subtitle-source.js';
 import {listSubtitleSourceClients} from '../../../src/lib/subtitle-sources/subtitle-source-clients.js';
 import {SubtitleSourceBudgetScope} from '../../../src/lib/subtitle-sources/subtitle-source-contract.js';
 import {
+  SourceCallRefusedError,
   SourceCredentialError,
-  SourceKeylessPauseError,
   SourceRateLimitError,
 } from '../../../src/lib/subtitle-sources/subtitle-source-errors.js';
 import {requestSubtitleSource} from '../../../src/lib/subtitle-sources/subtitle-source-request.js';
@@ -262,52 +262,77 @@ describe('thesubtitledbClient download', () => {
     expect(keylessRequest).toMatchObject({headers: {}, credentialId: null});
   });
 
-  it('keeps downloading under a shared key while the keyless path is paused', async () => {
+  it('reserves one call under the shared key before downloading with it', async () => {
+    const reserveCall = vi.fn(async () => true);
     requestSubtitleSource.mockResolvedValueOnce(toFileResponse());
 
     await expect(
       makeClient({
         [SubtitleSource.THESUBTITLEDB]: toSharedApiKeys(SHARED_API_KEY),
-      }).downloadSubtitle(subtitleRef, null, {isKeylessPaused: true}),
+      }).downloadSubtitle(subtitleRef, null, {reserveCall}),
     ).resolves.toMatchObject({fileBytes});
+    expect(reserveCall.mock.calls).toEqual([
+      [
+        {
+          budgetCredentialId: expect.stringMatching(
+            /^shared-credential:thesubtitledb:api-key:/,
+          ),
+        },
+      ],
+    ]);
     const [[downloadRequest]] = requestSubtitleSource.mock.calls;
     expect(downloadRequest.headers).toEqual({
       Authorization: `Bearer ${SHARED_API_KEY}`,
     });
   });
 
-  it('refuses its keyless download, with no request, while the keyless path is paused', async () => {
+  it('makes no keyless request when its reservation is refused', async () => {
+    const reserveCall = vi.fn(async () => false);
+
     await expect(
-      makeClient().downloadSubtitle(subtitleRef, null, {isKeylessPaused: true}),
-    ).rejects.toBeInstanceOf(SourceKeylessPauseError);
+      makeClient().downloadSubtitle(subtitleRef, null, {reserveCall}),
+    ).rejects.toBeInstanceOf(SourceCallRefusedError);
+    expect(reserveCall.mock.calls).toEqual([[{budgetCredentialId: null}]]);
     expect(requestSubtitleSource).not.toHaveBeenCalled();
   });
 
-  it('refuses the keyless fallback once every shared key is limited while the keyless path is paused', async () => {
-    requestSubtitleSource.mockImplementationOnce(async siteRequest => {
-      throw new SourceRateLimitError({
-        subtitleSource: SubtitleSource.THESUBTITLEDB,
-        retryAfterMs: 60000,
-        credentialId: siteRequest.credentialId,
-      });
-    });
+  it('reserves the keyless fallback too once every shared key is limited', async () => {
+    const reserveCall = vi.fn(async () => true);
+    requestSubtitleSource
+      .mockImplementationOnce(async siteRequest => {
+        throw new SourceRateLimitError({
+          subtitleSource: SubtitleSource.THESUBTITLEDB,
+          retryAfterMs: 60000,
+          credentialId: siteRequest.credentialId,
+        });
+      })
+      .mockResolvedValueOnce(toFileResponse());
 
     await expect(
       makeClient({
         [SubtitleSource.THESUBTITLEDB]: toSharedApiKeys(SHARED_API_KEY),
-      }).downloadSubtitle(subtitleRef, null, {isKeylessPaused: true}),
-    ).rejects.toBeInstanceOf(SourceKeylessPauseError);
-    expect(requestSubtitleSource).toHaveBeenCalledOnce();
+      }).downloadSubtitle(subtitleRef, null, {reserveCall}),
+    ).resolves.toMatchObject({fileBytes});
+    expect(reserveCall.mock.calls.map(([reservation]) => reservation)).toEqual([
+      {budgetCredentialId: expect.stringMatching(/^shared-credential:/)},
+      {budgetCredentialId: null},
+    ]);
   });
 
-  it("downloads under the user's own key while the keyless path is paused", async () => {
+  it("never reserves a call made with the user's own key", async () => {
+    const reserveCall = vi.fn(async () => true);
     requestSubtitleSource.mockResolvedValueOnce(toFileResponse());
 
     await expect(
       makeClient().downloadSubtitle(subtitleRef, userCredential, {
-        isKeylessPaused: true,
+        reserveCall,
       }),
     ).resolves.toMatchObject({fileBytes});
+    expect(reserveCall).not.toHaveBeenCalled();
+  });
+
+  it('downloads shared keys through the server-path reservation', () => {
+    expect(thesubtitledbClient.canDownloadWithSharedCredential).toBe(true);
   });
 
   it("passes a user key's rejection on, so it never falls back to a shared key or the keyless path", async () => {

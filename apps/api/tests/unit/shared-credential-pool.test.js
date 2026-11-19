@@ -5,6 +5,7 @@ import {SubtitleSource} from '@repo/shared/constants/subtitle-source.js';
 import {listSharedCredentialKinds} from '@repo/shared/lib/shared-credential-kinds.js';
 import {getSharedCredentialsField} from '@repo/shared/schemas/setting.js';
 import {
+  SourceCallRefusedError,
   SourceCredentialError,
   SourceRateLimitError,
   SourceUnavailableError,
@@ -766,6 +767,127 @@ describe('sharedCredentialPool with several shared kinds on one source', () => {
     await expect(
       sharedCredentialPool.hasUsableCredential(accountTarget),
     ).resolves.toBe(true);
+  });
+});
+
+describe('sharedCredentialPool reserving each server call', () => {
+  function grantEvery() {
+    return vi.fn(async () => true);
+  }
+
+  function refuseShared() {
+    return vi.fn(async ({budgetCredentialId}) => budgetCredentialId === null);
+  }
+
+  async function pairReservedKeys(sharedSecrets, callCount) {
+    const reserveCall = grantEvery();
+    const runCall = vi.fn(async credential => answerWithKey(credential));
+    const {sharedCredentialPool} = createTestSharedCredentialPool({
+      [JIMAKU]: sharedSecrets,
+    });
+    for (let callIndex = 0; callIndex < callCount; callIndex += 1) {
+      await callShared(sharedCredentialPool, runCall, {reserveCall});
+    }
+    return Object.fromEntries(
+      runCall.mock.calls.map(([credential], callIndex) => [
+        answerWithKey(credential),
+        reserveCall.mock.calls[callIndex][0].budgetCredentialId,
+      ]),
+    );
+  }
+
+  it('reserves a shared key call under an identity that follows the secret, not its position', async () => {
+    const [firstOrder, secondOrder] = await Promise.all([
+      pairReservedKeys(toSharedApiKeys(KEY_A, KEY_B), 2),
+      pairReservedKeys(toSharedApiKeys(KEY_B, KEY_A), 2),
+    ]);
+
+    expect(firstOrder).toEqual(secondOrder);
+    expect(firstOrder[KEY_A]).not.toBe(firstOrder[KEY_B]);
+    for (const budgetCredentialId of Object.values(firstOrder)) {
+      expect(budgetCredentialId).toMatch(/^shared-credential:jimaku:api-key:/);
+      expect(budgetCredentialId).not.toContain(KEY_A);
+      expect(budgetCredentialId).not.toContain(KEY_B);
+    }
+  });
+
+  it('takes the next shared key when a reservation is refused, and never rests the refused one', async () => {
+    const reserveCall = vi
+      .fn()
+      .mockResolvedValueOnce(false)
+      .mockResolvedValue(true);
+    const runCall = vi.fn(async credential => answerWithKey(credential));
+    const {sharedCredentialPool} = createTestSharedCredentialPool({
+      [JIMAKU]: toSharedApiKeys(KEY_A, KEY_B),
+    });
+
+    const answers = [];
+    for (let callIndex = 0; callIndex < 3; callIndex += 1) {
+      answers.push(
+        await callShared(sharedCredentialPool, runCall, {reserveCall}),
+      );
+    }
+
+    expect(answers).toEqual([KEY_B, KEY_A, KEY_B]);
+  });
+
+  it('falls to the keyless call once every shared reservation is refused', async () => {
+    const reserveCall = refuseShared();
+    const runCall = vi.fn(async credential => answerWithKey(credential));
+    const {sharedCredentialPool} = createTestSharedCredentialPool({
+      [JIMAKU]: toSharedApiKeys(KEY_A, KEY_B),
+    });
+
+    await expect(
+      callShared(sharedCredentialPool, runCall, {reserveCall}),
+    ).resolves.toBe('keyless');
+    expect(runCall).toHaveBeenCalledOnce();
+    expect(reserveCall.mock.calls.at(-1)[0]).toEqual({
+      budgetCredentialId: null,
+    });
+  });
+
+  it('makes no keyless call when its reservation is refused', async () => {
+    const reserveCall = vi.fn(async () => false);
+    const runCall = vi.fn(async credential => answerWithKey(credential));
+    const {sharedCredentialPool} = createTestSharedCredentialPool();
+
+    await expect(
+      callShared(sharedCredentialPool, runCall, {reserveCall}),
+    ).rejects.toBeInstanceOf(SourceCallRefusedError);
+    expect(runCall).not.toHaveBeenCalled();
+  });
+
+  it("never reserves a call made with the user's own credential", async () => {
+    const reserveCall = grantEvery();
+    const {sharedCredentialPool} = createTestSharedCredentialPool({
+      [JIMAKU]: toSharedApiKeys(KEY_A),
+    });
+
+    await expect(
+      sharedCredentialPool.callWithCredential({
+        ...JIMAKU_API_KEYS,
+        credential: userCredential,
+        reserveCall,
+        runCall: async credential => answerWithKey(credential),
+      }),
+    ).resolves.toBe('user-own-key');
+    expect(reserveCall).not.toHaveBeenCalled();
+  });
+
+  it('never breaks the source for refused reservations', async () => {
+    const reserveCall = refuseShared();
+    const runCall = vi.fn(async credential => answerWithKey(credential));
+    const {sharedCredentialPool} = createTestSharedCredentialPool({
+      [JIMAKU]: toSharedApiKeys(KEY_A),
+    });
+
+    await expect(
+      callShared(sharedCredentialPool, runCall, {
+        reserveCall,
+        isBreakerOnEveryLimit: true,
+      }),
+    ).resolves.toBe('keyless');
   });
 });
 
