@@ -2,6 +2,7 @@
 
 import {useId} from 'react';
 import {useSelector} from '@tanstack/react-form';
+import {CredentialRequirement} from '@repo/shared/constants/subtitle-source.js';
 import {
   hasListImprovementSwitch,
   isListImprovementCredential,
@@ -49,16 +50,36 @@ function SwitchField({label, description, ...switchProps}) {
   );
 }
 
-function SourceSwitch({subtitleSource, label}) {
+function readSourceSwitchDescription({isOn, isSearched}) {
+  if (!isOn) {
+    return 'Off: this source is skipped.';
+  }
+  return isSearched
+    ? 'On: searched and downloaded for you.'
+    : 'On: only subtitles others already downloaded. Add your key for new searches.';
+}
+
+function SourceSwitch({subtitleSource, label, credentialRequirement}) {
   const form = useFormContext();
   const isOn = useSelector(
     form.store,
     state => state.values.subtitleSourceSwitchStates[subtitleSource] ?? true,
   );
+  const hasEnteredCredential = useSelector(form.store, state =>
+    state.values.credentials.some(
+      credential =>
+        credential.subtitleSource === subtitleSource &&
+        isCredentialEntered(credential),
+    ),
+  );
+  const isSearched =
+    credentialRequirement !== CredentialRequirement.REQUIRED ||
+    hasEnteredCredential;
 
   return (
     <SwitchField
       label={label}
+      description={readSourceSwitchDescription({isOn, isSearched})}
       checked={isOn}
       onCheckedChange={isChecked =>
         setSubtitleSourceSwitch(form, subtitleSource, isChecked)
@@ -129,13 +150,22 @@ function SourceHelp({helpText, keyPageUrl, limitPageUrl, limitCheckedDate}) {
 }
 
 export function SourcePanel({subtitleSourceOption}) {
-  const {subtitleSource, label, credentialKinds, credentialLimit} =
-    subtitleSourceOption;
+  const {
+    subtitleSource,
+    label,
+    credentialRequirement,
+    credentialKinds,
+    credentialLimit,
+  } = subtitleSourceOption;
   const description = SUBTITLE_SOURCE_DESCRIPTIONS[subtitleSource];
 
   return (
     <FieldGroup>
-      <SourceSwitch subtitleSource={subtitleSource} label={label} />
+      <SourceSwitch
+        subtitleSource={subtitleSource}
+        label={label}
+        credentialRequirement={credentialRequirement}
+      />
       {description && (
         <SourceHelp
           helpText={description.helpText}

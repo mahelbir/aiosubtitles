@@ -42,7 +42,8 @@ export const SUBTITLE_SOURCE_DESCRIPTIONS = Object.freeze({
     listImprovementText: LARGE_ALLOWANCE_LIST_IMPROVEMENT_TEXT,
   },
   [SubtitleSource.SUBSOURCE]: {
-    helpText: 'Requires an API key.',
+    helpText:
+      'Requires an API key. A free key gets 60 requests a minute, 1,800 an hour and 7,200 a day.',
     keyPageUrl: 'https://subsource.net/dashboard/api',
     limitPageUrl: 'https://subsource.net/api-docs',
     limitCheckedDate: LIMIT_CHECKED_DATE,
@@ -57,7 +58,8 @@ export const SUBTITLE_SOURCE_DESCRIPTIONS = Object.freeze({
     helpText: "No key needed. Requests share the server's limits.",
   },
   [SubtitleSource.SUBDL]: {
-    helpText: 'Requires an API key.',
+    helpText:
+      'Requires an API key. A free account gets 2,000 searches and 50 downloads a day.',
     keyPageUrl: 'https://subdl.com/panel/api',
     limitPageUrl: 'https://subdl.com/developers',
     limitCheckedDate: LIMIT_CHECKED_DATE,
@@ -74,7 +76,8 @@ export const SUBTITLE_SOURCE_DESCRIPTIONS = Object.freeze({
     helpText: "No key needed. Requests share the server's limits.",
   },
   [SubtitleSource.WYZIE]: {
-    helpText: 'Requires an API key.',
+    helpText:
+      'Requires an API key. A free key gets 1,000 requests a day, shared by searches and downloads.',
     keyPageUrl: 'https://sub.wyzie.io/redeem',
     limitPageUrl: 'https://docs.wyzie.io/subs/usage/api-keys#tiers',
     limitCheckedDate: LIMIT_CHECKED_DATE,
@@ -91,7 +94,7 @@ export const SUBTITLE_SOURCE_DESCRIPTIONS = Object.freeze({
   },
   [SubtitleSource.JIMAKU]: {
     helpText:
-      "Optional. Add your own API key, or the server's shared key is used when the server has one. Requests share the server's limits.",
+      "Optional. Add your own API key, or the server's shared key is used when the server has one. Requests share the server's limit of 25 a minute.",
     keyPageUrl: 'https://jimaku.cc/account',
     limitPageUrl: 'https://jimaku.cc/api/docs',
     limitCheckedDate: LIMIT_CHECKED_DATE,

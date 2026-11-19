@@ -39,7 +39,7 @@ const CREDENTIAL_REQUIREMENT_MARKERS = Object.freeze({
   [CredentialRequirement.OPTIONAL]: '**',
 });
 
-const SOURCES_DESCRIPTION = `Subtitles come from every source you have not turned off. ${CREDENTIAL_REQUIREMENT_MARKERS[CredentialRequirement.REQUIRED]} needs your own key, ${CREDENTIAL_REQUIREMENT_MARKERS[CredentialRequirement.OPTIONAL]} can use yours.`;
+const SOURCES_DESCRIPTION = `Subtitles come from every source you have not turned off. ${CREDENTIAL_REQUIREMENT_MARKERS[CredentialRequirement.REQUIRED]} needs your own key, ${CREDENTIAL_REQUIREMENT_MARKERS[CredentialRequirement.OPTIONAL]} can use yours for more quota.`;
 
 // Sources that require a credential come first, then optional, then none, each group from most to least known.
 function sortSubtitleSourceOptions(subtitleSourceOptions) {

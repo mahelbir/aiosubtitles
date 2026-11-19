@@ -57,7 +57,7 @@ function itemVariant(item, active, invalidValues) {
 function TabMenuItemLabel({item}) {
   return (
     <span>
-      {item.label}
+      <span>{item.label}</span>
       {item.marker && (
         <span aria-hidden="true" className="ms-0.5 text-muted-foreground">
           {item.marker}
@@ -137,6 +137,7 @@ export function TabMenuList({description, className}) {
               value={item.value}
               variant={isInvalid ? 'destructive' : 'menu'}
               className="min-h-8 justify-start gap-3 px-3 py-1.5"
+              aria-label={item.label}
             >
               {item.Icon && <item.Icon />}
               <TabMenuItemLabel item={item} />

@@ -72,7 +72,8 @@ const CREDENTIAL_REQUIREMENT_MARKERS = {
   [CredentialRequirement.REQUIRED]: '*',
   [CredentialRequirement.OPTIONAL]: '**',
 };
-const SOURCE_MARKER_LEGEND = '* needs your own key, ** can use yours.';
+const SOURCE_MARKER_LEGEND =
+  '* needs your own key, ** can use yours for more quota.';
 const SUBTITLE_SOURCE_TAB_ORDER = [
   SubtitleSource.SUBDL,
   SubtitleSource.SUBSOURCE,
@@ -135,12 +136,14 @@ const SOURCE_HELP = [
   {
     subtitleSource: SubtitleSource.SUBSOURCE,
     keyPageUrl: 'https://subsource.net/dashboard/api',
-    helpText: 'Requires an API key.',
+    helpText:
+      'Requires an API key. A free key gets 60 requests a minute, 1,800 an hour and 7,200 a day.',
   },
   {
     subtitleSource: SubtitleSource.SUBDL,
     keyPageUrl: 'https://subdl.com/panel/api',
-    helpText: 'Requires an API key.',
+    helpText:
+      'Requires an API key. A free account gets 2,000 searches and 50 downloads a day.',
   },
   {
     subtitleSource: SubtitleSource.BETASERIES,
@@ -167,7 +170,8 @@ const SOURCE_HELP = [
   {
     subtitleSource: SubtitleSource.WYZIE,
     keyPageUrl: 'https://sub.wyzie.io/redeem',
-    helpText: 'Requires an API key.',
+    helpText:
+      'Requires an API key. A free key gets 1,000 requests a day, shared by searches and downloads.',
   },
   {
     subtitleSource: SubtitleSource.TVSUBTITLES,
@@ -184,7 +188,7 @@ const SOURCE_HELP = [
     subtitleSource: SubtitleSource.JIMAKU,
     keyPageUrl: 'https://jimaku.cc/account',
     helpText:
-      "Optional. Add your own API key, or the server's shared key is used when the server has one. Requests share the server's limits.",
+      "Optional. Add your own API key, or the server's shared key is used when the server has one. Requests share the server's limit of 25 a minute.",
   },
   {
     subtitleSource: SubtitleSource.ANIMETOSHO,
@@ -480,6 +484,33 @@ test.describe('sources', () => {
     expect(patch.postDataJSON().subtitleSourceSwitchStates).toMatchObject({
       [SubtitleSource.THESUBTITLEDB]: false,
     });
+  });
+
+  test('a source switch says what it does: stored subtitles without a key, a search with one, nothing when off', async ({
+    page,
+  }) => {
+    await openConfigure(page);
+    const panel = await openTabMenuItem(page, THESUBTITLEDB);
+    const sourceSwitch = getSourceSwitch(panel, THESUBTITLEDB);
+
+    await expect(sourceSwitch).toHaveAccessibleDescription(
+      'On: only subtitles others already downloaded. Add your key for new searches.',
+    );
+
+    await panel.getByRole('button', {name: ADD_API_KEY, exact: true}).click();
+    await panel
+      .getByLabel(API_KEY, {exact: true})
+      .fill(THESUBTITLEDB_VALID_API_KEY);
+
+    await expect(sourceSwitch).toHaveAccessibleDescription(
+      'On: searched and downloaded for you.',
+    );
+
+    await sourceSwitch.click();
+
+    await expect(sourceSwitch).toHaveAccessibleDescription(
+      'Off: this source is skipped.',
+    );
   });
 
   test('adding a key row switches a switched-off source on, and it still switches off', async ({
@@ -1065,7 +1096,7 @@ test.describe('sources', () => {
             : route.fallback(),
       );
       const passwordField = panel.getByLabel('Password', {exact: true});
-      await passwordField.fill(OPENSUBTITLES_VALID_ACCOUNT.password);
+      await passwordField.fill(`${OPENSUBTITLES_VALID_ACCOUNT.password}-new`);
 
       await getVisibleSaveButton(page).click();
 
