@@ -7,8 +7,8 @@ import {
   pickGroupRepresentative,
 } from '@repo/subtitle-core/deduplication/group-duplicates.js';
 import {mergeDuplicateGroup} from '@repo/subtitle-core/deduplication/merge-duplicate-group.js';
-import {orderSubtitleRows} from '@repo/subtitle-core/ordering/order-subtitle-rows.js';
 import {parseReleaseName} from '@repo/subtitle-core/release-name/parse-release-name.js';
+import {orderSubtitleRows} from '../../../lib/stremio-row/order-subtitle-rows.js';
 import {hasFreeDownloadPath} from '../../../lib/subtitle-store/read-video-candidates.js';
 import {scoreVideoCandidate} from '../../../lib/subtitle-store/score-video-candidate.js';
 

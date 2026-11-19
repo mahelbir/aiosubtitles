@@ -14,9 +14,6 @@ import {
   SubtitleFileExtension,
   SubtitleFileFormat,
   SubtitleFileInvalidReason,
-  SubtitleMessage,
-  SubtitleNote,
-  SubtitleNotice,
 } from '../src/constants/subtitle-core-enums.js';
 
 const KEBAB_CASE_PATTERN = /^[a-z0-9]+(-[a-z0-9]+)*$/;
@@ -104,26 +101,6 @@ const enumMembers = [
     ['IDENTITY', 'ALIAS', 'CONTENT_KEY', 'NEAR_DUPLICATE'],
   ],
   ['ScoreTableMode', ScoreTableMode, ['ADDITIVE', 'STRICT_PRIORITY', 'TIERED']],
-  [
-    'SubtitleNotice',
-    SubtitleNotice,
-    ['OPENSUBTITLES_ACCOUNT', 'OPENSUBTITLES_ACCOUNT_FIX'],
-  ],
-  [
-    'SubtitleNote',
-    SubtitleNote,
-    ['HEARING_IMPAIRED', 'FORCED', 'MACHINE_TRANSLATED', 'QUOTA_COSTLY'],
-  ],
-  [
-    'SubtitleMessage',
-    SubtitleMessage,
-    [
-      'RATE_LIMITED',
-      'SUBTITLE_NOT_FOUND',
-      'USER_CONFIG_DELETED',
-      'SUBTITLE_DOWNLOAD_FAILED',
-    ],
-  ],
 ];
 
 const toStoredValue = memberName =>
@@ -162,52 +139,10 @@ describe('subtitle-core enums', () => {
     ]);
   });
 
-  it('labels the subtitle notes in the order HI, Forced, MT, Quota with their row flags', () => {
-    const noteList = SubtitleNote.toList({
-      extra: note => ({noteFlagName: note.raw.noteFlagName}),
-    });
-
-    expect(
-      noteList.map(({label, noteFlagName}) => [label, noteFlagName]),
-    ).toEqual([
-      ['HI', 'isHearingImpaired'],
-      ['Forced', 'isForced'],
-      ['MT', 'isMachineTranslated'],
-      ['Quota', 'isQuotaCostly'],
-    ]);
-  });
-
   it('labels the confidence words', () => {
     expect(ConfidenceWord.label('EXACT')).toBe('Exact');
     expect(ConfidenceWord.label('CLOSE')).toBe('Close');
   });
-
-  it('labels the OpenSubtitles account notice with its hidden subtitle count placeholder', () => {
-    expect(SubtitleNotice.label('OPENSUBTITLES_ACCOUNT')).toBe(
-      'Add an OpenSubtitles account to see {hiddenSubtitleCount} more',
-    );
-  });
-
-  it('labels the OpenSubtitles account fix notice with its hidden subtitle count placeholder', () => {
-    expect(SubtitleNotice.label('OPENSUBTITLES_ACCOUNT_FIX')).toBe(
-      'Fix your OpenSubtitles account to see {hiddenSubtitleCount} more',
-    );
-  });
-
-  it.each([
-    ['RATE_LIMITED', 'Too many requests, try again in a minute.'],
-    ['SUBTITLE_NOT_FOUND', 'Subtitle not found.'],
-    ['USER_CONFIG_DELETED', 'This configuration was deleted.'],
-    [
-      'SUBTITLE_DOWNLOAD_FAILED',
-      'This subtitle could not be downloaded. Please try another one.',
-    ],
-  ])(
-    'labels the %s subtitle message with its spec text',
-    (memberName, messageText) => {
-      expect(SubtitleMessage.label(memberName)).toBe(messageText);
-    },
-  );
 });
 
 describe('file extension sets', () => {

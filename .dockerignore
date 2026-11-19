@@ -307,8 +307,11 @@
 # Project-specific
 !.env
 /.reference/
-/apps/client/.next-test
-/apps/api/public-client
+/apps/client/.next-test/
+/apps/client/test-results/
+/apps/client/playwright-report/
+/apps/client/tests/e2e/.auth/
 /apps/api/storage/*/*
 !/apps/api/storage/*/.gitkeep
 /data/
+/apps/api/public-client/

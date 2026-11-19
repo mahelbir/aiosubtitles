@@ -1,18 +1,12 @@
 import {z} from 'zod';
 import {uuidSchema} from '@repo/shared/schemas/common.js';
-import {
-  getMultiFilterField,
-  getOffsetPaginationSchema,
-} from '@repo/shared/schemas/pagination.js';
 import {sequelize} from '../../src/db/index.js';
 import {dbUtils} from '../../src/db/utils.js';
-import {FixtureRecord, FixtureRecordTag, FixtureTag} from './fixture-models.js';
+import {FixtureRecord} from './fixture-models.js';
 
 export const HTTP_FIXTURE_URL = '/__fixtures__/http';
 export const HTTP_FIXTURE_RECORDS_URL = `${HTTP_FIXTURE_URL}/records`;
 export const HTTP_FIXTURE_MESSAGE = 'Fixture response.';
-export const PAGINATION_FIXTURE_URL = '/__fixtures__/pagination';
-export const PAGINATION_FIXTURE_TAGS_URL = `${PAGINATION_FIXTURE_URL}/tags`;
 
 export const fixtureSource = {read: async () => null};
 
@@ -32,16 +26,6 @@ const httpFixtureRecordSchema = z.object({name: z.string('Invalid name')});
 const httpFixtureRecordUpdateSchema = z.object({
   name: z.string('Invalid name').optional(),
   tagIds: z.array(z.uuid('Invalid tag')).optional(),
-});
-
-const paginationFixtureSchema = getOffsetPaginationSchema({
-  sort: ['id', 'name', 'disabledAt'],
-  disabled: getMultiFilterField(z.stringbool(), 'Invalid status').optional(),
-  tagId: getMultiFilterField(z.uuid('Invalid tag'), 'Invalid tag').optional(),
-});
-
-const paginationFixtureTagsSchema = getOffsetPaginationSchema({
-  sort: ['id', 'label', 'rank'],
 });
 
 async function hideFixtureRoutes(fastify) {
@@ -100,54 +84,5 @@ export async function httpFixture(fastify) {
       });
       return reply.success();
     },
-  );
-}
-
-export async function paginationFixture(fastify) {
-  await hideFixtureRoutes(fastify);
-  await fastify.register(paginationFixtureRoutes, {
-    prefix: PAGINATION_FIXTURE_URL,
-  });
-}
-
-async function paginationFixtureRoutes(fastify) {
-  fastify.get(
-    '/',
-    {schema: {querystring: paginationFixtureSchema}},
-    async (request, reply) => {
-      const result = await FixtureRecord.paginateByOffset(request.query, {
-        attributes: ['id', 'name', 'disabledAt'],
-        include: [FixtureRecord.tagsInclude],
-        filters: {
-          search: search => ({name: dbUtils.iLike(search)}),
-          disabled: flags => {
-            const state = dbUtils.nullState(flags);
-            return state && {disabledAt: state};
-          },
-          tagId: tagIds =>
-            dbUtils.relatedTo(
-              {
-                through: FixtureRecordTag,
-                foreignKey: 'recordId',
-                otherKey: 'tagId',
-                values: tagIds,
-              },
-              FixtureRecord,
-            ),
-        },
-      });
-      return reply.success(result);
-    },
-  );
-  fastify.get(
-    '/tags',
-    {schema: {querystring: paginationFixtureTagsSchema}},
-    async (request, reply) =>
-      reply.success(
-        await FixtureTag.paginateByOffset(request.query, {
-          attributes: ['id', 'label', 'rank'],
-          filters: {search: search => ({label: dbUtils.iLike(search)})},
-        }),
-      ),
   );
 }

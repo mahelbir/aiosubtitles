@@ -29,18 +29,11 @@ const SECRET_FORM = 'Gizli alan formu';
 const ENDPOINT_FORM = 'Uç nokta formu';
 const HOST_MESSAGE = 'Sunucu gerekli';
 const PORT_MESSAGE = 'Port bir sayı olmalı';
-const PLAN_DESCRIPTION = 'Faturalama planı.';
 const NAME_MESSAGE = 'Ad en az 2 karakter olmalı';
 const EMAIL_MESSAGE = 'Geçerli bir e-posta girin';
 const PHONE_MESSAGE = 'Telefon en az 10 haneli olmalı';
-const PLAN_MESSAGE = 'Bir plan seçin';
 const MISMATCH_MESSAGE = 'Parolalar eşleşmiyor';
-const ALL_DISPLAY_MESSAGES = [
-  NAME_MESSAGE,
-  EMAIL_MESSAGE,
-  PHONE_MESSAGE,
-  PLAN_MESSAGE,
-];
+const ALL_DISPLAY_MESSAGES = [NAME_MESSAGE, EMAIL_MESSAGE, PHONE_MESSAGE];
 const TAKEN_MESSAGE = 'Kullanıcı adı alınmış.';
 const FORM_MESSAGE = 'Kayıt şu an yapılamıyor.';
 const UNKNOWN_FIELD_MESSAGE = 'Bu kayıt reddedildi.';
@@ -55,13 +48,6 @@ function getServerSaveButton(page) {
 async function fillValidDisplayTexts(page) {
   await getFormField(page, DISPLAY_FORM, 'Ad').pressSequentially('Ayşe');
   await getFormField(page, DISPLAY_FORM, 'E-posta').pressSequentially('a@b.co');
-}
-
-async function fillValidDisplayFields(page) {
-  await fillValidDisplayTexts(page);
-  await getForm(page, DISPLAY_FORM)
-    .getByRole('button', {name: 'Temel'})
-    .click();
 }
 
 function stubSuccess(page, until) {
@@ -173,7 +159,7 @@ test.describe('form policies', () => {
     page,
   }) => {
     const form = getForm(page, DISPLAY_FORM);
-    await fillValidDisplayFields(page);
+    await fillValidDisplayTexts(page);
     await form.getByRole('button', {name: 'Doğrula'}).click();
     await expect(form.getByRole('alert')).toHaveText([PHONE_MESSAGE]);
     await expect(getFormField(page, DISPLAY_FORM, 'Telefon')).toBeFocused();
@@ -306,27 +292,6 @@ test.describe('form policies', () => {
     });
   });
 
-  test('FormFieldMessage renders a bare control’s message in a slot of its own', async ({
-    page,
-  }) => {
-    const form = getForm(page, DISPLAY_FORM);
-    const plan = form.getByRole('group', {name: 'Plan'});
-
-    await expect(plan).toHaveAccessibleDescription(PLAN_DESCRIPTION);
-
-    await form.getByRole('button', {name: 'Doğrula'}).click();
-
-    await expect(form.getByText(PLAN_MESSAGE)).toBeVisible();
-    await expect(form.getByText(PLAN_DESCRIPTION)).toHaveCount(0);
-    await expect(plan).toHaveAttribute('aria-invalid', 'true');
-    await expect(plan).toHaveAccessibleDescription(PLAN_MESSAGE);
-
-    await plan.getByRole('button', {name: 'Temel'}).click();
-
-    await expect(plan).toHaveAttribute('aria-invalid', 'false');
-    await expect(plan).toHaveAccessibleDescription(PLAN_DESCRIPTION);
-  });
-
   test('TextControl binds a bare input whose message renders in a slot of its own', async ({
     page,
   }) => {
@@ -351,23 +316,6 @@ test.describe('form policies', () => {
     await expect(host).toHaveAttribute('aria-invalid', 'false');
     await expect(port).toHaveAttribute('aria-invalid', 'false');
     await expect(form.getByRole('alert')).toHaveCount(0);
-  });
-
-  test('a failed submit whose first invalid control is a group moves the focus into it', async ({
-    page,
-  }) => {
-    const form = getForm(page, DISPLAY_FORM);
-    await fillValidDisplayTexts(page);
-    await getFormField(page, DISPLAY_FORM, 'Telefon').pressSequentially(
-      '5551234567',
-    );
-
-    await form.getByRole('button', {name: 'Doğrula'}).click();
-
-    await Promise.all([
-      expect(form.getByRole('button', {name: 'Temel'})).toBeFocused(),
-      expect(form.getByText(PLAN_MESSAGE)).toBeVisible(),
-    ]);
   });
 
   test.describe('with a 422 from the server', () => {

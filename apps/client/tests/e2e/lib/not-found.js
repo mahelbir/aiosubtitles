@@ -1,6 +1,5 @@
 import {StatusCodes} from 'http-status-codes';
 import {getFailedRequestPattern} from './api.js';
-import {expect} from './test.js';
 
 export const MISSING_RECORD_ID = '00000000-0000-4000-8000-000000000000';
 
@@ -15,11 +14,4 @@ export function getMissingRecordPattern(collectionPath) {
       StatusCodes.UNPROCESSABLE_ENTITY,
     ],
   });
-}
-
-export async function expectNotFound(scope) {
-  await expect(scope.getByRole('heading', {name: 'Not found!'})).toBeVisible();
-  await expect(
-    scope.getByText('The record you are looking for was not found.'),
-  ).toBeVisible();
 }

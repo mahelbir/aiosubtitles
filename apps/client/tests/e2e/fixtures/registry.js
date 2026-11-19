@@ -9,21 +9,6 @@ export const FIXTURES = [
       ),
   },
   {
-    slug: 'toggle-group-input',
-    title: 'Toggle group input',
-    variants: [
-      '?isPassive',
-      '?isDisabled',
-      '?isDisabled&isPassive',
-      '?isReadOnly',
-      '?isReadOnly&isPassive',
-    ],
-    load: () =>
-      import('./components/toggle-group-input-fixture').then(
-        ({ToggleGroupInputFixture}) => ToggleGroupInputFixture,
-      ),
-  },
-  {
     slug: 'array-input',
     title: 'Array input',
     variants: [
@@ -40,30 +25,14 @@ export const FIXTURES = [
       ),
   },
   {
-    slug: 'checkbox-group-input',
-    title: 'Checkbox group input',
-    variants: ['?isDisabled', '?isReadOnly', '?isReadOnly&hasChannel'],
-    load: () =>
-      import('./components/checkbox-group-input-fixture').then(
-        ({CheckboxGroupInputFixture}) => CheckboxGroupInputFixture,
-      ),
-  },
-  {
     slug: 'form-controls',
     title: 'Form controls',
     variants: [
       '?options=api',
       '?options=memory&delay=1500',
-      '?options=held',
       '?options=grouped',
       '?options=users',
       '?options=users&delay=800',
-      '?options=members',
-      '?options=members&max=2',
-      '?options=tags',
-      '?options=creatable',
-      '?options=creatable&create=fail',
-      '?options=creatable&source=remote',
     ],
     load: () =>
       import('./components/form-controls-fixture').then(
@@ -177,7 +146,7 @@ export const FIXTURES = [
   {
     slug: 'boundaries',
     title: 'Boundaries',
-    variants: ['?entity=', '?isErrorHandled'],
+    variants: ['?isErrorHandled'],
     load: () =>
       import('./components/boundaries-fixture').then(
         ({BoundariesFixture}) => BoundariesFixture,
@@ -197,9 +166,7 @@ export const FIXTURES = [
     title: 'Form skeletons',
     variants: [
       '?delay=800',
-      '?delay=800&lead=group',
       '?delay=800&lead=disabled',
-      '?delay=800&lead=checkbox',
       '?delay=800&lead=unmatched',
       '?delay=800&late',
     ],

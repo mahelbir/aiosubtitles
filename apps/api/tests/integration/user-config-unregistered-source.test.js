@@ -17,7 +17,7 @@ import {
 import {makeSwitchStatesOnly} from '../helpers/user-config-factories.js';
 
 const PASSWORD = 'correct horse';
-const UNAVAILABLE = 'This source is not available yet.';
+const UNREGISTERED_REFUSAL = 'This source is not available yet.';
 
 const checkCredential = vi.fn();
 
@@ -53,7 +53,7 @@ describe('a credential for a source with no client', () => {
     });
 
     expect(response.statusCode).toBe(StatusCodes.UNPROCESSABLE_ENTITY);
-    expect(readEnvelope(response).message).toBe(UNAVAILABLE);
+    expect(readEnvelope(response).message).toBe(UNREGISTERED_REFUSAL);
     expect(await UserConfig.count()).toBe(0);
     expect(checkCredential).not.toHaveBeenCalled();
   });
@@ -74,7 +74,7 @@ describe('a credential for a source with no client', () => {
     });
 
     expect(response.statusCode).toBe(StatusCodes.UNPROCESSABLE_ENTITY);
-    expect(readEnvelope(response).message).toBe(UNAVAILABLE);
+    expect(readEnvelope(response).message).toBe(UNREGISTERED_REFUSAL);
     expect(
       await UserConfigCredential.count({where: {userConfigId: userConfig.id}}),
     ).toBe(0);

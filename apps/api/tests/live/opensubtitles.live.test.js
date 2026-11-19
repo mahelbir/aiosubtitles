@@ -1,10 +1,12 @@
 import {randomUUID} from 'node:crypto';
+import {compact} from 'es-toolkit';
 import {describe, expect, it} from 'vitest';
 import {CredentialKind} from '@repo/shared/constants/credential.js';
 import {SubtitleSource} from '@repo/shared/constants/subtitle-source.js';
 import {loadLiveSecrets} from '../../scripts/lib/live-secrets.js';
 import {createOpensubtitlesClient} from '../../src/lib/subtitle-sources/opensubtitles/opensubtitles-client.js';
 import {requestSubtitleSource} from '../../src/lib/subtitle-sources/subtitle-source-request.js';
+import {createTestSharedCredentialPool} from '../helpers/shared-credentials.js';
 import {listMissingSecretNames, runLiveCase} from './helpers/live-report.js';
 import {
   makeLiveSearchQuery,
@@ -25,7 +27,11 @@ const accountNames = [
 ];
 const opensubtitlesClient = createOpensubtitlesClient({
   requestSubtitleSource,
-  apiKey: liveSecrets.OPENSUBTITLES_API_KEY,
+  sharedCredentialPool: createTestSharedCredentialPool({
+    [SubtitleSource.OPENSUBTITLES]: compact([
+      liveSecrets.OPENSUBTITLES_API_KEY,
+    ]),
+  }).sharedCredentialPool,
 });
 const searchQuery = makeLiveSearchQuery('tt0133093', ['eng']);
 let firstHit = null;

@@ -14,7 +14,7 @@ import {
 const PASSWORD = 'correct horse';
 const WRONG_PASSWORD = 'wrong horse';
 const LOGIN_REFUSAL = 'Wrong configuration ID or password.';
-const ATTEMPT_MAX = config.userConfigPasswordRateLimitUserConfigMax;
+const ATTEMPT_MAX = config.rateLimitUserConfigPasswordUserConfigMax;
 
 async function attempt(userConfigId, password, times) {
   const statusCodes = [];
@@ -119,7 +119,7 @@ describe('password attempts on a configuration', () => {
     expect(
       await redis.keys('rate:user-config:*:user-config-password-*'),
     ).toEqual([
-      `rate:user-config:${ATTEMPT_MAX}/${config.userConfigPasswordRateLimitWindow}:user-config-password-${userConfig.id}`,
+      `rate:user-config:${ATTEMPT_MAX}/${config.rateLimitUserConfigPasswordWindow}:user-config-password-${userConfig.id}`,
     ]);
   });
 });

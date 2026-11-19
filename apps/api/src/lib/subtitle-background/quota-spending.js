@@ -30,19 +30,25 @@ const OPENSUBTITLES_REFERENCE_SOURCES = [
 
 const logger = createLogger('subtitle-background');
 
-export function isQuotaSpendAllowed({quotaChecks, viewerShare}) {
+export function isQuotaSpendAllowed({quotaChecks, quotaShare}) {
+  const quotaAllowedCount = sumBy(
+    quotaChecks,
+    quotaCheck => quotaCheck.quotaAllowedCount,
+  );
+  const quotaSpentCount =
+    quotaAllowedCount -
+    sumBy(quotaChecks, quotaCheck => quotaCheck.quotaRemainingCount);
   return (
-    sumBy(quotaChecks, ({quotaRemainingCount}) => quotaRemainingCount) >
-    viewerShare * sumBy(quotaChecks, ({quotaAllowedCount}) => quotaAllowedCount)
+    quotaAllowedCount > 0 && quotaSpentCount / quotaAllowedCount < quotaShare
   );
 }
 
-export function createViewerShareCheck({client, credentials, signal}) {
+export function createQuotaShareCheck({client, credentials, signal}) {
   return async () =>
     !signal?.aborted &&
     isQuotaSpendAllowed({
       quotaChecks: await readQuotaChecks(client, credentials),
-      viewerShare: config.listImprovementViewerShare,
+      quotaShare: config.subtitleBackgroundQuotaShare,
     });
 }
 
@@ -101,7 +107,7 @@ export async function spendOpensubtitlesQuota({
         userConfigId: cachedUserConfig.userConfigId,
         subtitleSource: SubtitleSource.OPENSUBTITLES,
       }),
-      createViewerShareCheck({client, credentials: accounts, signal}),
+      createQuotaShareCheck({client, credentials: accounts, signal}),
     ]),
   };
   const downloadedIds = [];

@@ -7,6 +7,7 @@ export function createFixtureSubtitleSourceClient(overrides = {}) {
     credentialKinds: [],
     isSearchHashSensitive: false,
     downloadBudgets: [],
+    isAvailable: vi.fn(() => true),
     canSearchWithoutCredential: vi.fn(() => true),
     canDownloadWithoutCredential: vi.fn(() => true),
     searchSubtitles: vi.fn(async () => []),

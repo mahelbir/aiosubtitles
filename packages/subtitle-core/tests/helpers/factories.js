@@ -63,14 +63,6 @@ export const makeCandidate = (overrides = {}) => ({
   ...overrides,
 });
 
-export const makeRankedRow = (overrides = {}) => ({
-  ...makeCandidate(),
-  totalScore: 0,
-  confidenceWord: null,
-  subtitleFileName: null,
-  ...overrides,
-});
-
 export const makeNamedRelease = (releaseName, overrides = {}) =>
   makeReleaseInfo({nameTokens: tokenizeReleaseName(releaseName), ...overrides});
 

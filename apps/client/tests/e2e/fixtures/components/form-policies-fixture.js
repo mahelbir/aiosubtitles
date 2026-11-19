@@ -12,22 +12,13 @@ import {NumberInput} from '@/components/form/number-input';
 import {SaveButton} from '@/components/form/save-button';
 import {SubmitButton} from '@/components/form/submit-button';
 import {TextControl, TextInput} from '@/components/form/text-input';
-import {ToggleGroupControl} from '@/components/form/toggle-group-input';
 import {UnsavedChangesGuard} from '@/components/form/unsaved-changes-guard';
 import {Button} from '@/components/ui/button';
-import {ButtonGroup} from '@/components/ui/button-group';
 import {getBlankableSchema, omitBlankFields, useAppForm} from '@/lib/form';
 import {useSubmitFormPolicies} from '../api';
 import {useFieldStates} from '../hooks/use-field-states';
 import {useFormStatus} from '../hooks/use-form-status';
 import {FixtureState} from './fixture-state';
-
-const PLAN_OPTIONS = [
-  {value: 'basic', label: 'Temel'},
-  {value: 'pro', label: 'Profesyonel'},
-];
-
-const PLAN_HELP = 'Faturalama planı.';
 
 const SKIPPED_SAVE = {mutateAsync: async () => null};
 
@@ -37,10 +28,6 @@ const displayFormSchema = z.object({
   name: z.string().min(2, 'Ad en az 2 karakter olmalı'),
   email: emailField,
   phone: z.string().min(10, 'Telefon en az 10 haneli olmalı'),
-  plan: z.enum(
-    PLAN_OPTIONS.map(option => option.value),
-    'Bir plan seçin',
-  ),
 });
 
 const serverFormSchema = z.object({
@@ -89,7 +76,7 @@ export function FormPoliciesFixture() {
   const displayForm = useAppForm({
     schema: displayFormSchema,
     errorDisplay: searchParams.get('errorDisplay') ?? undefined,
-    defaultValues: {name: '', email: '', phone: '', plan: null},
+    defaultValues: {name: '', email: '', phone: ''},
   });
   const mutation = useSubmitFormPolicies();
   const serverForm = useAppForm({
@@ -142,9 +129,6 @@ export function FormPoliciesFixture() {
               <TextInput label="Telefon" type="tel" />
             </FormField>
           )}
-          <FormField name="plan">
-            <PlanRow />
-          </FormField>
         </FormGrid>
         <div className="flex flex-wrap gap-2">
           <Button
@@ -300,7 +284,7 @@ function EndpointForm() {
 
   return (
     <Form form={form} aria-label="Uç nokta formu">
-      <ButtonGroup className="w-full">
+      <div className="flex w-full gap-2">
         <FormField name="host" className={null}>
           <TextControl aria-label="Sunucu" placeholder="Sunucu" />
         </FormField>
@@ -311,7 +295,7 @@ function EndpointForm() {
             inputMode="numeric"
           />
         </FormField>
-      </ButtonGroup>
+      </div>
       <FormField name="host" className={null}>
         <FormFieldMessage />
       </FormField>
@@ -320,18 +304,5 @@ function EndpointForm() {
       </FormField>
       <SubmitButton className="self-start">Uç noktayı doğrula</SubmitButton>
     </Form>
-  );
-}
-
-function PlanRow() {
-  return (
-    <div className="flex flex-wrap items-center gap-4">
-      <ToggleGroupControl
-        options={PLAN_OPTIONS}
-        help={PLAN_HELP}
-        aria-label="Plan"
-      />
-      <FormFieldMessage help={PLAN_HELP} />
-    </div>
   );
 }

@@ -2,7 +2,7 @@ import {z} from 'zod';
 import {
   SubtitleMessage,
   SubtitleNotice,
-} from '@repo/subtitle-core/constants/subtitle-core-enums.js';
+} from '../../lib/stremio-row/stremio-row-enums.js';
 import {
   toSubtitleFileRouteConfig,
   writeMessageText,

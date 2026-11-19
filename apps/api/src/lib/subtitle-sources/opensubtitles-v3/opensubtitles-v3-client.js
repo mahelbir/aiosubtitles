@@ -17,6 +17,7 @@ export const opensubtitlesV3Client = {
       requestMax: DOWNLOAD_MAX,
     },
   ],
+  isAvailable: () => true,
   canSearchWithoutCredential: () => true,
   canDownloadWithoutCredential: () => true,
   async searchSubtitles(searchQuery, credential, {signal} = {}) {

@@ -3,6 +3,7 @@ import {SubtitleSource} from '../src/constants/subtitle-source.js';
 import {settingsDefinition} from '../src/schemas/setting.js';
 
 const EMPTY_SHARED_CREDENTIALS = {
+  [SubtitleSource.OPENSUBTITLES]: [],
   [SubtitleSource.JIMAKU]: [],
   [SubtitleSource.BETASERIES]: [],
   [SubtitleSource.ANISUB]: [],
@@ -50,6 +51,19 @@ describe('settingsDefinition shared credentials', () => {
     expect(settingsDefinition.schema.parse(parsedSettings)).toEqual(
       parsedSettings,
     );
+  });
+
+  it('keeps the OpenSubtitles app keys as a plain list like every other source', () => {
+    expect(
+      settingsDefinition.schema.parse({
+        sharedCredentials: {
+          [SubtitleSource.OPENSUBTITLES]: [
+            ' opensubtitles-shared-a ',
+            'opensubtitles-shared-b',
+          ],
+        },
+      }).sharedCredentials[SubtitleSource.OPENSUBTITLES],
+    ).toEqual(['opensubtitles-shared-a', 'opensubtitles-shared-b']);
   });
 
   it('rejects a value that is not a string', () => {

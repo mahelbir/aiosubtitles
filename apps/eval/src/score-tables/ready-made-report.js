@@ -4,7 +4,6 @@ import {
   CUE_SHAPE_MIN_CUES_PER_MINUTE,
   CUE_SHAPE_MIN_END_SHARE,
 } from '@repo/subtitle-core/scoring/extract-signals.js';
-import {READY_MADE_SCORE_TABLES} from '@repo/subtitle-core/scoring/ready-made-score-tables.js';
 import {
   COMPARISON_METHOD_VERSION,
   DEFAULT_TIMING_SETTINGS,
@@ -23,6 +22,7 @@ import {
   formatTableRule,
 } from '../report/format-cells.js';
 import {RANKING_METRIC_TITLES} from './ranking-run.js';
+import {READY_MADE_SCORE_TABLES} from './ready-made-score-tables.js';
 import {
   FAMILY_AGREEMENT_FIELDS,
   TRUTH_AGREEMENT_FIELDS,

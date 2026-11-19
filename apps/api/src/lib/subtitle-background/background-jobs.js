@@ -34,7 +34,7 @@ import {enqueueBackgroundJob} from './background-queues.js';
 import {
   combineSpendChecks,
   createListImprovementCheck,
-  createViewerShareCheck,
+  createQuotaShareCheck,
   listVideoReferences,
   spendOpensubtitlesQuota,
 } from './quota-spending.js';
@@ -93,10 +93,10 @@ export function scheduleListBackgroundWork({
       subtitleSource,
       jobKey: toJobKey({subtitleSource, cachedUserConfig, videoContext}),
       runJob: async ({signal}) => {
-        const jobUserConfig = await readJobUserConfig(
+        const jobUserConfig = await readAvailableJobUserConfig({
           cachedUserConfig,
-          subtitleSource,
-        );
+          client,
+        });
         if (!jobUserConfig) {
           return;
         }
@@ -136,10 +136,12 @@ export function scheduleListBackgroundWork({
       videoContext,
     }),
     runJob: async ({signal}) => {
-      const jobUserConfig = await readJobUserConfig(
+      const jobUserConfig = await readAvailableJobUserConfig({
         cachedUserConfig,
-        SubtitleSource.OPENSUBTITLES,
-      );
+        client: subtitleSourceRegistry.getSubtitleSourceClient(
+          SubtitleSource.OPENSUBTITLES,
+        ),
+      });
       if (!jobUserConfig) {
         return;
       }
@@ -211,7 +213,7 @@ export async function downloadFreeCandidates({
     ...(client.readQuota &&
     client.canUseSharedCredential !== true &&
     userCredentials.length > 0
-      ? [createViewerShareCheck({client, credentials: userCredentials, signal})]
+      ? [createQuotaShareCheck({client, credentials: userCredentials, signal})]
       : []),
   ];
   const canSpendCredential =
@@ -280,9 +282,13 @@ function readOpensubtitlesAccounts(cachedUserConfig) {
   });
 }
 
-async function readJobUserConfig({userConfigId}, subtitleSource) {
-  const jobUserConfig = await userConfigCache.get(userConfigId);
-  return jobUserConfig?.subtitleSourceSwitchStates[subtitleSource] === false
+async function readAvailableJobUserConfig({cachedUserConfig, client}) {
+  const [isAvailable, jobUserConfig] = await Promise.all([
+    client?.isAvailable() ?? false,
+    userConfigCache.get(cachedUserConfig.userConfigId),
+  ]);
+  return !isAvailable ||
+    jobUserConfig?.subtitleSourceSwitchStates[client.subtitleSource] === false
     ? null
     : jobUserConfig;
 }

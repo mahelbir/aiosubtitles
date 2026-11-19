@@ -1,12 +1,10 @@
 import {attemptAsync} from 'es-toolkit';
-import {
-  SubtitleFileExtension,
-  SubtitleMessage,
-} from '@repo/subtitle-core/constants/subtitle-core-enums.js';
+import {SubtitleFileExtension} from '@repo/subtitle-core/constants/subtitle-core-enums.js';
 import {buildMessageSrt} from '@repo/subtitle-core/file-format/message-srt.js';
 import {renderSubtitleFile} from '@repo/subtitle-core/file-format/render-subtitle.js';
 import {config} from '../../config/index.js';
 import {RateLimitKey} from '../../lib/rate-limit.js';
+import {SubtitleMessage} from '../../lib/stremio-row/stremio-row-enums.js';
 import {readCachedUserConfig} from './_cached-user-config.js';
 
 const SUBTITLE_CONTENT_TYPES = Object.freeze({
@@ -19,10 +17,10 @@ const FILE_CACHE_CONTROL = 'public, max-age=31536000, immutable';
 const MESSAGE_CACHE_CONTROL = 'no-store';
 
 const SUBTITLE_FILE_RATE_LIMITS = [
-  {max: config.subtitleFileRateLimitIpMax, timeWindow: config.rateLimitWindow},
+  {max: config.rateLimitSubtitleFileIpMax, timeWindow: config.rateLimitWindow},
   {
     key: RateLimitKey.USER_CONFIG,
-    max: config.subtitleFileRateLimitUserConfigMax,
+    max: config.rateLimitSubtitleFileUserConfigMax,
     timeWindow: config.rateLimitWindow,
     identify: identifyStoredUserConfig,
   },

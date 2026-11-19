@@ -1,7 +1,10 @@
 import {mkdir, readFile, writeFile} from 'node:fs/promises';
 import path from 'node:path';
 import {parseArgs} from 'node:util';
-import {limitAsync} from 'es-toolkit';
+import {Settings} from '@mahelbir/settings';
+import {limitAsync, noop} from 'es-toolkit';
+import {SubtitleSource} from '@repo/shared/constants/subtitle-source.js';
+import {settingsDefinition} from '@repo/shared/schemas/setting.js';
 import {getMainCheckoutPath} from '@repo/tooling/git.js';
 import {assertPrivateOutputPath} from '@repo/tooling/private-output.js';
 import {loadLiveSecrets} from './lib/live-secrets.js';
@@ -11,7 +14,7 @@ const SEARCHED_LANGUAGE_CODES = ['tur', 'eng'];
 const SEARCH_CONCURRENCY = 1;
 const JSON_INDENT = 2;
 const PATH_OPTION_NAMES = ['identities', 'output'];
-const PRIVATE_FOLDER_PARTS = ['docs', 'superpowers', 'eval', 'private'];
+const PRIVATE_FOLDER_PARTS = ['apps', 'api', '.out', 'eval-private'];
 const PARENT_SEGMENT = '..';
 
 async function enrichCase({caseCode, video, searchCase}) {
@@ -111,14 +114,29 @@ export async function createSearchCase({loadSecrets = loadLiveSecrets} = {}) {
   if (!apiKey) {
     throw new Error('OPENSUBTITLES_API_KEY is missing from the secrets file.');
   }
-  const [{createOpensubtitlesClient}, {requestSubtitleSource}] =
-    await Promise.all([
-      import('../src/lib/subtitle-sources/opensubtitles/opensubtitles-client.js'),
-      import('../src/lib/subtitle-sources/subtitle-source-request.js'),
-    ]);
+  const [
+    {createOpensubtitlesClient},
+    {createSharedCredentialPool},
+    {requestSubtitleSource},
+  ] = await Promise.all([
+    import('../src/lib/subtitle-sources/opensubtitles/opensubtitles-client.js'),
+    import('../src/lib/subtitle-sources/shared-credential-pool.js'),
+    import('../src/lib/subtitle-sources/subtitle-source-request.js'),
+  ]);
   const opensubtitlesClient = createOpensubtitlesClient({
     requestSubtitleSource,
-    apiKey,
+    sharedCredentialPool: createSharedCredentialPool({
+      settings: new Settings({
+        store: {
+          read: async () => ({
+            sharedCredentials: {[SubtitleSource.OPENSUBTITLES]: [apiKey]},
+          }),
+          update: noop,
+        },
+        schema: settingsDefinition.schema,
+        onError: null,
+      }),
+    }),
   });
   return createGuardedSearch(searchQuery =>
     opensubtitlesClient.searchSubtitles(searchQuery, null),

@@ -187,26 +187,6 @@ test.describe('number input', () => {
     await expect(quantity).toHaveValue('5');
   });
 
-  test('keeps the amount while the addon toggles', async ({page}) => {
-    const discount = getFormField(page, FIRST_FORM, 'İndirim');
-    const fixed = page.getByRole('button', {name: 'Sabit tutar'});
-
-    await discount.pressSequentially('15');
-    await expectFixtureState(page).toMatchObject({
-      first: {discountType: {value: 'percent'}},
-    });
-    await fixed.click();
-
-    await expect(fixed).toHaveAttribute('aria-pressed', 'true');
-    await expect(discount).toHaveValue('15');
-    await expectFixtureState(page).toMatchObject({
-      first: {
-        discount: {value: 15, type: 'number'},
-        discountType: {value: 'fixed'},
-      },
-    });
-  });
-
   test('submits numbers, not strings', async ({page}) => {
     await getFormField(page, FIRST_FORM, 'Tutar').pressSequentially('1.5');
     await getFormField(page, FIRST_FORM, 'Fiyat').pressSequentially('2');
@@ -221,7 +201,6 @@ test.describe('number input', () => {
         price: 2,
         id: 7,
         discount: 10,
-        discountType: 'percent',
         stock: null,
       },
     });

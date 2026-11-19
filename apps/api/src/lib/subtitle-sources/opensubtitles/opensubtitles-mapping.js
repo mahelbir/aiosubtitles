@@ -76,7 +76,7 @@ function isTokenRejected({status, body}) {
   );
 }
 
-function toTokenRejectedError(credentialId) {
+function toCredentialRejectedError(credentialId) {
   return new SourceCredentialError({
     subtitleSource: SubtitleSource.OPENSUBTITLES,
     credentialId,
@@ -94,7 +94,7 @@ function toUnavailableError(reason) {
   });
 }
 
-function throwUnlessSuccess(response, credentialId = null) {
+function throwUnlessSuccess(response, {credentialId = null} = {}) {
   if (response.status === StatusCodes.FORBIDDEN) {
     throw toUnavailableError(`Status ${StatusCodes.FORBIDDEN}.`);
   }
@@ -135,14 +135,11 @@ function buildRequest(siteUrl, {apiKey, credentialId = null, session}) {
   };
 }
 
-function findSearchKey(credential, apiKey) {
-  if (
+function isApiKeyCredential(credential) {
+  return (
     credential?.credentialKind === CredentialKind.API_KEY &&
-    credential.apiKey
-  ) {
-    return {apiKey: credential.apiKey, credentialId: credential.credentialId};
-  }
-  return apiKey ? {apiKey, credentialId: null} : null;
+    Boolean(credential.apiKey)
+  );
 }
 
 function buildTitleParameters({
@@ -179,15 +176,14 @@ function toQueryText(searchParameters) {
     .join('&');
 }
 
-function buildSearchRequest(searchQuery, {credential, apiKey}) {
-  const searchKey = findSearchKey(credential, apiKey);
+function buildSearchRequest(searchQuery, searchCredential) {
   const titleParameters = buildTitleParameters(searchQuery);
   const siteLanguageCodes = toSiteLanguageCodes(
     searchQuery.languageCodes,
     SiteLanguageCodeStyle.LOCALE,
   ).toSorted();
   if (
-    searchKey === null ||
+    !isApiKeyCredential(searchCredential) ||
     titleParameters === null ||
     siteLanguageCodes.length === 0
   ) {
@@ -200,7 +196,7 @@ function buildSearchRequest(searchQuery, {credential, apiKey}) {
   });
   return buildRequest(
     `${OPENSUBTITLES_API_URL}/subtitles?${queryText}`,
-    searchKey,
+    searchCredential,
   );
 }
 
@@ -277,10 +273,10 @@ function toSearchHits({status, body}, searchQuery) {
     .filter(Boolean);
 }
 
-function buildLoginRequest(credential, {apiKey}) {
+function buildLoginRequest(credential, appCredential) {
   return {
     ...buildRequest(`${OPENSUBTITLES_API_URL}/login`, {
-      apiKey,
+      apiKey: appCredential.apiKey,
       credentialId: credential.credentialId,
     }),
     method: 'POST',
@@ -307,15 +303,15 @@ function toBaseUrl(siteBaseUrl) {
   return baseUrl.href;
 }
 
-function requireApiKey(apiKey) {
-  if (!apiKey) {
+function requireAppCredential(appCredential) {
+  if (!appCredential) {
     throw toUnavailableError('No server key.');
   }
-  return apiKey;
+  return appCredential;
 }
 
-function toSession(response, {credentialId = null} = {}) {
-  throwUnlessSuccess(response, credentialId);
+function toSession(response, credentialIds = {}) {
+  throwUnlessSuccess(response, credentialIds);
   const token = response.body?.token;
   if (typeof token !== 'string' || token === '') {
     throw toUnavailableError('Login gave no token.');
@@ -333,10 +329,13 @@ function requireAccountCredential(credential) {
   return credential;
 }
 
-function buildDownloadRequest({siteFileId}, {credential, apiKey, session}) {
+function buildDownloadRequest(
+  {siteFileId},
+  {credential, appCredential, session},
+) {
   return {
     ...buildRequest(`${session.baseUrl}/download`, {
-      apiKey,
+      apiKey: appCredential.apiKey,
       credentialId: credential.credentialId,
       session,
     }),
@@ -382,22 +381,22 @@ function toQuotaReport(response) {
   };
 }
 
-function throwUnlessTokenAccepted(response, credentialId) {
+function throwUnlessTokenAccepted(response, {credentialId = null}) {
   if (isTokenRejected(response)) {
-    throw toTokenRejectedError(credentialId);
+    throw toCredentialRejectedError(credentialId);
   }
   throwUnlessSuccess(response);
 }
 
-function toDownloadLink(response, {credentialId}) {
+function toDownloadLink(response, credentialIds) {
   if (isSpentQuotaResponse(response)) {
     throw new SourceRateLimitError({
       subtitleSource: SubtitleSource.OPENSUBTITLES,
       retryAfterMs: toRetryAfterMs(response.body.reset_time_utc),
-      credentialId,
+      credentialId: credentialIds.credentialId,
     });
   }
-  throwUnlessTokenAccepted(response, credentialId);
+  throwUnlessTokenAccepted(response, credentialIds);
   return {
     fileUrl: toSiteUrl(response.body?.link).href,
     fileNameHint:
@@ -430,10 +429,10 @@ function toDownload(fileResponse, {fileNameHint}) {
   };
 }
 
-function buildQuotaRequest({credential, apiKey, session}) {
+function buildQuotaRequest({credential, appCredential, session}) {
   return {
     ...buildRequest(`${session.baseUrl}/infos/user`, {
-      apiKey,
+      apiKey: appCredential.apiKey,
       credentialId: credential.credentialId,
       session,
     }),
@@ -441,8 +440,8 @@ function buildQuotaRequest({credential, apiKey, session}) {
   };
 }
 
-function toQuota(response, cachedQuota, {credentialId = null} = {}) {
-  throwUnlessTokenAccepted(response, credentialId);
+function toQuota(response, cachedQuota, credentialIds = {}) {
+  throwUnlessTokenAccepted(response, credentialIds);
   const siteUser = response.body?.data;
   return {
     quotaRemainingCount: toSiteCount(siteUser?.remaining_downloads),
@@ -500,7 +499,8 @@ export const opensubtitlesMapping = {
   toSearchHits,
   buildLoginRequest,
   toSession,
-  requireApiKey,
+  isApiKeyCredential,
+  requireAppCredential,
   requireAccountCredential,
   buildDownloadRequest,
   toQuotaReport,

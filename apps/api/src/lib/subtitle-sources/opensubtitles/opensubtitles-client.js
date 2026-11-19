@@ -4,8 +4,8 @@ import {
   CredentialStatus,
 } from '@repo/shared/constants/credential.js';
 import {SubtitleSource} from '@repo/shared/constants/subtitle-source.js';
-import {config} from '../../../config/index.js';
 import {createLogger} from '../../logger.js';
+import {sharedCredentialPool as defaultSharedCredentialPool} from '../shared-credential-pool.js';
 import {SubtitleSourceBudgetScope} from '../subtitle-source-contract.js';
 import {
   SourceCredentialError,
@@ -18,7 +18,10 @@ import {
 } from '../subtitle-source-request.js';
 import {opensubtitlesMapping} from './opensubtitles-mapping.js';
 import * as opensubtitlesSession from './opensubtitles-session.js';
-import {toOpensubtitlesSessionKey} from './opensubtitles-session.js';
+import {
+  toOpensubtitlesAppKeyFingerprint,
+  toOpensubtitlesSessionKey,
+} from './opensubtitles-session.js';
 
 const CREDENTIAL_DOWNLOAD_WINDOW = 5000;
 const CREDENTIAL_DOWNLOAD_MAX = 1;
@@ -33,6 +36,25 @@ function isQuotaComplete(quota) {
 
 function isAccount(credential) {
   return credential.credentialKind === CredentialKind.ACCOUNT;
+}
+
+function isRejectedCredential(error, credential) {
+  return (
+    error instanceof SourceCredentialError &&
+    error.credentialId === credential.credentialId
+  );
+}
+
+function isSessionPinnedTo(session, appCredential) {
+  return (
+    typeof session?.appKeyFingerprint === 'string' &&
+    session.appKeyFingerprint ===
+      toOpensubtitlesAppKeyFingerprint(appCredential.apiKey)
+  );
+}
+
+function toCredentialIds(credential) {
+  return {credentialId: credential.credentialId};
 }
 
 function awaitUnlessAborted(sharedPromise, signal) {
@@ -60,11 +82,12 @@ function awaitUnlessAborted(sharedPromise, signal) {
 
 export function createOpensubtitlesClient({
   requestSubtitleSource,
-  apiKey,
+  sharedCredentialPool = defaultSharedCredentialPool,
   sessionStore = opensubtitlesSession,
   logger = opensubtitlesLogger,
 }) {
-  const sessionBySessionKey = new Map();
+  const subtitleSource = SubtitleSource.OPENSUBTITLES;
+  const loginByPinKey = new Map();
 
   async function runStoreCall(storeCall) {
     try {
@@ -87,13 +110,24 @@ export function createOpensubtitlesClient({
     );
   }
 
-  async function logIn(credential) {
-    const session = opensubtitlesMapping.toSession(
-      await requestSubtitleSource(
-        opensubtitlesMapping.buildLoginRequest(credential, {apiKey}),
+  function readStoredSession(credential) {
+    return runStoreCall(() =>
+      sessionStore.readOpensubtitlesSession(
+        toOpensubtitlesSessionKey(credential),
       ),
-      {credentialId: credential.credentialId},
     );
+  }
+
+  async function logIn(credential, appCredential) {
+    const session = {
+      ...opensubtitlesMapping.toSession(
+        await requestSubtitleSource(
+          opensubtitlesMapping.buildLoginRequest(credential, appCredential),
+        ),
+        toCredentialIds(credential),
+      ),
+      appKeyFingerprint: toOpensubtitlesAppKeyFingerprint(appCredential.apiKey),
+    };
     await runStoreCall(() =>
       sessionStore.storeOpensubtitlesSession(
         toOpensubtitlesSessionKey(credential),
@@ -103,56 +137,80 @@ export function createOpensubtitlesClient({
     return session;
   }
 
-  async function loadSession(credential) {
-    return (
-      (await runStoreCall(() =>
-        sessionStore.readOpensubtitlesSession(
-          toOpensubtitlesSessionKey(credential),
-        ),
-      )) ?? logIn(credential)
-    );
-  }
-
-  function getSession(credential, signal) {
-    const sessionKey = toOpensubtitlesSessionKey(credential);
-    let sessionPromise = sessionBySessionKey.get(sessionKey);
-    if (!sessionPromise) {
-      sessionPromise = loadSession(credential).finally(() => {
-        sessionBySessionKey.delete(sessionKey);
-      });
-      sessionBySessionKey.set(sessionKey, sessionPromise);
+  function getSession({credential, appCredential, storedSession, signal}) {
+    if (isSessionPinnedTo(storedSession, appCredential)) {
+      return awaitUnlessAborted(Promise.resolve(storedSession), signal);
     }
-    return awaitUnlessAborted(sessionPromise, signal);
+    const pinKey = `${toOpensubtitlesSessionKey(credential)}:${toOpensubtitlesAppKeyFingerprint(appCredential.apiKey)}`;
+    let loginPromise = loginByPinKey.get(pinKey);
+    if (!loginPromise) {
+      loginPromise = logIn(credential, appCredential).finally(() => {
+        loginByPinKey.delete(pinKey);
+      });
+      loginByPinKey.set(pinKey, loginPromise);
+    }
+    return awaitUnlessAborted(loginPromise, signal);
   }
 
-  async function refreshSession(credential, staleSession, signal) {
-    const sessionKey = toOpensubtitlesSessionKey(credential);
-    const storedSession = await runStoreCall(() =>
-      sessionStore.readOpensubtitlesSession(sessionKey),
-    );
-    if (storedSession && storedSession.token !== staleSession.token) {
+  async function refreshSession({
+    credential,
+    appCredential,
+    staleSession,
+    signal,
+  }) {
+    const storedSession = await readStoredSession(credential);
+    if (
+      storedSession &&
+      storedSession.token !== staleSession.token &&
+      isSessionPinnedTo(storedSession, appCredential)
+    ) {
       return storedSession;
     }
-    await runStoreCall(() => sessionStore.dropOpensubtitlesSession(sessionKey));
-    return getSession(credential, signal);
+    await runStoreCall(() =>
+      sessionStore.dropOpensubtitlesSession(
+        toOpensubtitlesSessionKey(credential),
+      ),
+    );
+    return getSession({
+      credential,
+      appCredential,
+      storedSession: null,
+      signal,
+    });
   }
 
-  async function callWithSession(credential, signal, sessionCall) {
-    const session = await getSession(credential, signal);
+  async function callWithSession({
+    credential,
+    appCredential,
+    storedSession,
+    signal,
+    sessionCall,
+  }) {
+    const session = await getSession({
+      credential,
+      appCredential,
+      storedSession,
+      signal,
+    });
     try {
       return await sessionCall(session);
     } catch (error) {
-      if (!(error instanceof SourceCredentialError)) {
+      if (!isRejectedCredential(error, credential)) {
         throw error;
       }
     }
-    const freshSession = await refreshSession(credential, session, signal);
+    const freshSession = await refreshSession({
+      credential,
+      appCredential,
+      staleSession: session,
+      signal,
+    });
     try {
       return await sessionCall(freshSession);
     } catch (error) {
-      if (error instanceof SourceCredentialError) {
+      if (isRejectedCredential(error, credential)) {
         throw new SourceUnavailableError({
-          subtitleSource: SubtitleSource.OPENSUBTITLES,
+          subtitleSource,
           cause: new Error('Token rejected after a fresh login.'),
         });
       }
@@ -160,53 +218,84 @@ export function createOpensubtitlesClient({
     }
   }
 
-  async function requestDownloadLink(subtitleRef, credential, signal) {
-    const {credentialId} = credential;
-    return callWithSession(credential, signal, async session => {
-      const response = await requestSubtitleSource({
-        ...opensubtitlesMapping.buildDownloadRequest(subtitleRef, {
+  async function callWithAccount(credential, signal, accountCall) {
+    const storedSession = await readStoredSession(credential);
+    return sharedCredentialPool.callWithCredential({
+      subtitleSource,
+      credential: null,
+      isBreakerOnEveryLimit: true,
+      isPreferredCredential: appCredential =>
+        isSessionPinnedTo(storedSession, appCredential),
+      runCall: async appCredential =>
+        callWithSession({
           credential,
-          apiKey,
-          session,
+          appCredential:
+            opensubtitlesMapping.requireAppCredential(appCredential),
+          storedSession,
+          signal,
+          sessionCall: session => accountCall(session, appCredential),
         }),
-        signal,
-      });
-      try {
-        return opensubtitlesMapping.toDownloadLink(response, {credentialId});
-      } catch (error) {
-        if (error instanceof SourceRateLimitError) {
-          storeQuotaReport(
-            credential,
-            opensubtitlesMapping.toQuotaReport(response),
-          );
-        }
-        throw error;
-      }
     });
   }
 
-  async function fetchAccountQuota(credential, signal) {
-    const {credentialId} = credential;
-    const quota = await callWithSession(credential, signal, async session => {
-      const [response, cachedQuota] = await Promise.all([
-        requestSubtitleSource({
-          ...opensubtitlesMapping.buildQuotaRequest({
+  function requestDownloadLink(subtitleRef, credential, signal) {
+    return callWithAccount(
+      credential,
+      signal,
+      async (session, appCredential) => {
+        const response = await requestSubtitleSource({
+          ...opensubtitlesMapping.buildDownloadRequest(subtitleRef, {
             credential,
-            apiKey,
+            appCredential,
             session,
           }),
           signal,
-        }),
-        runStoreCall(() =>
-          sessionStore.readOpensubtitlesQuota(
-            toOpensubtitlesSessionKey(credential),
+        });
+        try {
+          return opensubtitlesMapping.toDownloadLink(
+            response,
+            toCredentialIds(credential),
+          );
+        } catch (error) {
+          if (error instanceof SourceRateLimitError) {
+            storeQuotaReport(
+              credential,
+              opensubtitlesMapping.toQuotaReport(response),
+            );
+          }
+          throw error;
+        }
+      },
+    );
+  }
+
+  async function fetchAccountQuota(credential, signal) {
+    const quota = await callWithAccount(
+      credential,
+      signal,
+      async (session, appCredential) => {
+        const [response, cachedQuota] = await Promise.all([
+          requestSubtitleSource({
+            ...opensubtitlesMapping.buildQuotaRequest({
+              credential,
+              appCredential,
+              session,
+            }),
+            signal,
+          }),
+          runStoreCall(() =>
+            sessionStore.readOpensubtitlesQuota(
+              toOpensubtitlesSessionKey(credential),
+            ),
           ),
-        ),
-      ]);
-      return opensubtitlesMapping.toQuota(response, cachedQuota, {
-        credentialId,
-      });
-    });
+        ]);
+        return opensubtitlesMapping.toQuota(
+          response,
+          cachedQuota,
+          toCredentialIds(credential),
+        );
+      },
+    );
     storeQuotaReport(credential, quota);
     return opensubtitlesMapping.toAccountCheck(quota);
   }
@@ -221,7 +310,7 @@ export function createOpensubtitlesClient({
   }
 
   return {
-    subtitleSource: SubtitleSource.OPENSUBTITLES,
+    subtitleSource,
     credentialKinds: [CredentialKind.ACCOUNT, CredentialKind.API_KEY],
     isSearchHashSensitive: true,
     downloadBudgets: [
@@ -236,25 +325,36 @@ export function createOpensubtitlesClient({
         requestMax: APP_KEY_DOWNLOAD_MAX,
       },
     ],
-    canSearchWithoutCredential: () => Boolean(apiKey),
+    isAvailable: () =>
+      sharedCredentialPool.hasConfiguredCredential(subtitleSource),
+    canSearchWithoutCredential: () =>
+      sharedCredentialPool.hasUsableCredential(subtitleSource),
     canDownloadWithoutCredential: () => false,
-    async searchSubtitles(searchQuery, credential, {signal} = {}) {
-      const searchRequest = opensubtitlesMapping.buildSearchRequest(
-        searchQuery,
-        {credential, apiKey},
-      );
-      if (searchRequest === null) {
-        return null;
-      }
-      return opensubtitlesMapping.toSearchHits(
-        await requestSubtitleSource({...searchRequest, signal}),
-        searchQuery,
-      );
+    searchSubtitles(searchQuery, credential, {signal} = {}) {
+      return sharedCredentialPool.callWithCredential({
+        subtitleSource,
+        credential: opensubtitlesMapping.isApiKeyCredential(credential)
+          ? credential
+          : null,
+        isBreakerOnEveryLimit: true,
+        runCall: async searchCredential => {
+          const searchRequest = opensubtitlesMapping.buildSearchRequest(
+            searchQuery,
+            searchCredential,
+          );
+          if (searchRequest === null) {
+            return null;
+          }
+          return opensubtitlesMapping.toSearchHits(
+            await requestSubtitleSource({...searchRequest, signal}),
+            searchQuery,
+          );
+        },
+      });
     },
     async downloadSubtitle(subtitleRef, credential, {signal} = {}) {
       const accountCredential =
         opensubtitlesMapping.requireAccountCredential(credential);
-      opensubtitlesMapping.requireApiKey(apiKey);
       const downloadLink = await requestDownloadLink(
         subtitleRef,
         accountCredential,
@@ -277,11 +377,10 @@ export function createOpensubtitlesClient({
       if (!isAccount(credential)) {
         return checkApiKey(credential, signal);
       }
-      opensubtitlesMapping.requireApiKey(apiKey);
       try {
         return await fetchAccountQuota(credential, signal);
       } catch (error) {
-        if (error instanceof SourceCredentialError) {
+        if (isRejectedCredential(error, credential)) {
           return opensubtitlesMapping.toCredentialCheck(
             CredentialStatus.INVALID,
           );
@@ -293,7 +392,6 @@ export function createOpensubtitlesClient({
       if (!isAccount(credential)) {
         return checkApiKey(credential, signal);
       }
-      opensubtitlesMapping.requireApiKey(apiKey);
       const cachedQuota = await runStoreCall(() =>
         sessionStore.readOpensubtitlesQuota(
           toOpensubtitlesSessionKey(credential),
@@ -308,5 +406,4 @@ export function createOpensubtitlesClient({
 
 export const opensubtitlesClient = createOpensubtitlesClient({
   requestSubtitleSource: requestSite,
-  apiKey: config.opensubtitlesApiKey,
 });

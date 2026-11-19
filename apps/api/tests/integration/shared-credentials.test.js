@@ -1,4 +1,5 @@
 import * as fs from 'node:fs/promises';
+import {pick} from 'es-toolkit';
 import {StatusCodes} from 'http-status-codes';
 import {afterEach, beforeEach, describe, expect, it, vi} from 'vitest';
 import {CredentialKind} from '@repo/shared/constants/credential.js';
@@ -10,20 +11,32 @@ import {readDownloadCredentials} from '../../src/lib/subtitle-source-credentials
 import {createAnisubClient} from '../../src/lib/subtitle-sources/anisub/anisub-client.js';
 import {createBetaseriesClient} from '../../src/lib/subtitle-sources/betaseries/betaseries-client.js';
 import {createJimakuClient} from '../../src/lib/subtitle-sources/jimaku/jimaku-client.js';
+import {createOpensubtitlesClient} from '../../src/lib/subtitle-sources/opensubtitles/opensubtitles-client.js';
+import {OPENSUBTITLES_API_URL} from '../../src/lib/subtitle-sources/opensubtitles/opensubtitles-mapping.js';
 import {createSharedCredentialPool} from '../../src/lib/subtitle-sources/shared-credential-pool.js';
 import {createSubtitleSourceRegistry} from '../../src/lib/subtitle-sources/subtitle-source-clients.js';
+import {toSubtitleSourceStatusError} from '../../src/lib/subtitle-sources/subtitle-source-request.js';
 import {userConfigCache} from '../../src/lib/user-config-cache.js';
 import {redis} from '../../src/redis/index.js';
 import {requestAddonPath, toListPath} from '../helpers/addon-requests.js';
 import {getTestAppBasePath, setTestAppOptions} from '../helpers/app.js';
+import {readEnvelope} from '../helpers/assertions.js';
 import {createUserConfig} from '../helpers/factories.js';
 import {readFixture} from '../helpers/read-fixture.js';
+import {
+  USER_CONFIGS_URL,
+  callUserConfigApi,
+  login,
+} from '../helpers/user-config-api.js';
 
 const JIMAKU_SHARED_KEY = 'jimaku-shared-fixture-key';
 const JIMAKU_USER_KEY = 'jimaku-user-fixture-key';
 const BETASERIES_SHARED_KEY = 'betaseries-shared-fixture-key';
 const ANISUB_SHARED_TOKEN = '11|anisub-shared-fixture-token';
 const ANISUB_USER_TOKEN = '12|anisub-user-fixture-token';
+const OPENSUBTITLES_SHARED_KEY = 'opensubtitles-shared-fixture-key';
+const OPENSUBTITLES_USER_KEY = 'opensubtitles-user-fixture-key';
+const USER_CONFIG_PASSWORD = 'correct horse';
 const KITSU_VIDEO_ID = 'kitsu:46474:5';
 const BETASERIES_VIDEO_ID = 'tt9900001:1:3';
 const ANISUB_VIDEO_ID = 'tt0111161';
@@ -49,6 +62,8 @@ const unexpectedUrls = [];
 const requestSite = vi.fn();
 let testPool = createSharedCredentialPool();
 const sharedCredentialPool = {
+  hasConfiguredCredential: subtitleSource =>
+    testPool.hasConfiguredCredential(subtitleSource),
   hasUsableCredential: subtitleSource =>
     testPool.hasUsableCredential(subtitleSource),
   callWithCredential: callOptions => testPool.callWithCredential(callOptions),
@@ -69,6 +84,7 @@ setTestAppOptions({
     jimakuClient,
     createBetaseriesClient(clientOptions),
     anisubClient,
+    createOpensubtitlesClient(clientOptions),
   ]),
   videoCatalog: {
     readCatalogMeta: vi.fn(async () => null),
@@ -527,5 +543,234 @@ describe('AniSub with a shared server token', () => {
     const [publicRequest] = listRequestsTo(ANISUB_SITE_FILE_URL);
     expect(publicRequest.headers).toEqual({});
     expect(publicRequest.credentialId).toBeNull();
+  });
+});
+
+describe('OpenSubtitles with server app keys', () => {
+  const OPENSUBTITLES_ACCOUNT = {
+    username: 'opensubtitles-fixture-user',
+    password: 'opensubtitles-fixture-pass',
+  };
+
+  beforeEach(() => {
+    answerSite(ANISUB_SEARCH_URL, () => toJsonAnswer({subtitles: []}));
+  });
+
+  async function listSubtitleSources() {
+    const response = await callUserConfigApi({
+      method: 'GET',
+      url: '/api/subtitle-sources',
+    });
+    expect(response.statusCode).toBe(StatusCodes.OK);
+    return readEnvelope(response).data.map(
+      ({subtitleSource}) => subtitleSource,
+    );
+  }
+
+  function writeOpensubtitlesKeys(appKeys) {
+    return writeSharedCredentials({[SubtitleSource.OPENSUBTITLES]: appKeys});
+  }
+
+  async function readMaskedUserConfig(userConfigId, sessionToken) {
+    const response = await callUserConfigApi({
+      method: 'GET',
+      url: `${USER_CONFIGS_URL}/${userConfigId}`,
+      sessionToken,
+    });
+    expect(response.statusCode).toBe(StatusCodes.OK);
+    return readEnvelope(response).data;
+  }
+
+  function toPagePayload(maskedUserConfig) {
+    return {
+      ...pick(maskedUserConfig, [
+        'languageCodes',
+        'subtitleLanguageLimit',
+        'subtitleSourceSwitchStates',
+        'listImprovementSwitchStates',
+      ]),
+      credentials: maskedUserConfig.credentials.map(
+        ({credentialId, subtitleSource, credentialKind}) => ({
+          credentialId,
+          subtitleSource,
+          credentialKind,
+          credentialSecret: {username: '', password: ''},
+        }),
+      ),
+    };
+  }
+
+  it('lists OpenSubtitles as a source only while the server has an app key', async () => {
+    const sourcesWithoutKey = await listSubtitleSources();
+    await writeOpensubtitlesKeys([OPENSUBTITLES_SHARED_KEY]);
+
+    expect(sourcesWithoutKey).not.toContain(SubtitleSource.OPENSUBTITLES);
+    expect(await listSubtitleSources()).toContain(SubtitleSource.OPENSUBTITLES);
+  });
+
+  it('keeps OpenSubtitles listed once its one configured key is rejected, and searches nothing more', async () => {
+    await writeOpensubtitlesKeys([OPENSUBTITLES_SHARED_KEY]);
+    answerSite(`${OPENSUBTITLES_API_URL}/subtitles`, siteRequest => {
+      throw toSubtitleSourceStatusError(
+        {status: StatusCodes.FORBIDDEN, headers: {}},
+        siteRequest,
+      );
+    });
+    const {userConfig} = await createUserConfig({languageCodes: ['tur']});
+
+    for (let listIndex = 0; listIndex < 2; listIndex += 1) {
+      await readSubtitleList({
+        userConfigId: userConfig.id,
+        videoType: 'movie',
+        videoId: ANISUB_VIDEO_ID,
+      });
+    }
+
+    expect(listRequestsTo(OPENSUBTITLES_API_URL)).toHaveLength(1);
+    expect(await listSubtitleSources()).toContain(SubtitleSource.OPENSUBTITLES);
+  });
+
+  it('lists OpenSubtitles again within the polling interval once a key is added, without a restart', async () => {
+    expect(await listSubtitleSources()).not.toContain(
+      SubtitleSource.OPENSUBTITLES,
+    );
+
+    await fs.writeFile(
+      SETTINGS_FILE,
+      JSON.stringify({
+        sharedCredentials: {
+          [SubtitleSource.OPENSUBTITLES]: [OPENSUBTITLES_SHARED_KEY],
+        },
+      }),
+    );
+
+    await vi.waitFor(
+      async () =>
+        expect(await listSubtitleSources()).toContain(
+          SubtitleSource.OPENSUBTITLES,
+        ),
+      {timeout: 5000, interval: 200},
+    );
+  });
+
+  it("never searches OpenSubtitles without an app key, not even with the user's own api key", async () => {
+    const {userConfig} = await createUserConfig({
+      languageCodes: ['tur'],
+      credentials: [
+        {
+          subtitleSource: SubtitleSource.OPENSUBTITLES,
+          credentialKind: CredentialKind.API_KEY,
+          credentialSecret: {apiKey: OPENSUBTITLES_USER_KEY},
+        },
+      ],
+    });
+
+    await readSubtitleList({
+      userConfigId: userConfig.id,
+      videoType: 'movie',
+      videoId: ANISUB_VIDEO_ID,
+    });
+
+    expect(listRequestsTo(OPENSUBTITLES_API_URL)).toEqual([]);
+  });
+
+  it('searches OpenSubtitles under a shared app key while the server has one', async () => {
+    await writeOpensubtitlesKeys([OPENSUBTITLES_SHARED_KEY]);
+    answerSite(`${OPENSUBTITLES_API_URL}/subtitles`, () =>
+      toJsonAnswer({data: []}),
+    );
+    const {userConfig} = await createUserConfig({languageCodes: ['tur']});
+
+    await readSubtitleList({
+      userConfigId: userConfig.id,
+      videoType: 'movie',
+      videoId: ANISUB_VIDEO_ID,
+    });
+
+    expect(
+      listRequestsTo(OPENSUBTITLES_API_URL).map(({headers}) => headers),
+    ).toEqual([{'Api-Key': OPENSUBTITLES_SHARED_KEY}]);
+    await expectNowhereStored(OPENSUBTITLES_SHARED_KEY);
+  });
+
+  it('keeps a switched-off source off through a page save while it is hidden', async () => {
+    const {userConfig} = await createUserConfig({
+      password: USER_CONFIG_PASSWORD,
+      languageCodes: ['tur'],
+      subtitleSourceSwitchStates: {[SubtitleSource.OPENSUBTITLES]: false},
+    });
+    const loginResponse = await login(userConfig.id, USER_CONFIG_PASSWORD);
+    const {sessionToken} = readEnvelope(loginResponse).data;
+    const hiddenConfig = await readMaskedUserConfig(
+      userConfig.id,
+      sessionToken,
+    );
+
+    const saveResponse = await callUserConfigApi({
+      method: 'PATCH',
+      url: `${USER_CONFIGS_URL}/${userConfig.id}`,
+      payload: toPagePayload(hiddenConfig),
+      sessionToken,
+    });
+    await writeOpensubtitlesKeys([OPENSUBTITLES_SHARED_KEY]);
+
+    expect(saveResponse.statusCode).toBe(StatusCodes.OK);
+    expect(
+      (await readMaskedUserConfig(userConfig.id, sessionToken))
+        .subtitleSourceSwitchStates[SubtitleSource.OPENSUBTITLES],
+    ).toBe(false);
+  });
+
+  it('keeps a hidden account and its switches through a page save, and shows them again once a key returns', async () => {
+    const {userConfig} = await createUserConfig({
+      password: USER_CONFIG_PASSWORD,
+      languageCodes: ['tur'],
+      subtitleSourceSwitchStates: {[SubtitleSource.OPENSUBTITLES]: true},
+      listImprovementSwitchStates: {[SubtitleSource.OPENSUBTITLES]: true},
+      credentials: [
+        {
+          subtitleSource: SubtitleSource.OPENSUBTITLES,
+          credentialKind: CredentialKind.ACCOUNT,
+          credentialSecret: OPENSUBTITLES_ACCOUNT,
+        },
+      ],
+    });
+    const loginResponse = await login(userConfig.id, USER_CONFIG_PASSWORD);
+    const {sessionToken} = readEnvelope(loginResponse).data;
+    await writeOpensubtitlesKeys([OPENSUBTITLES_SHARED_KEY]);
+    const shownConfig = await readMaskedUserConfig(userConfig.id, sessionToken);
+    await writeOpensubtitlesKeys([]);
+    const hiddenConfig = await readMaskedUserConfig(
+      userConfig.id,
+      sessionToken,
+    );
+
+    const saveResponse = await callUserConfigApi({
+      method: 'PATCH',
+      url: `${USER_CONFIGS_URL}/${userConfig.id}`,
+      payload: toPagePayload(hiddenConfig),
+      sessionToken,
+    });
+    await writeOpensubtitlesKeys([OPENSUBTITLES_SHARED_KEY]);
+
+    expect(saveResponse.statusCode).toBe(StatusCodes.OK);
+    expect(await listSubtitleSources()).toContain(SubtitleSource.OPENSUBTITLES);
+    expect(await readMaskedUserConfig(userConfig.id, sessionToken)).toEqual(
+      shownConfig,
+    );
+    expect(shownConfig.credentials).toEqual([
+      expect.objectContaining({
+        subtitleSource: SubtitleSource.OPENSUBTITLES,
+        credentialKind: CredentialKind.ACCOUNT,
+        maskedSecret: OPENSUBTITLES_ACCOUNT.username,
+      }),
+    ]);
+    expect(
+      shownConfig.listImprovementSwitchStates[SubtitleSource.OPENSUBTITLES],
+    ).toBe(true);
+    expect(
+      shownConfig.subtitleSourceSwitchStates[SubtitleSource.OPENSUBTITLES],
+    ).toBe(true);
+    expect(listRequestsTo(OPENSUBTITLES_API_URL)).toEqual([]);
   });
 });

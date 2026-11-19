@@ -2,9 +2,9 @@ import {afterEach, describe, expect, it, vi} from 'vitest';
 import {StatusCodes} from 'http-status-codes';
 import {CredentialKind} from '@repo/shared/constants/credential.js';
 import {SubtitleSource} from '@repo/shared/constants/subtitle-source.js';
-import {computeUrlCode} from '@repo/subtitle-core/stremio-row/url-code.js';
 import {SubtitleVideoCandidate} from '../../src/db/models/subtitle-video-candidate.js';
 import {Subtitle} from '../../src/db/models/subtitle.js';
+import {computeUrlCode} from '../../src/lib/stremio-row/url-code.js';
 import {drainPendingSearches} from '../../src/lib/subtitle-search/search-subtitle-source.js';
 import {createSubtitleSourceRegistry} from '../../src/lib/subtitle-sources/subtitle-source-clients.js';
 import {

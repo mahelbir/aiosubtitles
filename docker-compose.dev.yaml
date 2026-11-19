@@ -103,7 +103,7 @@ services:
 
   api:
     <<: *workspace
-    command: sh -c "pnpm db && pnpm --filter api dev --exitcrash"
+    command: sh -c "pnpm db:migrate && pnpm --filter api dev --exitcrash"
     restart: unless-stopped
     environment:
       <<: [*workspace-env, *db-env, *redis-env]

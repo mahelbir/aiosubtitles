@@ -11,7 +11,10 @@ import {
   readIdentities,
   runMoviehashEnrichment,
 } from '../../scripts/moviehash-enrichment.js';
-import {makeSubtitleSourceHit} from '../helpers/subtitle-source-factories.js';
+import {
+  makeSearchQuery,
+  makeSubtitleSourceHit,
+} from '../helpers/subtitle-source-factories.js';
 
 const UPPER_CASE_HASH = 'AABBCCDDEEFF0011';
 const IDENTITY_FILE_NAME = 'Private.Show.S01E01.1080p.mkv';
@@ -168,6 +171,16 @@ describe('createGuardedSearch', () => {
 });
 
 describe('createSearchCase', () => {
+  it('builds a search over the secrets-file key that asks nothing for a query it cannot search', async () => {
+    const searchCase = await createSearchCase({
+      loadSecrets: () => ({OPENSUBTITLES_API_KEY: 'fake-opensubtitles-key'}),
+    });
+
+    await expect(
+      searchCase(makeSearchQuery({imdbId: null, languageCodes: ['tur']})),
+    ).resolves.toBeNull();
+  });
+
   it('refuses to start without the OpenSubtitles key', async () => {
     await expect(createSearchCase({loadSecrets: () => ({})})).rejects.toThrow(
       'OPENSUBTITLES_API_KEY is missing from the secrets file.',

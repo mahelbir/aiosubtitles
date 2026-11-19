@@ -177,6 +177,7 @@ setTestAppOptions({
 
 beforeEach(() => {
   for (const client of fixtureClients) {
+    client.isAvailable.mockReset().mockReturnValue(true);
     client.downloadSubtitle
       .mockReset()
       .mockImplementation(async () => toDownload(MOVIE_SRT));
@@ -932,6 +933,20 @@ describe('a queued background job', () => {
 
     expect(yifyClient.downloadSubtitle).not.toHaveBeenCalled();
   });
+
+  it('downloads nothing once its source turns unavailable', async () => {
+    const {cachedUserConfig} = await readJobUser();
+    const candidates = await storeCandidates(
+      makeHits(2, {releaseNames: [STRONG_NAME]}),
+    );
+    const openGate = await scheduleBehindGate({cachedUserConfig, candidates});
+
+    yifyClient.isAvailable.mockResolvedValue(false);
+    openGate();
+    await drainBackgroundQueues();
+
+    expect(yifyClient.downloadSubtitle).not.toHaveBeenCalled();
+  });
 });
 
 describe('the list improvement switch through the subtitle list route', () => {
@@ -1172,7 +1187,7 @@ describe('the OpenSubtitles list improvement switch', () => {
     expect(opensubtitlesClient.downloadSubtitle).toHaveBeenCalledTimes(1);
   });
 
-  it('spends quota within the viewer share once the switch is on', async () => {
+  it('spends quota within the background share once the switch is on', async () => {
     const {cachedUserConfig} = await readJobUser({
       credentials: [makeAccountCredential('switched-on-user')],
     });
@@ -1182,6 +1197,19 @@ describe('the OpenSubtitles list improvement switch', () => {
 
     expect(opensubtitlesClient.readQuota).toHaveBeenCalled();
     expect(opensubtitlesClient.downloadSubtitle).toHaveBeenCalledTimes(1);
+  });
+
+  it('spends no quota and reads no quota while the source is unavailable', async () => {
+    const {cachedUserConfig} = await readJobUser({
+      credentials: [makeAccountCredential('hidden-source-user')],
+    });
+    const candidates = await storeQuotaCandidates();
+    opensubtitlesClient.isAvailable.mockResolvedValue(false);
+
+    await runListBackgroundWork({candidates, cachedUserConfig});
+
+    expect(opensubtitlesClient.readQuota).not.toHaveBeenCalled();
+    expect(opensubtitlesClient.downloadSubtitle).not.toHaveBeenCalled();
   });
 
   it('spends no quota once the switch is turned off while the job waits', async () => {
@@ -1339,7 +1367,7 @@ describe('OpenSubtitles quota spending (rule A)', () => {
     ).toHaveLength(3);
   });
 
-  it('stops when remaining quota reaches the viewer share', async () => {
+  it('stops once the background has spent its quota share', async () => {
     const {cachedUserConfig} = await readJobUser({
       credentials: [makeAccountCredential('share-user')],
     });
@@ -1762,7 +1790,7 @@ describe('background budget refusals', () => {
     expect(opensubtitlesClient.downloadSubtitle).toHaveBeenCalledTimes(0);
   });
 
-  it('checks the viewer share again before a second account', async () => {
+  it('checks the quota share again before a second account', async () => {
     const {cachedUserConfig} = await readJobUser({
       credentials: [
         makeAccountCredential('first-account'),

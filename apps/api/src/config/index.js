@@ -4,7 +4,6 @@ import {z} from 'zod';
 import {deepFreeze} from 'melperjs';
 import {configureZodLocale} from '@repo/shared/lib/locale.js';
 import {loadWorkspaceEnv} from '@repo/tooling/env.js';
-import {getAppVersion} from '@repo/tooling/workspace.js';
 import {getEnvSchema} from './schema.js';
 
 const appPath = path.resolve(
@@ -25,7 +24,6 @@ const env = parsed.data;
 configureZodLocale(env.LOCALE);
 
 export const config = deepFreeze({
-  appVersion: getAppVersion(),
   env: env.NODE_ENV,
   isDev: env.NODE_ENV === 'development',
   isTest: env.NODE_ENV === 'test',
@@ -37,7 +35,6 @@ export const config = deepFreeze({
   clientExportRoot: path.join(appPath, 'public-client'),
   storagePath: env.STORAGE_PATH,
   privateStoragePath: path.join(env.STORAGE_PATH, 'private'),
-  publicStoragePath: path.join(env.STORAGE_PATH, 'public'),
 
   port: env.PORT,
   host: env.HOST,
@@ -51,7 +48,6 @@ export const config = deepFreeze({
   clientIpHeader: env.CLIENT_IP_HEADER,
   clientIpv6Subnet: env.CLIENT_IPV6_SUBNET,
 
-  timezone: env.TIMEZONE,
   locale: env.LOCALE,
 
   rateLimitWindow: env.RATE_LIMIT_WINDOW,
@@ -59,6 +55,16 @@ export const config = deepFreeze({
   rateLimitIpPenalty: env.RATE_LIMIT_IP_PENALTY,
   rateLimitAllowList: env.RATE_LIMIT_ALLOW_LIST,
   isRateLimitHeadersEnabled: env.RATE_LIMIT_HEADERS,
+  rateLimitSubtitleListIpMax: env.RATE_LIMIT_SUBTITLE_LIST_IP_MAX,
+  rateLimitSubtitleListUserConfigMax:
+    env.RATE_LIMIT_SUBTITLE_LIST_USER_CONFIG_MAX,
+  rateLimitSubtitleFileIpMax: env.RATE_LIMIT_SUBTITLE_FILE_IP_MAX,
+  rateLimitSubtitleFileUserConfigMax:
+    env.RATE_LIMIT_SUBTITLE_FILE_USER_CONFIG_MAX,
+  rateLimitUserConfigPasswordWindow: env.RATE_LIMIT_USER_CONFIG_PASSWORD_WINDOW,
+  rateLimitUserConfigPasswordIpMax: env.RATE_LIMIT_USER_CONFIG_PASSWORD_IP_MAX,
+  rateLimitUserConfigPasswordUserConfigMax:
+    env.RATE_LIMIT_USER_CONFIG_PASSWORD_USER_CONFIG_MAX,
 
   secretKey: env.SECRET_KEY,
   bcryptStrength: env.BCRYPT_STRENGTH,
@@ -78,23 +84,12 @@ export const config = deepFreeze({
   redisPass: env.REDIS_PASS,
   redisDb: env.REDIS_DB,
 
-  opensubtitlesApiKey: env.OPENSUBTITLES_API_KEY,
   subtitleSearchDeadline: env.SUBTITLE_SEARCH_DEADLINE,
   subtitleSearchCacheFreshTtl: env.SUBTITLE_SEARCH_CACHE_FRESH_TTL,
   subtitleSearchCacheStaleTtl: env.SUBTITLE_SEARCH_CACHE_STALE_TTL,
+  subtitleBackgroundRateShare: env.SUBTITLE_BACKGROUND_RATE_SHARE,
+  subtitleBackgroundQuotaShare: env.SUBTITLE_BACKGROUND_QUOTA_SHARE,
+  subtitleBackgroundCandidateMax: env.SUBTITLE_BACKGROUND_CANDIDATE_MAX,
   userConfigCacheTtl: env.USER_CONFIG_CACHE_TTL,
   userConfigSessionTtl: env.USER_CONFIG_SESSION_TTL,
-  subtitleSourceBackgroundShare: env.SUBTITLE_SOURCE_BACKGROUND_SHARE,
-  listImprovementCandidateMax: env.LIST_IMPROVEMENT_CANDIDATE_MAX,
-  listImprovementViewerShare: env.LIST_IMPROVEMENT_VIEWER_SHARE,
-  subtitleListRateLimitIpMax: env.SUBTITLE_LIST_RATE_LIMIT_IP_MAX,
-  subtitleListRateLimitUserConfigMax:
-    env.SUBTITLE_LIST_RATE_LIMIT_USER_CONFIG_MAX,
-  subtitleFileRateLimitIpMax: env.SUBTITLE_FILE_RATE_LIMIT_IP_MAX,
-  subtitleFileRateLimitUserConfigMax:
-    env.SUBTITLE_FILE_RATE_LIMIT_USER_CONFIG_MAX,
-  userConfigPasswordRateLimitWindow: env.USER_CONFIG_PASSWORD_RATE_LIMIT_WINDOW,
-  userConfigPasswordRateLimitIpMax: env.USER_CONFIG_PASSWORD_RATE_LIMIT_IP_MAX,
-  userConfigPasswordRateLimitUserConfigMax:
-    env.USER_CONFIG_PASSWORD_RATE_LIMIT_USER_CONFIG_MAX,
 });

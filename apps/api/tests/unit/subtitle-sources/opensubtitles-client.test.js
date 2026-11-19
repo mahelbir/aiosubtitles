@@ -9,7 +9,10 @@ import {
   createOpensubtitlesClient,
   opensubtitlesClient,
 } from '../../../src/lib/subtitle-sources/opensubtitles/opensubtitles-client.js';
-import {toOpensubtitlesSessionKey} from '../../../src/lib/subtitle-sources/opensubtitles/opensubtitles-session.js';
+import {
+  toOpensubtitlesAppKeyFingerprint,
+  toOpensubtitlesSessionKey,
+} from '../../../src/lib/subtitle-sources/opensubtitles/opensubtitles-session.js';
 import {listSubtitleSourceClients} from '../../../src/lib/subtitle-sources/subtitle-source-clients.js';
 import {SubtitleSourceBudgetScope} from '../../../src/lib/subtitle-sources/subtitle-source-contract.js';
 import {
@@ -19,12 +22,14 @@ import {
 } from '../../../src/lib/subtitle-sources/subtitle-source-errors.js';
 import {readSubtitleSourceResponse} from '../../../src/lib/subtitle-sources/subtitle-source-request.js';
 import {readFixture} from '../../helpers/read-fixture.js';
+import {createTestSharedCredentialPool} from '../../helpers/shared-credentials.js';
 import {
   makeSearchQuery,
   makeSubtitleSourceCredential,
 } from '../../helpers/subtitle-source-factories.js';
 
 const SERVER_API_KEY = 'fixture-server-opensubtitles-key';
+const SECOND_SERVER_API_KEY = 'fixture-second-server-opensubtitles-key';
 const USER_API_KEY = 'fixture-user-opensubtitles-key';
 const ACCOUNT_PASSWORD = 'fixture-account-password';
 const VIP_API_URL = 'https://vip-api.opensubtitles.com/api/v1';
@@ -126,9 +131,16 @@ function createFakeLogger() {
 }
 
 async function createSiteClient({
-  apiKey = SERVER_API_KEY,
+  appKeys = [SERVER_API_KEY],
   storeOverrides = {},
 } = {}) {
+  const {
+    sharedCredentialPool,
+    writeSharedCredentials,
+    logger: poolLogger,
+  } = createTestSharedCredentialPool({
+    [SubtitleSource.OPENSUBTITLES]: appKeys,
+  });
   const fakeSite = createFakeSite();
   const [loginBody, downloadBody, userBody, subtitlesBody] = await Promise.all(
     ['login', 'download', 'infos-user', 'subtitles'].map(fileName =>
@@ -157,11 +169,27 @@ async function createSiteClient({
   const logger = createFakeLogger();
   const client = createOpensubtitlesClient({
     requestSubtitleSource: fakeSite.requestSubtitleSource,
-    apiKey,
+    sharedCredentialPool,
     sessionStore,
     logger,
   });
-  return {client, fakeSite, sessionStore, logger, downloadBody};
+  return {
+    client,
+    fakeSite,
+    sessionStore,
+    logger,
+    poolLogger,
+    downloadBody,
+    writeAppKeys: nextAppKeys =>
+      writeSharedCredentials({[SubtitleSource.OPENSUBTITLES]: nextAppKeys}),
+  };
+}
+
+function toPinnedSession(session, apiKey = SERVER_API_KEY) {
+  return {
+    ...session,
+    appKeyFingerprint: toOpensubtitlesAppKeyFingerprint(apiKey),
+  };
 }
 
 function toErrorText(error) {
@@ -196,23 +224,63 @@ describe('createOpensubtitlesClient search', () => {
     expect(hits.map(hit => hit.siteFileId)).toContain('7001');
     const [searchRequest] = fakeSite.listSent('/api/v1/subtitles');
     expect(searchRequest.headers).toMatchObject({'Api-Key': SERVER_API_KEY});
-    expect(searchRequest.credentialId).toBeNull();
+    expect(searchRequest.credentialId).toEqual(expect.any(String));
+    expect(searchRequest.credentialId).not.toContain(SERVER_API_KEY);
+  });
+
+  it('takes the server app keys round robin, one per search', async () => {
+    const {client, fakeSite} = await createSiteClient({
+      appKeys: [SERVER_API_KEY, SECOND_SERVER_API_KEY],
+    });
+
+    for (const credential of [null, null, makeAccountCredential()]) {
+      await client.searchSubtitles(makeSearchQuery(), credential);
+    }
+
+    expect(
+      fakeSite
+        .listSent('/api/v1/subtitles')
+        .map(searchRequest => searchRequest.headers['Api-Key']),
+    ).toEqual([SERVER_API_KEY, SECOND_SERVER_API_KEY, SERVER_API_KEY]);
+  });
+
+  it('moves a rejected app key aside and searches with the next one', async () => {
+    const {client, fakeSite, poolLogger} = await createSiteClient({
+      appKeys: [SERVER_API_KEY, SECOND_SERVER_API_KEY],
+    });
+    fakeSite.answer(
+      '/api/v1/subtitles',
+      {status: StatusCodes.FORBIDDEN, body: {}},
+      {status: StatusCodes.OK, body: {data: []}},
+    );
+
+    await expect(
+      client.searchSubtitles(makeSearchQuery(), null),
+    ).resolves.toEqual([]);
+    await client.searchSubtitles(makeSearchQuery(), null);
+
+    expect(
+      fakeSite
+        .listSent('/api/v1/subtitles')
+        .map(searchRequest => searchRequest.headers['Api-Key']),
+    ).toEqual([SERVER_API_KEY, SECOND_SERVER_API_KEY, SECOND_SERVER_API_KEY]);
+    expect(poolLogger.warn).toHaveBeenCalledOnce();
   });
 
   it('searches nothing without a server or user key', async () => {
-    const {client, fakeSite} = await createSiteClient({apiKey: ''});
+    const {client, fakeSite} = await createSiteClient({appKeys: []});
 
     expect(await client.searchSubtitles(makeSearchQuery(), null)).toBeNull();
     expect(fakeSite.sentRequests).toHaveLength(0);
   });
 
   it('cannot search without a credential when it has no server key', async () => {
-    const {client} = await createSiteClient({apiKey: ''});
-    expect(client.canSearchWithoutCredential()).toBe(false);
+    const {client} = await createSiteClient({appKeys: []});
+    await expect(client.canSearchWithoutCredential()).resolves.toBe(false);
   });
 
   it('searches with the user key when the server has none', async () => {
-    const {client, fakeSite} = await createSiteClient({apiKey: ''});
+    const {client, fakeSite} = await createSiteClient({appKeys: []});
     const keyCredential = makeSubtitleSourceCredential({apiKey: USER_API_KEY});
 
     await client.searchSubtitles(makeSearchQuery(), keyCredential);
@@ -220,6 +288,39 @@ describe('createOpensubtitlesClient search', () => {
     const [searchRequest] = fakeSite.listSent('/api/v1/subtitles');
     expect(searchRequest.headers).toMatchObject({'Api-Key': USER_API_KEY});
     expect(searchRequest.credentialId).toBe(keyCredential.credentialId);
+  });
+});
+
+describe('createOpensubtitlesClient availability', () => {
+  it('is available while the server has an app key, and follows the settings', async () => {
+    const {client, writeAppKeys} = await createSiteClient({appKeys: []});
+    await expect(client.isAvailable()).resolves.toBe(false);
+
+    await writeAppKeys([SERVER_API_KEY]);
+    await expect(client.isAvailable()).resolves.toBe(true);
+
+    await writeAppKeys([]);
+    await expect(client.isAvailable()).resolves.toBe(false);
+  });
+
+  it('stays available once its one configured key is rejected, and then searches nothing', async () => {
+    const {client, fakeSite, poolLogger} = await createSiteClient();
+    fakeSite.answer('/api/v1/subtitles', {
+      status: StatusCodes.FORBIDDEN,
+      body: {},
+    });
+
+    await expect(
+      client.searchSubtitles(makeSearchQuery(), null),
+    ).resolves.toBeNull();
+    await expect(
+      client.searchSubtitles(makeSearchQuery(), null),
+    ).resolves.toBeNull();
+
+    await expect(client.isAvailable()).resolves.toBe(true);
+    await expect(client.canSearchWithoutCredential()).resolves.toBe(false);
+    expect(fakeSite.listSent('/api/v1/subtitles')).toHaveLength(1);
+    expect(poolLogger.warn).toHaveBeenCalledOnce();
   });
 });
 
@@ -303,6 +404,32 @@ describe('createOpensubtitlesClient download', () => {
     expect(fakeSite.listSent('/api/v1/download')).toHaveLength(4);
   });
 
+  it('takes a token another caller refreshed under the same app key, without logging in', async () => {
+    const storedSessions = [
+      toPinnedSession({token: 'token-old', baseUrl: VIP_API_URL}),
+      toPinnedSession({token: 'token-new', baseUrl: VIP_API_URL}),
+    ];
+    const {client, fakeSite, downloadBody} = await createSiteClient({
+      storeOverrides: {
+        readOpensubtitlesSession: async () => storedSessions.shift() ?? null,
+      },
+    });
+    fakeSite.answer(
+      '/api/v1/download',
+      {status: StatusCodes.UNAUTHORIZED, body: {message: 'Unauthorized'}},
+      {status: StatusCodes.OK, body: downloadBody},
+    );
+
+    await client.downloadSubtitle(subtitleRef, accountCredential);
+
+    expect(fakeSite.listSent('/api/v1/login')).toHaveLength(0);
+    expect(
+      fakeSite
+        .listSent('/api/v1/download')
+        .map(request => request.headers.Authorization),
+    ).toEqual(['Bearer token-old', 'Bearer token-new']);
+  });
+
   it('stores the refreshed token for the next call', async () => {
     const {client, fakeSite, sessionStore, downloadBody} = siteClient;
     fakeSite.answer(
@@ -318,7 +445,7 @@ describe('createOpensubtitlesClient download', () => {
       await sessionStore.readOpensubtitlesSession(
         toOpensubtitlesSessionKey(accountCredential),
       ),
-    ).toEqual({token: 'token-2', baseUrl: VIP_API_URL});
+    ).toEqual(toPinnedSession({token: 'token-2', baseUrl: VIP_API_URL}));
     expect(fakeSite.listSent('/api/v1/login')).toHaveLength(2);
     expect(
       fakeSite.listSent('/api/v1/download').at(-1).headers.Authorization,
@@ -422,7 +549,10 @@ describe('createOpensubtitlesClient download', () => {
 
   it('keeps a good token when a download is refused for the server key', async () => {
     const {client, fakeSite, sessionStore} = siteClient;
-    const cachedSession = {token: 'token-cached', baseUrl: VIP_API_URL};
+    const cachedSession = toPinnedSession({
+      token: 'token-cached',
+      baseUrl: VIP_API_URL,
+    });
     await sessionStore.storeOpensubtitlesSession(
       toOpensubtitlesSessionKey(accountCredential),
       cachedSession,
@@ -448,7 +578,7 @@ describe('createOpensubtitlesClient download', () => {
   });
 
   it('never logs in without a server key', async () => {
-    const {client, fakeSite} = await createSiteClient({apiKey: ''});
+    const {client, fakeSite} = await createSiteClient({appKeys: []});
 
     const error = await client
       .downloadSubtitle(subtitleRef, accountCredential)
@@ -457,6 +587,247 @@ describe('createOpensubtitlesClient download', () => {
     expect(error).toBeInstanceOf(SourceUnavailableError);
     expect(error.credentialId).toBeUndefined();
     expect(fakeSite.sentRequests).toHaveLength(0);
+  });
+
+  describe('with an account session pinned to its app key', () => {
+    function createTwoKeyClient() {
+      return createSiteClient({
+        appKeys: [SERVER_API_KEY, SECOND_SERVER_API_KEY],
+      });
+    }
+
+    function listAppKeys(fakeSite, sitePath) {
+      return fakeSite
+        .listSent(sitePath)
+        .map(siteRequest => siteRequest.headers['Api-Key']);
+    }
+
+    it('keeps the app key that logged it in while the rotation moves on', async () => {
+      const {client, fakeSite} = await createTwoKeyClient();
+
+      for (let downloadIndex = 0; downloadIndex < 3; downloadIndex += 1) {
+        await client.downloadSubtitle(subtitleRef, accountCredential);
+        await client.searchSubtitles(makeSearchQuery(), null);
+      }
+
+      expect(listAppKeys(fakeSite, '/api/v1/login')).toEqual([SERVER_API_KEY]);
+      expect(listAppKeys(fakeSite, '/api/v1/download')).toEqual([
+        SERVER_API_KEY,
+        SERVER_API_KEY,
+        SERVER_API_KEY,
+      ]);
+    });
+
+    it('stores a fingerprint of its app key and never the key itself', async () => {
+      const {client, sessionStore} = await createTwoKeyClient();
+
+      await client.downloadSubtitle(subtitleRef, accountCredential);
+
+      const storedSession = await sessionStore.readOpensubtitlesSession(
+        toOpensubtitlesSessionKey(accountCredential),
+      );
+      expect(storedSession).toEqual(
+        toPinnedSession({token: 'token-1', baseUrl: VIP_API_URL}),
+      );
+      expect(JSON.stringify(storedSession)).not.toContain(SERVER_API_KEY);
+    });
+
+    it('keeps its app key while that key rests after a search limit, without a new login', async () => {
+      const {client, fakeSite} = await createTwoKeyClient();
+      await client.downloadSubtitle(subtitleRef, accountCredential);
+      fakeSite.answer('/api/v1/subtitles', {
+        status: StatusCodes.TOO_MANY_REQUESTS,
+        body: {},
+      });
+      await expect(
+        client.searchSubtitles(makeSearchQuery(), null),
+      ).rejects.toBeInstanceOf(SourceRateLimitError);
+
+      await client.downloadSubtitle(subtitleRef, accountCredential);
+
+      expect(listAppKeys(fakeSite, '/api/v1/login')).toEqual([SERVER_API_KEY]);
+      expect(listAppKeys(fakeSite, '/api/v1/download')).toEqual([
+        SERVER_API_KEY,
+        SERVER_API_KEY,
+      ]);
+    });
+
+    it('logs in again with another key once its key leaves the settings', async () => {
+      const {client, fakeSite, writeAppKeys} = await createTwoKeyClient();
+      await client.downloadSubtitle(subtitleRef, accountCredential);
+
+      await writeAppKeys([SECOND_SERVER_API_KEY]);
+      await client.downloadSubtitle(subtitleRef, accountCredential);
+
+      expect(listAppKeys(fakeSite, '/api/v1/login')).toEqual([
+        SERVER_API_KEY,
+        SECOND_SERVER_API_KEY,
+      ]);
+      expect(
+        fakeSite
+          .listSent('/api/v1/download')
+          .map(({headers}) => [headers['Api-Key'], headers.Authorization]),
+      ).toEqual([
+        [SERVER_API_KEY, 'Bearer token-1'],
+        [SECOND_SERVER_API_KEY, 'Bearer token-2'],
+      ]);
+    });
+
+    it.each([
+      ['the login', '/api/v1/login', 'downloadSubtitle'],
+      ['the download link', '/api/v1/download', 'downloadSubtitle'],
+      ['the quota read', '/api/v1/infos/user', 'readQuota'],
+    ])(
+      'fails a 403 on %s as unavailable, with one key tried and every key left usable',
+      async (_, sitePath, clientCall) => {
+        const {client, fakeSite, poolLogger} = await createTwoKeyClient();
+        fakeSite.answer(sitePath, {
+          status: StatusCodes.FORBIDDEN,
+          body: {message: 'You cannot consume this service'},
+        });
+
+        const error = await client[clientCall](
+          ...(clientCall === 'downloadSubtitle'
+            ? [subtitleRef, accountCredential]
+            : [accountCredential]),
+        ).catch(caughtError => caughtError);
+        await client.searchSubtitles(makeSearchQuery(), null);
+        await client.searchSubtitles(makeSearchQuery(), null);
+
+        expect(error).toBeInstanceOf(SourceUnavailableError);
+        expect(error.credentialId).toBeUndefined();
+        expect(listAppKeys(fakeSite, sitePath)).toEqual([SERVER_API_KEY]);
+        expect(listAppKeys(fakeSite, '/api/v1/login')).toEqual([
+          SERVER_API_KEY,
+        ]);
+        expect(poolLogger.warn).not.toHaveBeenCalled();
+        await expect(client.canSearchWithoutCredential()).resolves.toBe(true);
+        expect(listAppKeys(fakeSite, '/api/v1/subtitles')).toEqual([
+          SECOND_SERVER_API_KEY,
+          SERVER_API_KEY,
+        ]);
+      },
+    );
+
+    it('logs in again with another key once a keyless search rests its key', async () => {
+      const {client, fakeSite, poolLogger} = await createTwoKeyClient();
+      await client.downloadSubtitle(subtitleRef, accountCredential);
+      fakeSite.answer(
+        '/api/v1/subtitles',
+        {status: StatusCodes.OK, body: {data: []}},
+        {status: StatusCodes.FORBIDDEN, body: {}},
+        {status: StatusCodes.OK, body: {data: []}},
+      );
+
+      await client.searchSubtitles(makeSearchQuery(), null);
+      await client.searchSubtitles(makeSearchQuery(), null);
+      await client.downloadSubtitle(subtitleRef, accountCredential);
+
+      expect(listAppKeys(fakeSite, '/api/v1/subtitles')).toEqual([
+        SECOND_SERVER_API_KEY,
+        SERVER_API_KEY,
+        SECOND_SERVER_API_KEY,
+      ]);
+      expect(listAppKeys(fakeSite, '/api/v1/login')).toEqual([
+        SERVER_API_KEY,
+        SECOND_SERVER_API_KEY,
+      ]);
+      expect(
+        fakeSite
+          .listSent('/api/v1/download')
+          .map(({headers}) => [headers['Api-Key'], headers.Authorization]),
+      ).toEqual([
+        [SERVER_API_KEY, 'Bearer token-1'],
+        [SECOND_SERVER_API_KEY, 'Bearer token-2'],
+      ]);
+      expect(poolLogger.warn).toHaveBeenCalledOnce();
+    });
+
+    it('never calls the account invalid for a 403 on the login', async () => {
+      const {client, fakeSite} = await createTwoKeyClient();
+      fakeSite.answer('/api/v1/login', {
+        status: StatusCodes.FORBIDDEN,
+        body: {message: 'You cannot consume this service'},
+      });
+
+      const error = await client
+        .checkCredential(accountCredential)
+        .catch(caughtError => caughtError);
+
+      expect(error).toBeInstanceOf(SourceUnavailableError);
+      expect(listAppKeys(fakeSite, '/api/v1/login')).toEqual([SERVER_API_KEY]);
+    });
+
+    it('still rests a key a keyless search gets a 403 for, after an account call 403', async () => {
+      const {client, fakeSite, poolLogger} = await createTwoKeyClient();
+      fakeSite.answer('/api/v1/download', {
+        status: StatusCodes.FORBIDDEN,
+        body: {message: 'You cannot consume this service'},
+      });
+      await client
+        .downloadSubtitle(subtitleRef, accountCredential)
+        .catch(caughtError => caughtError);
+      fakeSite.answer(
+        '/api/v1/subtitles',
+        {status: StatusCodes.FORBIDDEN, body: {}},
+        {status: StatusCodes.OK, body: {data: []}},
+      );
+
+      await client.searchSubtitles(makeSearchQuery(), null);
+      await client.searchSubtitles(makeSearchQuery(), null);
+
+      expect(listAppKeys(fakeSite, '/api/v1/subtitles')).toEqual([
+        SECOND_SERVER_API_KEY,
+        SERVER_API_KEY,
+        SERVER_API_KEY,
+      ]);
+      expect(poolLogger.warn).toHaveBeenCalledOnce();
+    });
+
+    it('blames only the account for a wrong password, never the app key', async () => {
+      const {client, fakeSite, poolLogger} = await createTwoKeyClient();
+      fakeSite.answer('/api/v1/login', {
+        status: StatusCodes.UNAUTHORIZED,
+        body: {message: 'Error, invalid username/password', status: 401},
+      });
+
+      const error = await client
+        .downloadSubtitle(subtitleRef, accountCredential)
+        .catch(caughtError => caughtError);
+      const credentialCheck = await client.checkCredential(accountCredential);
+
+      expect(error).toBeInstanceOf(SourceCredentialError);
+      expect(error.credentialId).toBe(accountCredential.credentialId);
+      expect(credentialCheck.credentialStatus).toBe(CredentialStatus.INVALID);
+      expect(poolLogger.warn).not.toHaveBeenCalled();
+      await expect(client.isAvailable()).resolves.toBe(true);
+      expect(listAppKeys(fakeSite, '/api/v1/login')).toEqual([
+        SERVER_API_KEY,
+        SECOND_SERVER_API_KEY,
+      ]);
+    });
+
+    it('never sends a token with an app key that did not mint it', async () => {
+      const {client, fakeSite} = await createTwoKeyClient();
+      const releaseLogin = fakeSite.holdLogin();
+
+      const downloads = Promise.all([
+        client.downloadSubtitle(subtitleRef, accountCredential),
+        client.downloadSubtitle(subtitleRef, accountCredential),
+      ]);
+      await vi.waitFor(() =>
+        expect(fakeSite.listSent('/api/v1/login').length).toBeGreaterThan(0),
+      );
+      releaseLogin();
+      await downloads;
+      await client.downloadSubtitle(subtitleRef, accountCredential);
+
+      const loginKeys = listAppKeys(fakeSite, '/api/v1/login');
+      for (const {headers} of fakeSite.listSent('/api/v1/download')) {
+        const loginIndex = Number(headers.Authorization.split('-').at(-1)) - 1;
+        expect(headers['Api-Key']).toBe(loginKeys[loginIndex]);
+      }
+    });
   });
 
   it('keeps the bytes when the quota cache cannot be written', async () => {
@@ -771,7 +1142,7 @@ describe('createOpensubtitlesClient quota and checks', () => {
   it.each(['checkCredential', 'readQuota'])(
     'asks nothing in %s for an account without a server key',
     async clientCall => {
-      const {client, fakeSite} = await createSiteClient({apiKey: ''});
+      const {client, fakeSite} = await createSiteClient({appKeys: []});
 
       await expect(
         client[clientCall](makeAccountCredential()),
@@ -824,9 +1195,11 @@ describe('opensubtitlesClient', () => {
     ]);
   });
 
-  it('searches with the server key but downloads only with an account', () => {
-    expect(opensubtitlesClient.canSearchWithoutCredential()).toBe(true);
-    expect(opensubtitlesClient.canDownloadWithoutCredential()).toBe(false);
+  it('searches with a server app key but downloads only with an account', async () => {
+    const {client} = await createSiteClient();
+
+    await expect(client.canSearchWithoutCredential()).resolves.toBe(true);
+    expect(client.canDownloadWithoutCredential()).toBe(false);
   });
 
   it('ranks by video hash', () => {

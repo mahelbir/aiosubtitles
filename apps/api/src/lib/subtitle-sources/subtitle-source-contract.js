@@ -11,7 +11,7 @@ import {
   SUBTITLE_FORMAT_FILE_EXTENSIONS,
   SubtitleFileExtension,
 } from '@repo/subtitle-core/constants/subtitle-core-enums.js';
-import {computeUrlCode} from '@repo/subtitle-core/stremio-row/url-code.js';
+import {computeUrlCode} from '../stremio-row/url-code.js';
 import {SubtitleAliasSource} from './subtitle-alias-source.js';
 
 /**
@@ -119,6 +119,7 @@ import {SubtitleAliasSource} from './subtitle-alias-source.js';
  * @property {boolean} [canUseSharedCredential]
  * @property {boolean} [isDownloadKeyless]
  * @property {DownloadBudget[]} downloadBudgets
+ * @property {() => boolean|Promise<boolean>} isAvailable
  * @property {() => boolean|Promise<boolean>} canSearchWithoutCredential
  * @property {() => boolean|Promise<boolean>} canDownloadWithoutCredential
  * @property {(searchQuery: SubtitleSearchQuery, credential: SubtitleSourceCredential|null, callOptions?: SubtitleSourceCallOptions) => Promise<SubtitleSourceHit[]|null>} searchSubtitles

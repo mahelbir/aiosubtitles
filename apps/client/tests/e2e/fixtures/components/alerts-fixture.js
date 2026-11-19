@@ -5,7 +5,6 @@ import {useQueryClient} from '@tanstack/react-query';
 import {mapValues} from 'es-toolkit';
 import {StatusCodes} from 'http-status-codes';
 import {Button} from '@/components/ui/button';
-import {useBusy} from '@/hooks/use-busy';
 import {appAlert} from '@/lib/app-alert';
 import {withToast} from '@/lib/toast';
 import {
@@ -41,7 +40,6 @@ export function AlertsFixture() {
   const [callbacks, setCallbacks] = useState({});
   const [ledgerAtCallback, setLedgerAtCallback] = useState(null);
   const [entryAtCallback, setEntryAtCallback] = useState(null);
-  const [isBusy, setIsBusy] = useState(false);
   const [isOnMutateClaimed, setIsOnMutateClaimed] = useState(false);
   const ledgerQuery = useFixtureLedger();
 
@@ -83,8 +81,6 @@ export function AlertsFixture() {
     settling: useInvalidatingFixtureEntry({invalidateOn: 'settled'}),
     removal: usePostFixtureEntry({toast: false}),
   };
-
-  useBusy(isBusy);
 
   const remove = () =>
     track(
@@ -155,13 +151,6 @@ export function AlertsFixture() {
           >
             Görevi başlat
           </Button>
-          <Button
-            variant="outline"
-            aria-pressed={isBusy}
-            onClick={() => setIsBusy(current => !current)}
-          >
-            Meşgul
-          </Button>
         </div>
       </FixtureSection>
       <FixtureSection title="Mutasyonlar">
@@ -193,7 +182,6 @@ export function AlertsFixture() {
         value={{
           outcomes,
           callbacks,
-          isBusy,
           ledger: ledgerQuery.data ?? null,
           ledgerAtCallback,
           entryAtCallback,

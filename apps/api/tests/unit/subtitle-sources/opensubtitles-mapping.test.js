@@ -38,6 +38,10 @@ const accountCredential = makeSubtitleSourceCredential({
   password: ACCOUNT_PASSWORD,
 });
 const keyCredential = makeSubtitleSourceCredential({apiKey: USER_API_KEY});
+const appCredential = makeSubtitleSourceCredential({
+  credentialId: 'shared-credential:opensubtitles:0',
+  apiKey: SERVER_API_KEY,
+});
 const episodeQuery = makeSearchQuery({
   videoId: 'tt0944947:1:2',
   videoType: 'series',
@@ -105,9 +109,9 @@ function findHeaderNames(headers) {
   return Object.keys(headers).map(headerName => headerName.toLowerCase());
 }
 
-function readSearchUrl(searchQuery, searchOptions = {apiKey: SERVER_API_KEY}) {
+function readSearchUrl(searchQuery) {
   return new URL(
-    opensubtitlesMapping.buildSearchRequest(searchQuery, searchOptions).url,
+    opensubtitlesMapping.buildSearchRequest(searchQuery, appCredential).url,
   );
 }
 
@@ -115,7 +119,7 @@ describe('opensubtitlesMapping.buildSearchRequest', () => {
   it('asks one episode with sorted lower-case parameters and the server key', () => {
     const searchRequest = opensubtitlesMapping.buildSearchRequest(
       episodeQuery,
-      {credential: null, apiKey: SERVER_API_KEY},
+      appCredential,
     );
     const searchUrl = new URL(searchRequest.url);
     expect(`${searchUrl.origin}${searchUrl.pathname}`).toBe(
@@ -141,7 +145,7 @@ describe('opensubtitlesMapping.buildSearchRequest', () => {
       method: 'GET',
       responseType: 'json',
       acceptedStatuses: [],
-      credentialId: null,
+      credentialId: appCredential.credentialId,
     });
   });
 
@@ -184,7 +188,7 @@ describe('opensubtitlesMapping.buildSearchRequest', () => {
     expect(
       opensubtitlesMapping.buildSearchRequest(
         makeSearchQuery({languageCodes: ['spl']}),
-        {credential: null, apiKey: SERVER_API_KEY},
+        appCredential,
       ),
     ).toBeNull();
   });
@@ -192,7 +196,7 @@ describe('opensubtitlesMapping.buildSearchRequest', () => {
   it('leaves the app User-Agent and Accept to the shared defaults', () => {
     const searchRequest = opensubtitlesMapping.buildSearchRequest(
       episodeQuery,
-      {credential: null, apiKey: SERVER_API_KEY},
+      appCredential,
     );
     expect(findHeaderNames(searchRequest.headers)).not.toContain('user-agent');
     expect(buildSubtitleSourceRequestOptions(searchRequest).headers).toEqual(
@@ -204,41 +208,23 @@ describe('opensubtitlesMapping.buildSearchRequest', () => {
     );
   });
 
-  it('prefers the user api key and counts the search against it', () => {
+  it('searches with the user api key and counts the search against it', () => {
     const searchRequest = opensubtitlesMapping.buildSearchRequest(
       episodeQuery,
-      {credential: keyCredential, apiKey: SERVER_API_KEY},
+      keyCredential,
     );
     expect(searchRequest.headers).toMatchObject({'Api-Key': USER_API_KEY});
     expect(searchRequest.credentialId).toBe(keyCredential.credentialId);
     expect(searchRequest.url).not.toContain(USER_API_KEY);
   });
 
-  it('searches with the user api key when there is no server key', () => {
-    const searchRequest = opensubtitlesMapping.buildSearchRequest(
-      episodeQuery,
-      {credential: keyCredential, apiKey: ''},
-    );
-    expect(searchRequest.headers).toMatchObject({'Api-Key': USER_API_KEY});
-  });
-
-  it('searches an account user with the server key and no account secret', () => {
-    const searchRequest = opensubtitlesMapping.buildSearchRequest(
-      episodeQuery,
-      {credential: accountCredential, apiKey: SERVER_API_KEY},
-    );
-    expect(searchRequest.headers).toMatchObject({'Api-Key': SERVER_API_KEY});
-    expect(searchRequest.credentialId).toBeNull();
-    expect(JSON.stringify(searchRequest)).not.toContain(ACCOUNT_PASSWORD);
-  });
-
   it.each([
-    ['an empty server key', {credential: null, apiKey: ''}],
-    ['no server key', {credential: null, apiKey: undefined}],
-    ['only an account', {credential: accountCredential, apiKey: ''}],
-  ])('asks nothing with %s', (_, searchOptions) => {
+    ['no key', null],
+    ['an empty key', makeSubtitleSourceCredential({apiKey: ''})],
+    ['only an account', accountCredential],
+  ])('asks nothing with %s', (_, searchCredential) => {
     expect(
-      opensubtitlesMapping.buildSearchRequest(episodeQuery, searchOptions),
+      opensubtitlesMapping.buildSearchRequest(episodeQuery, searchCredential),
     ).toBeNull();
   });
 
@@ -246,7 +232,7 @@ describe('opensubtitlesMapping.buildSearchRequest', () => {
     expect(
       opensubtitlesMapping.buildSearchRequest(
         makeSearchQuery({videoType: 'series', imdbId: 'tt0944947'}),
-        {credential: null, apiKey: SERVER_API_KEY},
+        appCredential,
       ),
     ).toBeNull();
   });
@@ -262,7 +248,7 @@ describe('opensubtitlesMapping.buildSearchRequest', () => {
           catalogSeason: 1,
           catalogEpisode: 1,
         }),
-        {credential: null, apiKey: SERVER_API_KEY},
+        appCredential,
       ),
     ).toBeNull();
   });
@@ -446,7 +432,7 @@ describe('opensubtitlesMapping.buildLoginRequest', () => {
   it('posts the account to the login route with the server key', () => {
     const loginRequest = opensubtitlesMapping.buildLoginRequest(
       accountCredential,
-      {apiKey: SERVER_API_KEY},
+      appCredential,
     );
     expect(loginRequest).toMatchObject({
       subtitleSource: SubtitleSource.OPENSUBTITLES,
@@ -540,7 +526,7 @@ describe('opensubtitlesMapping.toSession', () => {
     expect(error.credentialId).toBe(accountCredential.credentialId);
   });
 
-  it('reads a login refused for the server key as an unavailable source', () => {
+  it('reads a login refused with a 403 as an unavailable source, blaming no key', () => {
     const error = catchError(() =>
       opensubtitlesMapping.toSession(
         {
@@ -556,23 +542,20 @@ describe('opensubtitlesMapping.toSession', () => {
   });
 });
 
-describe('opensubtitlesMapping.requireApiKey', () => {
-  it('passes a server key', () => {
-    expect(opensubtitlesMapping.requireApiKey(SERVER_API_KEY)).toBe(
-      SERVER_API_KEY,
+describe('opensubtitlesMapping.requireAppCredential', () => {
+  it('passes a server app key', () => {
+    expect(opensubtitlesMapping.requireAppCredential(appCredential)).toBe(
+      appCredential,
     );
   });
 
-  it.each(['', undefined])(
-    'reads a missing server key %j as an unavailable source',
-    apiKey => {
-      const error = catchError(() =>
-        opensubtitlesMapping.requireApiKey(apiKey),
-      );
-      expect(error).toBeInstanceOf(SourceUnavailableError);
-      expect(error.credentialId).toBeUndefined();
-    },
-  );
+  it('reads a missing server app key as an unavailable source', () => {
+    const error = catchError(() =>
+      opensubtitlesMapping.requireAppCredential(null),
+    );
+    expect(error).toBeInstanceOf(SourceUnavailableError);
+    expect(error.credentialId).toBeUndefined();
+  });
 });
 
 describe('opensubtitlesMapping.requireAccountCredential', () => {
@@ -600,7 +583,7 @@ describe('opensubtitlesMapping.buildDownloadRequest', () => {
   it('posts the numeric file id to the session host with key and token', () => {
     const downloadRequest = opensubtitlesMapping.buildDownloadRequest(
       subtitleRef,
-      {credential: accountCredential, apiKey: SERVER_API_KEY, session},
+      {credential: accountCredential, appCredential, session},
     );
     expect(downloadRequest).toMatchObject({
       subtitleSource: SubtitleSource.OPENSUBTITLES,
@@ -833,7 +816,7 @@ describe('opensubtitlesMapping.buildQuotaRequest', () => {
   it('asks the user route on the session host with key and token', () => {
     const quotaRequest = opensubtitlesMapping.buildQuotaRequest({
       credential: accountCredential,
-      apiKey: SERVER_API_KEY,
+      appCredential,
       session,
     });
     expect(quotaRequest).toMatchObject({

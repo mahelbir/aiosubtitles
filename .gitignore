@@ -86,13 +86,8 @@ fabric.properties
 .idea/caches/build_file_checksums.ser
 
 ### JetBrains+all Patch ###
-# Ignore everything but code style settings and run configurations
-# that are supposed to be shared within teams.
 
 .idea/*
-
-!.idea/codeStyles
-!.idea/runConfigurations
 
 ### Linux ###
 *~
@@ -365,16 +360,14 @@ $RECYCLE.BIN/
 !*.example
 !*.sample
 /.reference/
-brainstorming.md
-.upstream.local.json
 
 /apps/client/.next-test/
 /apps/client/test-results/
 /apps/client/playwright-report/
 /apps/client/tests/e2e/.auth/
-/apps/api/public-client/
 /apps/api/storage/*/*
 !/apps/api/storage/*/.gitkeep
 /data/
+/apps/api/public-client/
 /apps/eval/.out/
 /apps/api/.out/

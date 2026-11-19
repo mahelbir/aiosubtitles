@@ -9,21 +9,6 @@ declare module 'sequelize' {
 
     function withScope(name: string, ...args: unknown[]): typeof Model;
 
-    function paginateByOffset(
-      query?: Record<string, unknown>,
-      options?: Record<string, unknown>,
-    ): Promise<{
-      links: Record<string, unknown>;
-      meta: Record<string, unknown>;
-      items: unknown[];
-    }>;
-
-    function findOffsetPage(
-      offset: number,
-      limit: number,
-      options?: Record<string, unknown>,
-    ): Promise<{rows: unknown[]; count: number}>;
-
     function findAllLocked(
       options: Record<string, unknown>,
       transaction: import('sequelize').Transaction,

@@ -83,6 +83,14 @@ export async function openTabMenuItems(page) {
   return drawer.getByRole('navigation').getByRole('button');
 }
 
+export async function closeTabMenuItems(page) {
+  if (!isPhoneLayout(page)) {
+    return;
+  }
+  await page.keyboard.press('Escape');
+  await expect(page.getByRole('dialog')).toHaveCount(0);
+}
+
 export async function openTabMenuItem(page, label) {
   if (isPhoneLayout(page)) {
     const drawer = await openTabMenuDrawer(page);

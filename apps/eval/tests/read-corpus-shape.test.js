@@ -1,25 +1,23 @@
-import {cp, mkdtemp, readFile, rm, writeFile} from 'node:fs/promises';
-import {tmpdir} from 'node:os';
+import {readFile, rm, writeFile} from 'node:fs/promises';
 import {join} from 'node:path';
 import {afterEach, beforeEach, describe, expect, it} from 'vitest';
+import {IDENTITY_CODENAMES} from '../src/codenames.js';
 import {CorpusShapeError, readCorpus} from '../src/corpus/read-corpus.js';
-import {ATLAS_FIXTURE_ROOT} from './support/atlas-fixture.js';
+import {
+  changeLocalJson,
+  copyAtlasFixture,
+  renamePoolList,
+} from './support/atlas-fixture.js';
 
-const V90_LOCAL_SEGMENTS = ['eval', 'cache', 'corpus', 'V90', 'local.json'];
+const MAPPED_POOL_LIST_NAME = 'Fixture Pool';
 
 describe('readCorpus on a damaged corpus', () => {
   let atlasRoot;
 
-  const changeV90Local = async change => {
-    const localPath = join(atlasRoot, ...V90_LOCAL_SEGMENTS);
-    const local = JSON.parse(await readFile(localPath, 'utf8'));
-    change(local);
-    await writeFile(localPath, JSON.stringify(local));
-  };
+  const changeV90Local = change => changeLocalJson(atlasRoot, 'V90', change);
 
   beforeEach(async () => {
-    atlasRoot = await mkdtemp(join(tmpdir(), 'eval-atlas-'));
-    await cp(ATLAS_FIXTURE_ROOT, atlasRoot, {recursive: true});
+    atlasRoot = await copyAtlasFixture();
   });
 
   afterEach(async () => {
@@ -28,7 +26,7 @@ describe('readCorpus on a damaged corpus', () => {
 
   it('rejects a pool list whose row ids do not pair with poolList', async () => {
     await changeV90Local(local => {
-      local.lists.Orion.rowIds.pop();
+      local.lists.orion.rowIds.pop();
     });
     await expect(readCorpus({atlasRoot})).rejects.toBeInstanceOf(
       CorpusShapeError,
@@ -57,9 +55,20 @@ describe('readCorpus on a damaged corpus', () => {
     expect(evalCases[1].video.videoHash).toBeNull();
   });
 
+  it('reads the pool list under the name the codenames give orion', async () => {
+    const identityCases = await readCorpus({atlasRoot});
+    await renamePoolList(atlasRoot, MAPPED_POOL_LIST_NAME);
+    const mappedCases = await readCorpus({
+      atlasRoot,
+      codenames: {...IDENTITY_CODENAMES, orion: MAPPED_POOL_LIST_NAME},
+    });
+    expect(mappedCases).toEqual(identityCases);
+    await expect(readCorpus({atlasRoot})).rejects.toBeInstanceOf(TypeError);
+  });
+
   it('leaves label and site identity null for a row missing from the list blob', async () => {
     await changeV90Local(local => {
-      local.lists.Orion.rowIds[2] = '[SubSource] ✓ Ücretsiz | Renamed_Row';
+      local.lists.orion.rowIds[2] = '[SubSource] ✓ Ücretsiz | Renamed_Row';
     });
     const [evalCase] = await readCorpus({atlasRoot});
     expect(evalCase.poolRows[2]).toEqual({

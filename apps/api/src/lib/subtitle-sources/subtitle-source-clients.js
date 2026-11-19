@@ -1,3 +1,4 @@
+import {filterAsync} from 'es-toolkit';
 import {SubtitleSource} from '@repo/shared/constants/subtitle-source.js';
 import {altyazidbClient} from './altyazidb/altyazidb-client.js';
 import {animetoshoClient} from './animetosho/animetosho-client.js';
@@ -31,24 +32,29 @@ export function createSubtitleSourceRegistry(clients) {
     getSubtitleSourceClient: subtitleSource =>
       clientBySubtitleSource.get(subtitleSource) ?? null,
     listSubtitleSourceClients: () => [...sortedClients],
+    listAvailableSubtitleSourceClients: () =>
+      filterAsync(sortedClients, async client => client.isAvailable()),
   };
 }
 
-export const {getSubtitleSourceClient, listSubtitleSourceClients} =
-  createSubtitleSourceRegistry([
-    altyazidbClient,
-    animetoshoClient,
-    anisubClient,
-    betaseriesClient,
-    gestdownClient,
-    jimakuClient,
-    opensubtitlesClient,
-    opensubtitlesV3Client,
-    stremioCommunitySubtitlesClient,
-    subdlClient,
-    subsourceClient,
-    thesubtitledbClient,
-    tvsubtitlesClient,
-    wyzieClient,
-    yifyClient,
-  ]);
+export const {
+  getSubtitleSourceClient,
+  listSubtitleSourceClients,
+  listAvailableSubtitleSourceClients,
+} = createSubtitleSourceRegistry([
+  altyazidbClient,
+  animetoshoClient,
+  anisubClient,
+  betaseriesClient,
+  gestdownClient,
+  jimakuClient,
+  opensubtitlesClient,
+  opensubtitlesV3Client,
+  stremioCommunitySubtitlesClient,
+  subdlClient,
+  subsourceClient,
+  thesubtitledbClient,
+  tvsubtitlesClient,
+  wyzieClient,
+  yifyClient,
+]);

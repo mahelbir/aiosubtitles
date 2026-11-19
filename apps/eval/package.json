@@ -9,8 +9,8 @@
     "@repo/shared": "workspace:*",
     "@repo/subtitle-core": "workspace:*",
     "@repo/tooling": "workspace:*",
-    "enum-plus": "^3.4.0",
-    "es-toolkit": "^1.53.1",
+    "enum-plus": "^3.4.1",
+    "es-toolkit": "^1.53.2",
     "melperjs": "^17.4.0"
   },
   "devDependencies": {

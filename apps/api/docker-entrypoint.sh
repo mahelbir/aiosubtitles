@@ -21,8 +21,4 @@ if [ -d /app/storage.default ]; then
   )
 fi
 
-# The bundle lives outside the workspace and the image has no .git, so the
-# build-time stamp is the only version source.
-[ -f /app/.revision ] && export APP_VERSION="$(cat /app/.revision)"
-
 exec "$@"

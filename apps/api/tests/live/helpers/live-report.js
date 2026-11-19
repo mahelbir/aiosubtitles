@@ -1,7 +1,6 @@
 import {appendFile, mkdir, writeFile} from 'node:fs/promises';
 import path from 'node:path';
 import {Enum} from 'enum-plus';
-import {dt} from '../../../src/lib/datetime.js';
 
 export const LiveStatus = Enum({
   VERIFIED: {value: 'verified'},
@@ -23,14 +22,14 @@ async function prepareLiveReportPath(reportName) {
   await mkdir(LIVE_REPORT_DIR, {recursive: true});
   return path.join(
     LIVE_REPORT_DIR,
-    `${dt().format('YYYY-MM-DD')}-${reportName}.md`,
+    `${new Date().toISOString().slice(0, 10)}-${reportName}.md`,
   );
 }
 
 export async function recordLiveResult({serviceName, liveStatus, liveNote}) {
   await appendFile(
     await prepareLiveReportPath('live'),
-    `- ${dt().format('HH:mm:ss')} | ${serviceName} | ${liveStatus} | ${liveNote}\n`,
+    `- ${new Date().toISOString().slice(11, 19)} | ${serviceName} | ${liveStatus} | ${liveNote}\n`,
     'utf8',
   );
 }

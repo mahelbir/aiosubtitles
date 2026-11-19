@@ -11,7 +11,6 @@ import {
 } from '@repo/shared/constants/credential.js';
 import {URL_MAX_LENGTH} from '@repo/shared/constants/common.js';
 import {SubtitleSource} from '@repo/shared/constants/subtitle-source.js';
-import {computeUrlCode} from '@repo/subtitle-core/stremio-row/url-code.js';
 import {config} from '../../src/config/index.js';
 import {sequelize} from '../../src/db/index.js';
 import {
@@ -24,6 +23,7 @@ import {SubtitleVideoCandidate} from '../../src/db/models/subtitle-video-candida
 import {Subtitle} from '../../src/db/models/subtitle.js';
 import {VideoVariant} from '../../src/db/models/video-variant.js';
 import {markCredentialStatus} from '../../src/lib/credential-secret.js';
+import {computeUrlCode} from '../../src/lib/stremio-row/url-code.js';
 import {drainPendingSearches} from '../../src/lib/subtitle-search/search-subtitle-source.js';
 import {SubtitleAliasSource} from '../../src/lib/subtitle-sources/subtitle-alias-source.js';
 import {createSubtitleSourceRegistry} from '../../src/lib/subtitle-sources/subtitle-source-clients.js';
@@ -168,6 +168,7 @@ setTestAppOptions({
 beforeEach(() => {
   for (const client of fixtureClients) {
     client.searchSubtitles.mockReset().mockResolvedValue([]);
+    client.isAvailable.mockReset().mockReturnValue(true);
   }
   catalogRequest.mockReset().mockImplementation(answerCatalogRequest);
   logLines.length = 0;
@@ -1486,6 +1487,60 @@ describe('the subtitle list search credentials', () => {
 
     expect(opensubtitlesClient.searchSubtitles).not.toHaveBeenCalled();
     expect(searchCredentials(thesubtitledbClient)).toEqual([null]);
+  });
+
+  it('adds no account notice for the stored rows of an unavailable source', async () => {
+    const {userConfig} = await createListUserConfig();
+    await storeHits(MOVIE_ID, [
+      makeOpensubtitlesHit(),
+      makeOpensubtitlesHit({
+        releaseNames: ['The.Matrix.1999.720p.WEB-DL-BBB'],
+      }),
+    ]);
+    const shownSubtitles = await getSubtitleList({
+      userConfigId: userConfig.id,
+    });
+    opensubtitlesClient.isAvailable.mockResolvedValue(false);
+
+    const hiddenSubtitles = await getSubtitleList({
+      userConfigId: userConfig.id,
+    });
+
+    expect(shownSubtitles.map(({id}) => id)).toContain(NOTICE_ID);
+    expect(hiddenSubtitles).toEqual([]);
+  });
+
+  it('never searches an unavailable source, even with the user own api key', async () => {
+    const {userConfig} = await createListUserConfig({
+      credentials: [
+        makeApiKeyCredential(SubtitleSource.OPENSUBTITLES, 'own-key'),
+      ],
+    });
+    opensubtitlesClient.isAvailable.mockResolvedValue(false);
+
+    await getSubtitleList({userConfigId: userConfig.id});
+
+    expect(opensubtitlesClient.searchSubtitles).not.toHaveBeenCalled();
+    expect(searchCredentials(thesubtitledbClient)).toEqual([null]);
+  });
+
+  it('lists only the stored files of an unavailable source', async () => {
+    const {userConfig} = await createListUserConfig({
+      credentials: [makeAccountCredential('account-user')],
+    });
+    const [storedUrlCode] = await storeHits(MOVIE_ID, [
+      makeHit({subtitleSource: SubtitleSource.OPENSUBTITLES}),
+      makeHit({
+        subtitleSource: SubtitleSource.OPENSUBTITLES,
+        releaseNames: ['The.Matrix.1999.720p.WEB-DL-BBB'],
+      }),
+    ]);
+    await storeFile(storedUrlCode);
+    opensubtitlesClient.isAvailable.mockResolvedValue(false);
+
+    const subtitles = await getSubtitleList({userConfigId: userConfig.id});
+
+    expect(listUrlCodes(subtitles)).toEqual([storedUrlCode]);
   });
 
   it('searches OpenSubtitles with an account alone', async () => {

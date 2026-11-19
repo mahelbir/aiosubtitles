@@ -7,10 +7,7 @@ import {
 export const AIOSUBTITLES_SCORE_TABLE = deepFreeze({
   tableName: 'aiosubtitles',
   tableCitations: [
-    'docs/superpowers/specs/2026-11-17-aiosubtitles-design.md §9.2',
-    'docs/superpowers/specs/2026-11-17-aiosubtitles-design.md §9.3',
-    'docs/superpowers/specs/2026-11-17-aiosubtitles-design.md §9.5',
-    'docs/superpowers/2026-11-17-decision-ledger.md:18',
+    'packages/subtitle-core/src/scoring/aiosubtitles-score-table.js',
   ],
   tableMode: ScoreTableMode.ADDITIVE,
   signalPoints: {

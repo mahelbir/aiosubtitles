@@ -292,8 +292,8 @@ describe('title folding', () => {
   });
 
   it('keeps combining marks and every script inside a word', () => {
-    expect(
-      normalizeParsedField('releaseTitle', 'Tōkyō.東京-Story: अनुक्ष'),
-    ).toBe('tōkyō 東京 story अनुक्ष');
+    expect(normalizeParsedField('releaseTitle', 'Tōkyō.東京-Story: अनुक्ष')).toBe(
+      'tōkyō 東京 story अनुक्ष',
+    );
   });
 });

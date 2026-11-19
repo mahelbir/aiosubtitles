@@ -2,10 +2,7 @@ import {readFile} from 'node:fs/promises';
 import {join} from 'node:path';
 import {describe, expect, it} from 'vitest';
 import {createFrozenStore} from '../src/corpus/frozen-store.js';
-import {
-  ATLAS_FIXTURE_ROOT,
-  V90_LIST_SHA256,
-} from './support/atlas-fixture.js';
+import {ATLAS_FIXTURE_ROOT, V90_LIST_SHA256} from './support/atlas-fixture.js';
 
 const blobPath = sha256 =>
   join(

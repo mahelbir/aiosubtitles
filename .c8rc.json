@@ -8,6 +8,6 @@
     "**/node_modules/**",
     "**/tests/**",
     "apps/api/src/server.js",
-    "apps/api/src/db/cli/{migrate,seed}.js"
+    "apps/api/src/db/cli/migrate.js"
   ]
 }

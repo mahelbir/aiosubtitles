@@ -16,10 +16,10 @@ import {
   SUBTITLE_FORMAT_FILE_EXTENSIONS,
   SubtitleFileExtension,
 } from '@repo/subtitle-core/constants/subtitle-core-enums.js';
-import {computeUrlCode} from '@repo/subtitle-core/stremio-row/url-code.js';
 import {sequelize} from '../../db/index.js';
 import {SubtitleVideoBinding} from '../../db/models/subtitle-video-binding.js';
 import {Subtitle} from '../../db/models/subtitle.js';
+import {computeUrlCode} from '../stremio-row/url-code.js';
 import {
   buildSubtitleFileRow,
   insertSubtitleFileRows,

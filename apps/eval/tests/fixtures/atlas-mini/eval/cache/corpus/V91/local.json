@@ -15,12 +15,12 @@
   "nextCandidate": 2,
   "candidates": {
     "V91/c1": {
-      "entryName": "Orion",
+      "entryName": "orion",
       "rowId": "[SubDL] ✓ Ücretsiz | Fixture.Show.S01E01.TWIN",
       "rank": 0,
       "language": "tur",
-      "source": "Orion",
-      "via": "addon:Orion",
+      "source": "orion",
+      "via": "addon:orion",
       "costsQuota": "unknown",
       "status": "frozen",
       "rawSha256": "e1e1e1e1e1e1e1e1e1e1e1e1e1e1e1e1e1e1e1e1e1e1e1e1e1e1e1e1e1e1e1e1",

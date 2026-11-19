@@ -404,22 +404,6 @@ test.describe('mutation toasts', () => {
     await expect(getTopLoader(page)).toHaveCount(0);
   });
 
-  test('useBusy raises the top loader while the caller is busy', async ({
-    page,
-  }) => {
-    const busy = page.getByRole('button', {name: 'Meşgul'});
-
-    await busy.click();
-
-    await expect(busy).toHaveAttribute('aria-pressed', 'true');
-    await expect(getTopLoader(page)).toBeVisible();
-
-    await busy.click();
-
-    await expect(busy).toHaveAttribute('aria-pressed', 'false');
-    await expect(getTopLoader(page)).toHaveCount(0);
-  });
-
   test('declared invalidation lands before the caller’s own callback runs', async ({
     page,
   }) => {

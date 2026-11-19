@@ -1,5 +1,9 @@
+import * as fs from 'node:fs/promises';
+import * as path from 'node:path';
 import closeWithGrace from 'close-with-grace';
+import {SubtitleSource} from '@repo/shared/constants/subtitle-source.js';
 import {startInfrastructure} from '../helpers/infrastructure.js';
+import {OPENSUBTITLES_SHARED_API_KEY} from './fixture-credentials.js';
 import {getE2eApiPort, getE2eClientOrigin} from './ports.js';
 
 /* A browser-driven run trips the budgets `.env.test` sizes for the API
@@ -13,6 +17,15 @@ const E2E_ENV = {
 };
 
 const {teardown} = await startInfrastructure({env: E2E_ENV});
+
+await fs.writeFile(
+  path.join(process.env.STORAGE_PATH, 'private', 'settings.json'),
+  JSON.stringify({
+    sharedCredentials: {
+      [SubtitleSource.OPENSUBTITLES]: [OPENSUBTITLES_SHARED_API_KEY],
+    },
+  }),
+);
 
 let fastify = null;
 

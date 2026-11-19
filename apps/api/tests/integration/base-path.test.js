@@ -1,31 +1,28 @@
-import * as fs from 'node:fs/promises';
-import * as path from 'node:path';
 import {uniq} from 'es-toolkit';
-import {afterAll, beforeAll, describe, expect, it} from 'vitest';
+import {describe, expect, it} from 'vitest';
 import {StatusCodes} from 'http-status-codes';
-import {config} from '../../src/config/index.js';
 import {
   getRegisteredRoutes,
   getTestApp,
   setTestAppBasePath,
+  setTestAppPlugins,
 } from '../helpers/app.js';
-import {HTTP_FIXTURE_URL, PAGINATION_FIXTURE_URL} from '../helpers/fixtures.js';
+import {HTTP_FIXTURE_URL} from '../helpers/fixtures.js';
 
 const BASE_PATH = '/edge/api';
-const STATIC_FILE = 'base-path-fixture.txt';
-const STATIC_CONTENT = 'served under the base path';
+const PREFIXED_FIXTURE_URL = '/__fixtures__/prefixed';
+
+async function prefixedFixture(fastify) {
+  await fastify.register(
+    async scope => {
+      scope.get('/', async (request, reply) => reply.success());
+    },
+    {prefix: PREFIXED_FIXTURE_URL},
+  );
+}
 
 setTestAppBasePath(BASE_PATH);
-
-const staticFilePath = () => path.join(config.publicStoragePath, STATIC_FILE);
-
-beforeAll(async () => {
-  await fs.writeFile(staticFilePath(), STATIC_CONTENT);
-});
-
-afterAll(async () => {
-  await fs.rm(staticFilePath(), {force: true});
-});
+setTestAppPlugins([prefixedFixture]);
 
 describe('an API mounted under a base path', () => {
   it('serves its routes there and nowhere else', async () => {
@@ -49,22 +46,6 @@ describe('an API mounted under a base path', () => {
     expect(response.headers['x-frame-options']).toBe('DENY');
   });
 
-  it('serves the public storage under it', async () => {
-    const app = await getTestApp();
-    const served = await app.inject({
-      method: 'GET',
-      url: `${BASE_PATH}/static/${STATIC_FILE}`,
-    });
-    const atRoot = await app.inject({
-      method: 'GET',
-      url: `/static/${STATIC_FILE}`,
-    });
-
-    expect(served.statusCode).toBe(StatusCodes.OK);
-    expect(served.body).toBe(STATIC_CONTENT);
-    expect(atRoot.statusCode).toBe(StatusCodes.NOT_FOUND);
-  });
-
   it('mounts every route under it, the CORS preflight aside', async () => {
     await getTestApp();
     const outside = getRegisteredRoutes()
@@ -84,8 +65,6 @@ describe('an API mounted under a base path', () => {
       );
 
     expect(tagsAt(BASE_PATH)).toEqual(['default']);
-    expect(tagsAt(BASE_PATH + PAGINATION_FIXTURE_URL)).toEqual([
-      '__fixtures__',
-    ]);
+    expect(tagsAt(BASE_PATH + PREFIXED_FIXTURE_URL)).toEqual(['__fixtures__']);
   });
 });

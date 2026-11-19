@@ -12,8 +12,7 @@ export const atlasPaths = {
     join(atlasRoot, 'eval', 'corpus', caseCode, 'case.json'),
   localJson: (atlasRoot, caseCode) =>
     join(atlasRoot, 'eval', 'cache', 'corpus', caseCode, 'local.json'),
-  frozenRoot: atlasRoot =>
-    join(atlasRoot, 'eval', 'cache', 'frozen', 'sha256'),
+  frozenRoot: atlasRoot => join(atlasRoot, 'eval', 'cache', 'frozen', 'sha256'),
   frozenBlob: (atlasRoot, sha256) =>
     join(atlasPaths.frozenRoot(atlasRoot), sha256.slice(0, 2), sha256),
   identities: atlasRoot =>

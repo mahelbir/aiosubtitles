@@ -16,7 +16,7 @@ describe('redactReportText', () => {
     ).toBe('a <url> b auth=<redacted> c <url> d');
   });
 
-  it('replaces a Orion url whose path holds the token', () => {
+  it('replaces an Orion url whose path holds the token', () => {
     expect(
       redactReportText(
         'row https://h/languages=tr&auth=SECRET123/adb/tr/1-2-3.srt end',

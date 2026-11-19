@@ -1,13 +1,13 @@
 import {beforeEach, describe, expect, it} from 'vitest';
 import {StatusCodes} from 'http-status-codes';
 import {SubtitleSource} from '@repo/shared/constants/subtitle-source.js';
-import {
-  SubtitleMessage,
-  SubtitleNotice,
-} from '@repo/subtitle-core/constants/subtitle-core-enums.js';
 import {buildMessageSrt} from '@repo/subtitle-core/file-format/message-srt.js';
 import {uuidV4} from '../../src/lib/common.js';
 import {RateLimitKey} from '../../src/lib/rate-limit.js';
+import {
+  SubtitleMessage,
+  SubtitleNotice,
+} from '../../src/lib/stremio-row/stremio-row-enums.js';
 import {createSubtitleSourceRegistry} from '../../src/lib/subtitle-sources/subtitle-source-clients.js';
 import {SourceUnavailableError} from '../../src/lib/subtitle-sources/subtitle-source-errors.js';
 import {redis} from '../../src/redis/index.js';

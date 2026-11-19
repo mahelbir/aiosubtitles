@@ -16,11 +16,6 @@ const restrictedIpAccess = [
     'Read request.clientIp instead — it resolves the header an edge is configured with.',
 }));
 
-const dayjsImportRestriction = {
-  name: 'dayjs',
-  message: 'Import the timezone-aware wrapper from lib/datetime.js instead.',
-};
-
 const maxiosImportRestriction = {
   name: '@mepkg/maxios',
   importNames: ['Maxios', 'maxios', 'TlsClient'],
@@ -37,6 +32,7 @@ export default [
       '**/storage/**',
       '**/coverage/**',
       '.reference/**',
+      '.agents/**',
       '.claude/**',
       'apps/client/**',
       'apps/eval/.out/**',
@@ -59,11 +55,10 @@ export default [
       // args: Fastify handler/plugin signatures keep unused args like (request, reply).
       // ignoreRestSiblings: allows the omit-via-destructuring pattern ({ secret, ...safe }).
       'no-unused-vars': ['error', {args: 'none', ignoreRestSiblings: true}],
-      // Always use the timezone-aware wrapper (lib/datetime.js), never raw dayjs.
       'no-restricted-imports': [
         'error',
         {
-          paths: [dayjsImportRestriction, maxiosImportRestriction],
+          paths: [maxiosImportRestriction],
         },
       ],
       curly: ['error', 'all'],
@@ -132,7 +127,7 @@ export default [
   },
   {
     files: ['apps/**', 'packages/**'],
-    // Route folders carry the autoloader's group syntax, e.g. (admin).
+    // Route folders carry the autoloader's group syntax, e.g. (addon).
     ignores: ['apps/api/src/routes/**'],
     plugins: {'check-file': checkFile},
     rules: {
@@ -146,7 +141,6 @@ export default [
         'error',
         {
           paths: [
-            dayjsImportRestriction,
             maxiosImportRestriction,
             ...[
               'node:fs',
@@ -177,17 +171,9 @@ export default [
     },
   },
   {
-    // The wrapper is the one place allowed to import the real dayjs.
-    files: ['**/lib/datetime.js'],
-    ignores: ['packages/subtitle-core/src/**'],
-    rules: {
-      'no-restricted-imports': ['error', {paths: [maxiosImportRestriction]}],
-    },
-  },
-  {
     files: ['apps/api/src/lib/subtitle-sources/remote-resource-client.js'],
     rules: {
-      'no-restricted-imports': ['error', {paths: [dayjsImportRestriction]}],
+      'no-restricted-imports': 'off',
     },
   },
   {

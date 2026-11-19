@@ -77,9 +77,7 @@ async function tabWithin(page, dialog, presses) {
 }
 
 test.describe('form panel', () => {
-  test('?action=create opens the sheet in create mode, and a reload keeps it open', async ({
-    page,
-  }) => {
+  test('?action=create opens the sheet in create mode', async ({page}) => {
     await openFormShells(page, {action: 'create'});
 
     await expect(getDialog(page, 'Kayıt Ekle')).toBeVisible();
@@ -87,22 +85,14 @@ test.describe('form panel', () => {
     await expectFixtureState(page).toMatchObject({
       panel: {action: 'create', isOpen: true, targetId: null},
     });
-
-    await reloadFormShells(page);
-
-    await expect(getDialog(page, 'Kayıt Ekle')).toBeVisible();
-    await expectSearchParams(page).toEqual({action: 'create'});
   });
 
-  test('opening create from the page writes the action to the URL', async ({
-    page,
-  }) => {
+  test('opening create from the page opens the sheet', async ({page}) => {
     await openFormShells(page);
 
     await getRecordAction(page, 'Ekle').click();
 
     await expect(getDialog(page, 'Kayıt Ekle')).toBeVisible();
-    await expectSearchParams(page).toEqual({action: 'create'});
   });
 
   test('?action=edit&id= opens edit mode on the target record', async ({
@@ -118,59 +108,17 @@ test.describe('form panel', () => {
     });
   });
 
-  test('opening edit from a record writes the action and its id', async ({
-    page,
-  }) => {
+  test('opening edit from a record loads that record', async ({page}) => {
     await openFormShells(page);
 
     await getRecordAction(page, 'Cem Demir düzenle').click();
 
-    await expectSearchParams(page).toEqual({action: 'edit', id: '3'});
     await expect(getDialog(page, 'Kayıt Düzenle').getByLabel('Ad')).toHaveValue(
       'Cem Demir',
     );
-  });
-
-  test('an action outside the allowed set opens nothing', async ({page}) => {
-    await openFormShells(page, {action: 'delete', id: 2});
-
     await expectFixtureState(page).toMatchObject({
-      panel: {action: null, isOpen: false},
+      panel: {action: 'edit', targetId: '3'},
     });
-    await expect(page.getByRole('dialog')).toHaveCount(0);
-  });
-
-  test('closing removes the panel params and keeps the unrelated ones', async ({
-    page,
-  }) => {
-    await openFormShells(page, {tab: 'bildirim', action: 'edit', id: 2});
-
-    await getDialog(page, 'Kayıt Düzenle')
-      .getByRole('button', {name: 'Cancel'})
-      .click();
-
-    await expect(page.getByRole('dialog')).toHaveCount(0);
-    await expectSearchParams(page).toEqual({tab: 'bildirim'});
-  });
-
-  test('creating next to a record writes the anchor, and closing drops it', async ({
-    page,
-  }) => {
-    await openFormShells(page);
-
-    await getRecordAction(page, 'Ada Yılmaz altına ekle').click();
-
-    await expectSearchParams(page).toEqual({action: 'create', anchor: '1'});
-    await expect(getDialog(page, 'Kayıt Ekle')).toContainText(
-      'Konum: Ada Yılmaz altı',
-    );
-    await expectFixtureState(page).toMatchObject({
-      panel: {action: 'create', targetId: null, anchorId: '1'},
-    });
-
-    await page.keyboard.press('Escape');
-
-    await expectSearchParams(page).toEqual({});
   });
 
   test('opening create while edit is open replaces it in the same sheet', async ({
@@ -185,7 +133,6 @@ test.describe('form panel', () => {
     const create = getDialog(page, 'Kayıt Ekle');
     await expect(create).toBeVisible();
     await expect(page.getByRole('dialog')).toHaveCount(1);
-    await expectSearchParams(page).toEqual({action: 'create'});
     await expect(create.getByLabel('Ad')).toHaveValue('');
     await expect(create).not.toContainText('Kayıt no');
     await expectFixtureState(page).toMatchObject({
@@ -204,7 +151,6 @@ test.describe('form panel', () => {
 
     await expect(getDialog(page, 'Davet Et')).toBeVisible();
     await expect(page.getByRole('dialog')).toHaveCount(1);
-    await expectSearchParams(page).toEqual({action: 'invite'});
   });
 
   test('the sheet traps focus, Escape closes it and focus returns to the opener', async ({
@@ -233,7 +179,6 @@ test.describe('form panel', () => {
     await page.keyboard.press('Escape');
 
     await expect(page.getByRole('dialog')).toHaveCount(0);
-    await expectSearchParams(page).toEqual({});
     await expect(opener).toBeFocused();
   });
 
@@ -250,7 +195,6 @@ test.describe('form panel', () => {
       submitted: {panel: {name: 'Deniz Şahin'}},
     });
     await expect(page.getByRole('dialog')).toHaveCount(0);
-    await expectSearchParams(page).toEqual({});
   });
 
   test('a dirty form in the panel asks before the page unloads', async ({
@@ -277,13 +221,11 @@ test.describe('form panel', () => {
 
     await expect(getDiscardQuestion(page)).toBeVisible();
     await expect(getDialogBehindQuestion(page, 'Kayıt Ekle')).toBeVisible();
-    await expectSearchParams(page).toEqual({action: 'create'});
 
     await getDiscardQuestion(page).getByRole('button', {name: 'Close'}).click();
 
     await expect(page.getByRole('dialog')).toHaveCount(0);
     await expect(page.getByRole('alertdialog')).toHaveCount(0);
-    await expectSearchParams(page).toEqual({});
 
     await getRecordAction(page, 'Ekle').click();
 
@@ -313,7 +255,6 @@ test.describe('form panel', () => {
       await expect(page.getByRole('alertdialog')).toHaveCount(0);
       await expect(dialog).toBeVisible();
       await expect(name).toHaveValue('Taslak');
-      await expectSearchParams(page).toEqual({action: 'create'});
     });
   }
 
@@ -332,7 +273,6 @@ test.describe('form panel', () => {
 
     await expect(page.getByRole('alertdialog')).toHaveCount(0);
     await expect(dialog.getByLabel('Ad')).toHaveValue('Taslak');
-    await expectSearchParams(page).toEqual({action: 'create'});
   });
 
   test('a clean form in the panel closes at once, without asking', async ({
@@ -346,7 +286,6 @@ test.describe('form panel', () => {
 
     await expect(page.getByRole('dialog')).toHaveCount(0);
     await expect(page.getByRole('alertdialog')).toHaveCount(0);
-    await expectSearchParams(page).toEqual({});
   });
 
   for (const [size, width] of Object.entries(SIZE_WIDTHS)) {
@@ -426,7 +365,6 @@ test.describe('form panel', () => {
         .click();
 
       await expect(dialog.getByLabel('Ad')).toHaveValue('Taslak');
-      await expectSearchParams(page).toEqual({action: 'create'});
     });
   });
 });
@@ -442,7 +380,6 @@ test.describe('form dialog', () => {
 
     await expect(dialog).toBeVisible();
     await expectDialogSlot(page).toBe('dialog-content');
-    await expectSearchParams(page).toEqual({action: 'invite'});
     await expect.poll(async () => (await dialog.boundingBox()).y).toBe(32);
   });
 
@@ -468,7 +405,6 @@ test.describe('form dialog', () => {
     await page.keyboard.press('Escape');
 
     await expect(page.getByRole('dialog')).toHaveCount(0);
-    await expectSearchParams(page).toEqual({});
     await expect(opener).toBeFocused();
   });
 
@@ -487,7 +423,6 @@ test.describe('form dialog', () => {
     await getDiscardQuestion(page).getByRole('button', {name: 'Close'}).click();
 
     await expect(page.getByRole('dialog')).toHaveCount(0);
-    await expectSearchParams(page).toEqual({});
   });
 
   test('an invalid submit focuses the field, a valid one hands the values over and closes', async ({
@@ -570,7 +505,7 @@ test.describe('tab query', () => {
     await expect(getTab(page, 'Genel')).toBeFocused();
   });
 
-  test('a tab change clears the list state the tabs own and keeps every other param', async ({
+  test('a tab change clears the keys the tabs own and keeps every other param', async ({
     page,
   }) => {
     await openFormShells(page, {
@@ -671,136 +606,5 @@ test.describe('tab menu at a phone width', () => {
       ),
       expectSearchParams(page).toMatchObject({tab: 'ek-20'}),
     ]);
-  });
-});
-
-test.describe('tab menu form', () => {
-  test('each tab submits only its own form, from its footer save button or Enter', async ({
-    page,
-  }) => {
-    await openFormShells(page);
-    const general = getTabPanel(page, 'Genel');
-
-    await general.getByLabel('Görünen ad').pressSequentially('Ada');
-    await getSaveButton(general).click();
-    await expectFixtureState(page, 'submitted').toEqual({
-      genel: {displayName: 'Ada'},
-    });
-
-    await page.getByRole('tab', {name: 'Bildirimler'}).click();
-    const notifications = getTabPanel(page, 'Bildirimler');
-    await notifications
-      .getByLabel('Bildirim e-postası')
-      .pressSequentially('ada@example.com');
-    await notifications.getByLabel('Bildirim e-postası').press('Enter');
-
-    await expectFixtureState(page, 'submitted').toEqual({
-      genel: {displayName: 'Ada'},
-      bildirim: {digestEmail: 'ada@example.com'},
-    });
-  });
-
-  test('hands the form attributes through to the form element', async ({
-    page,
-  }) => {
-    await openFormShells(page, {tab: 'bildirim'});
-
-    await expect(
-      page.getByRole('form', {name: 'Bildirim ayarları'}),
-    ).toHaveAttribute('autocomplete', 'off');
-  });
-
-  test('fills its tab panel, so the footer stays at the bottom of a taller card', async ({
-    page,
-  }) => {
-    await openFormShells(page, {tab: 'bildirim'});
-    const panel = getTabPanel(page, 'Bildirimler');
-    const [panelBox, formBox] = await Promise.all([
-      panel.boundingBox(),
-      page.getByRole('form', {name: 'Bildirim ayarları'}).boundingBox(),
-    ]);
-
-    expect(formBox).toEqual(panelBox);
-  });
-
-  test('a dirty tab form asks before the page unloads', async ({page}) => {
-    await openFormShells(page);
-
-    await getTabPanel(page, 'Genel')
-      .getByLabel('Görünen ad')
-      .pressSequentially('Taslak');
-
-    await expectUnloadAsked(page);
-  });
-});
-
-test.describe('page card form', () => {
-  function getCard(page, name) {
-    return page.getByRole('region', {name});
-  }
-
-  test('renders the title, the default save action and the back link only when given', async ({
-    page,
-  }) => {
-    await openFormShells(page);
-    const profile = getCard(page, 'Profil');
-    const address = getCard(page, 'Adres');
-
-    await expect(profile.getByText('Profil kartı')).toBeVisible();
-    await expect(getSaveButton(profile)).toBeVisible();
-    await expect(profile.getByRole('link', {name: 'Go back'})).toHaveAttribute(
-      'href',
-      '/fixtures',
-    );
-    await expect(address.getByText('Adres kartı')).toBeVisible();
-    await expect(getSaveButton(address)).toBeVisible();
-    await expect(address.getByRole('link', {name: 'Go back'})).toHaveCount(0);
-  });
-
-  test('the back link leads to its target', async ({page}) => {
-    await openFormShells(page);
-
-    await getCard(page, 'Profil').getByRole('link', {name: 'Go back'}).click();
-
-    await expect(page).toHaveURL(/\/fixtures$/);
-    await expect(
-      page.getByRole('heading', {level: 1, name: 'Fixtures'}),
-    ).toBeVisible();
-  });
-
-  test('submits through the real form: an invalid value focuses the field, a valid one is handed over', async ({
-    page,
-  }) => {
-    await openFormShells(page);
-    const profile = getCard(page, 'Profil');
-    const name = profile.getByLabel('Ad');
-
-    await name.clear();
-    await name.press('Tab');
-    await expect(profile.getByText('Ad gerekli')).toBeVisible();
-    await getSaveButton(profile).click();
-
-    await expect(name).toBeFocused();
-    await expect(profile.getByText('Ad gerekli')).toBeVisible();
-
-    await name.pressSequentially('Ada Kaya');
-    await page.keyboard.press('Enter');
-
-    await expectFixtureState(page).toMatchObject({
-      submitted: {profile: {name: 'Ada Kaya'}},
-    });
-  });
-
-  test('a dirty card form asks before the page unloads', async ({page}) => {
-    await openFormShells(page);
-    const city = getCard(page, 'Adres').getByLabel('Şehir');
-
-    await city.pressSequentially('Bursa');
-    await expectFixtureState(page).toMatchObject({
-      cards: {address: {isDirty: true}},
-    });
-
-    await expectUnloadAsked(page);
-    await expect(city).toHaveValue('Bursa');
   });
 });

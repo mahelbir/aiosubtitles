@@ -8,7 +8,7 @@ import {getSubtitleSourceRegistry} from '../_subtitle-source-registry.js';
 const SUBTITLE_SOURCES_RATE_LIMITS = [{max: 30, timeWindow: 60000}];
 
 export default async function (fastify, opts) {
-  const {listSubtitleSourceClients} = getSubtitleSourceRegistry(opts);
+  const {listAvailableSubtitleSourceClients} = getSubtitleSourceRegistry(opts);
 
   fastify.get(
     '/subtitle-sources',
@@ -24,7 +24,7 @@ export default async function (fastify, opts) {
     },
     async (request, reply) => {
       return reply.success(
-        listSubtitleSourceClients().map(({subtitleSource}) =>
+        (await listAvailableSubtitleSourceClients()).map(({subtitleSource}) =>
           toSubtitleSourceOption(subtitleSource),
         ),
       );

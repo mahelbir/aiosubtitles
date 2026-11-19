@@ -1,11 +1,11 @@
+import {IDENTITY_CODENAMES} from '../codenames.js';
+import {Codename} from '../constants/codename.js';
 import {readJsonFile} from '../json-file.js';
+import {atlasPaths} from './atlas-paths.js';
 import {getLabelReleaseNames} from './frozen-lists.js';
 import {createFrozenStore} from './frozen-store.js';
 import {parseListUrlIdentity} from './list-url.js';
 import {parseRowId} from './parse-row-id.js';
-import {atlasPaths} from './atlas-paths.js';
-
-const POOL_LIST_NAME = 'Orion';
 
 export class CorpusShapeError extends Error {
   constructor(message) {
@@ -92,6 +92,7 @@ const toCandidate = ({
 const readEvalCase = async ({
   atlasRoot,
   caseCode,
+  orionListName,
   frozenStore,
   videoIdentities,
   videoRecordByFilename,
@@ -100,7 +101,7 @@ const readEvalCase = async ({
     readJsonFile(atlasPaths.caseJson(atlasRoot, caseCode)),
     readJsonFile(atlasPaths.localJson(atlasRoot, caseCode)),
   ]);
-  const orionList = localJson.lists[POOL_LIST_NAME];
+  const orionList = localJson.lists[orionListName];
   const listBlob = await frozenStore.readJsonBlob(orionList.sha256);
   const listEntryById = new Map(
     listBlob.subtitles.map(listEntry => [listEntry.id, listEntry]),
@@ -132,7 +133,10 @@ const readEvalCase = async ({
   };
 };
 
-export const readCorpus = async ({atlasRoot}) => {
+export const readCorpus = async ({
+  atlasRoot,
+  codenames = IDENTITY_CODENAMES,
+}) => {
   const [corpusIndex, identities, videoRecordByFilename] = await Promise.all([
     readJsonFile(atlasPaths.corpusIndex(atlasRoot)),
     readJsonFile(atlasPaths.identities(atlasRoot)),
@@ -144,6 +148,7 @@ export const readCorpus = async ({atlasRoot}) => {
       readEvalCase({
         atlasRoot,
         caseCode: code,
+        orionListName: codenames[Codename.ORION],
         frozenStore,
         videoIdentities: identities.videos,
         videoRecordByFilename,

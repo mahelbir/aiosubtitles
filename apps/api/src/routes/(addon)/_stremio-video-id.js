@@ -1,5 +1,5 @@
 import {z} from 'zod';
-import {VIDEO_ID_LENGTH_MAX} from '@repo/subtitle-core/stremio-row/build-subtitle-url.js';
+import {VIDEO_ID_LENGTH_MAX} from '../../lib/stremio-row/build-subtitle-url.js';
 
 const STREMIO_VIDEO_ID_PATTERN = /^(tt\d+(:\d+){0,2}|kitsu:\d+(:\d+)?)$/;
 

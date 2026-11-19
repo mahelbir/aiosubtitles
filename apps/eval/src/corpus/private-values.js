@@ -46,9 +46,9 @@ export const readOwnPrivateValues = async ({atlasRoot}) => {
   ];
 };
 
-export const readReportPrivateValues = async ({atlasRoot}) => {
+export const readReportPrivateValues = async ({atlasRoot, codenames}) => {
   const [evalCases, ownPrivateValues] = await Promise.all([
-    readCorpus({atlasRoot}),
+    readCorpus({atlasRoot, codenames}),
     readOwnPrivateValues({atlasRoot}),
   ]);
   return [...new Set([...getPrivateValues(evalCases), ...ownPrivateValues])];

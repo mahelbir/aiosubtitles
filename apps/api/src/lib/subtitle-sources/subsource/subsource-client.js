@@ -19,6 +19,7 @@ export const subsourceClient = {
       requestMax: CREDENTIAL_DOWNLOAD_MAX,
     },
   ],
+  isAvailable: () => true,
   canSearchWithoutCredential: () => false,
   canDownloadWithoutCredential: () => false,
   async searchSubtitles(searchQuery, credential, {signal} = {}) {

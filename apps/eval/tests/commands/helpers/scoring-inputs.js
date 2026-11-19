@@ -1,5 +1,5 @@
 import {parseReleaseName} from '@repo/subtitle-core/release-name/parse-release-name.js';
-import {READY_MADE_SCORE_TABLES} from '@repo/subtitle-core/scoring/ready-made-score-tables.js';
+import {READY_MADE_SCORE_TABLES} from '../../../src/score-tables/ready-made-score-tables.js';
 
 export const VIDEO_RELEASE_NAME =
   'Show.S01E01.1080p.AMZN.WEB-DL.DDP5.1.H.264-GRP';

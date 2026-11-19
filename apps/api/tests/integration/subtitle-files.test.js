@@ -9,14 +9,10 @@ import {
   CredentialStatus,
 } from '@repo/shared/constants/credential.js';
 import {SubtitleSource} from '@repo/shared/constants/subtitle-source.js';
-import {
-  SubtitleFileExtension,
-  SubtitleMessage,
-} from '@repo/subtitle-core/constants/subtitle-core-enums.js';
+import {SubtitleFileExtension} from '@repo/subtitle-core/constants/subtitle-core-enums.js';
 import {buildFileFacts} from '@repo/subtitle-core/file-format/file-facts.js';
 import {buildMessageSrt} from '@repo/subtitle-core/file-format/message-srt.js';
 import {renderSubtitleFile} from '@repo/subtitle-core/file-format/render-subtitle.js';
-import {computeUrlCode} from '@repo/subtitle-core/stremio-row/url-code.js';
 import {config} from '../../src/config/index.js';
 import {
   SubtitleFile,
@@ -26,6 +22,8 @@ import {SubtitleVideoBinding} from '../../src/db/models/subtitle-video-binding.j
 import {Subtitle} from '../../src/db/models/subtitle.js';
 import {uuidV4} from '../../src/lib/common.js';
 import {markCredentialStatus} from '../../src/lib/credential-secret.js';
+import {SubtitleMessage} from '../../src/lib/stremio-row/stremio-row-enums.js';
+import {computeUrlCode} from '../../src/lib/stremio-row/url-code.js';
 import {
   openSubtitleSourceBreaker,
   readSubtitleSourceBreaker,
@@ -141,6 +139,7 @@ setTestAppOptions({
 
 beforeEach(() => {
   for (const client of fixtureClients) {
+    client.isAvailable.mockReset().mockReturnValue(true);
     client.downloadSubtitle
       .mockReset()
       .mockRejectedValue(
@@ -558,6 +557,34 @@ describe('an OpenSubtitles download', () => {
     const subtitle = await findSubtitleByUrlCode(opensubtitlesUrlCode);
     const storedFile = await readStoredFile(subtitle.id);
     expect(storedFile.fileOrigin).toBe(SubtitleFileOrigin.OPENSUBTITLES_V3);
+  });
+
+  it('refuses an OpenSubtitles file while the source is unavailable, v3 copy included', async () => {
+    const {userConfig} = await createUserConfig({
+      credentials: [makeAccountCredential('account-user')],
+    });
+    const {urlCode} = await storeHit(
+      MOVIE_ID,
+      makeOpensubtitlesHit({legacyId: '123456'}),
+    );
+    await storeHit(MOVIE_ID, makeV3Hit({siteFileId: '123456'}));
+    opensubtitlesClient.isAvailable.mockResolvedValue(false);
+    opensubtitlesV3Client.downloadSubtitle.mockResolvedValue(
+      toDownload(MOVIE_SRT),
+    );
+    opensubtitlesClient.downloadSubtitle.mockResolvedValue(
+      toDownload(MOVIE_SRT),
+    );
+
+    const response = await getSubtitleFile({
+      userConfigId: userConfig.id,
+      videoId: MOVIE_ID,
+      urlCode,
+    });
+
+    expectMessage(response, SubtitleMessage.SUBTITLE_DOWNLOAD_FAILED);
+    expect(opensubtitlesClient.downloadSubtitle).not.toHaveBeenCalled();
+    expect(opensubtitlesV3Client.downloadSubtitle).not.toHaveBeenCalled();
   });
 
   it('never requests a v3 copy whose url points at a private host', async () => {

@@ -1,4 +1,4 @@
-import {isNil, omitBy} from 'es-toolkit';
+import {isNil, omitBy, pick} from 'es-toolkit';
 import {redis} from '../../../redis/index.js';
 import {deriveSecretKey, fingerprintSecret} from '../../crypto.js';
 
@@ -8,8 +8,11 @@ export const OPENSUBTITLES_QUOTA_TTL = 300;
 
 const TOKEN_KEY_PREFIX = 'opensubtitles-token:v1:';
 const QUOTA_KEY_PREFIX = 'opensubtitles-quota:v1:';
+const SESSION_FIELDS = ['token', 'baseUrl', 'appKeyFingerprint'];
 
 const accountFingerprintKey = deriveSecretKey('opensubtitles-account');
+
+const appKeyFingerprintKey = deriveSecretKey('opensubtitles-app-key');
 
 export function toOpensubtitlesSessionKey({credentialId, username, password}) {
   const accountFingerprint = fingerprintSecret(
@@ -17,6 +20,10 @@ export function toOpensubtitlesSessionKey({credentialId, username, password}) {
     accountFingerprintKey,
   );
   return `${credentialId}:${accountFingerprint}`;
+}
+
+export function toOpensubtitlesAppKeyFingerprint(apiKey) {
+  return fingerprintSecret(apiKey, appKeyFingerprintKey);
 }
 
 redis.defineCommand('mergeOpensubtitlesQuota', {
@@ -46,7 +53,8 @@ async function readStoredJson(storeKey) {
 function isSession(storedSession) {
   return (
     typeof storedSession?.token === 'string' &&
-    typeof storedSession.baseUrl === 'string'
+    typeof storedSession.baseUrl === 'string' &&
+    typeof storedSession.appKeyFingerprint === 'string'
   );
 }
 
@@ -54,15 +62,13 @@ export async function readOpensubtitlesSession(sessionKey) {
   const storedSession = await readStoredJson(
     `${TOKEN_KEY_PREFIX}${sessionKey}`,
   );
-  return isSession(storedSession)
-    ? {token: storedSession.token, baseUrl: storedSession.baseUrl}
-    : null;
+  return isSession(storedSession) ? pick(storedSession, SESSION_FIELDS) : null;
 }
 
-export async function storeOpensubtitlesSession(sessionKey, {token, baseUrl}) {
+export async function storeOpensubtitlesSession(sessionKey, session) {
   await redis.set(
     `${TOKEN_KEY_PREFIX}${sessionKey}`,
-    JSON.stringify({token, baseUrl}),
+    JSON.stringify(pick(session, SESSION_FIELDS)),
     'EX',
     OPENSUBTITLES_TOKEN_TTL,
   );

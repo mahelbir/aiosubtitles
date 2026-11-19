@@ -61,9 +61,7 @@ export function toBudgetRequestMax({requestMax, budgetFactor, isBackground}) {
   }
   return Math.max(
     1,
-    Math.floor(
-      requestMax * budgetFactor * config.subtitleSourceBackgroundShare,
-    ),
+    Math.floor(requestMax * budgetFactor * config.subtitleBackgroundRateShare),
   );
 }
 

@@ -1,10 +1,10 @@
 import {noop} from 'es-toolkit';
 import {z} from 'zod';
 import {StatusCodes} from 'http-status-codes';
-import {buildNoticeRow} from '@repo/subtitle-core/stremio-row/build-notice-row.js';
-import {buildStremioSubtitles} from '@repo/subtitle-core/stremio-row/build-stremio-subtitles.js';
 import {config} from '../../config/index.js';
 import {RateLimitKey} from '../../lib/rate-limit.js';
+import {buildNoticeRow} from '../../lib/stremio-row/build-notice-row.js';
+import {buildStremioSubtitles} from '../../lib/stremio-row/build-stremio-subtitles.js';
 import {
   drainPendingSearches,
   searchSubtitleSource,
@@ -83,12 +83,12 @@ const SUBTITLE_LIST_ROUTE_CONFIG = {
   rateLimitGroup: 'subtitle-list',
   rateLimits: [
     {
-      max: config.subtitleListRateLimitIpMax,
+      max: config.rateLimitSubtitleListIpMax,
       timeWindow: config.rateLimitWindow,
     },
     {
       key: RateLimitKey.USER_CONFIG,
-      max: config.subtitleListRateLimitUserConfigMax,
+      max: config.rateLimitSubtitleListUserConfigMax,
       timeWindow: config.rateLimitWindow,
     },
   ],
@@ -133,10 +133,11 @@ export default async function (fastify, opts) {
         });
         const searchSignal = requestDeadline.toSignal();
         const scopedUrlCodes = [];
+        const availableClients =
+          await subtitleSourceRegistry.listAvailableSubtitleSourceClients();
         await requestDeadline.raceDeadline(
           Promise.all(
-            subtitleSourceRegistry
-              .listSubtitleSourceClients()
+            availableClients
               .filter(
                 ({subtitleSource}) =>
                   cachedUserConfig.subtitleSourceSwitchStates[
@@ -204,7 +205,7 @@ export default async function (fastify, opts) {
         }
         const credentialsBySource = await readCredentialsBySource({
           cachedUserConfig,
-          subtitleSourceRegistry,
+          clients: availableClients,
         }).catch(error => {
           request.log.warn(
             {errorName: error?.name},
@@ -239,13 +240,10 @@ export default async function (fastify, opts) {
   }
 }
 
-async function readCredentialsBySource({
-  cachedUserConfig,
-  subtitleSourceRegistry,
-}) {
+async function readCredentialsBySource({cachedUserConfig, clients}) {
   return Object.fromEntries(
     await Promise.all(
-      subtitleSourceRegistry.listSubtitleSourceClients().map(async client => [
+      clients.map(async client => [
         client.subtitleSource,
         await readDownloadCredentials({
           cachedUserConfig,

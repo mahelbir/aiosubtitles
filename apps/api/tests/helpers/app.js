@@ -1,7 +1,7 @@
 import {buildApp} from '../../src/build.js';
 import {config} from '../../src/config/index.js';
 import {basePathField} from '../../src/config/schema.js';
-import {HTTP_FIXTURE_URL, httpFixture, paginationFixture} from './fixtures.js';
+import {HTTP_FIXTURE_URL, httpFixture} from './fixtures.js';
 
 let instance = null;
 let scope = null;
@@ -41,7 +41,7 @@ export async function getTestApp() {
       ...testAppOptions,
       logger: false,
       basePath,
-      extraPlugins: [httpFixture, paginationFixture, ...testPlugins],
+      extraPlugins: [httpFixture, ...testPlugins],
     });
     /* Registration is deferred until ready(), so a hook added here still sees
        every route the autoloader is about to declare. */

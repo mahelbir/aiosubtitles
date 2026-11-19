@@ -1,6 +1,5 @@
 import {identity, sortBy} from 'es-toolkit';
 import {AIOSUBTITLES_SCORE_TABLE} from '@repo/subtitle-core/scoring/aiosubtitles-score-table.js';
-import {READY_MADE_SCORE_TABLES} from '@repo/subtitle-core/scoring/ready-made-score-tables.js';
 import {RankingLabel} from '../constants/ranking-label.js';
 import {createFrozenStore} from '../corpus/frozen-store.js';
 import {readReportPrivateValues} from '../corpus/private-values.js';
@@ -19,6 +18,7 @@ import {
   summarizeRankingRow,
 } from '../score-tables/ranking-run.js';
 import {buildReadyMadeReport} from '../score-tables/ready-made-report.js';
+import {READY_MADE_SCORE_TABLES} from '../score-tables/ready-made-score-tables.js';
 import {readGroupFileFacts} from '../score-tables/group-file-facts.js';
 import {runTimeFamily} from '../score-tables/time-family-run.js';
 import {
@@ -175,6 +175,7 @@ const toTimeFamilyVideo = ({videoCode, evalCase, contentGroups}) => ({
 
 export const runScoreTablesCommand = async ({
   atlasRoot,
+  codenames,
   commandOptions,
   writeLine,
   reportsDir = REPORTS_DIR,
@@ -182,9 +183,9 @@ export const runScoreTablesCommand = async ({
   const reportDate = commandOptions['report-date'];
   const frozenStore = createFrozenStore(atlasRoot);
   const [evalCases, runFingerprint, privateValues] = await Promise.all([
-    readCorpus({atlasRoot}),
+    readCorpus({atlasRoot, codenames}),
     readRunFingerprint(atlasRoot),
-    readReportPrivateValues({atlasRoot}),
+    readReportPrivateValues({atlasRoot, codenames}),
   ]);
   const videos = sortBy(
     await Promise.all(

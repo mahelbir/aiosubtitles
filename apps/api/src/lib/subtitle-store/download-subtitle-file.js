@@ -7,12 +7,12 @@ import {
   extractSubtitleEntries,
 } from '@repo/subtitle-core/archive/extract-subtitle-entries.js';
 import {pickArchiveEntryForVideo} from '@repo/subtitle-core/archive/pick-archive-entry.js';
-import {SubtitleMessage} from '@repo/subtitle-core/constants/subtitle-core-enums.js';
 import {SubtitleAlias} from '../../db/models/subtitle-alias.js';
 import {SubtitleFileOrigin} from '../../db/models/subtitle-file.js';
 import {Subtitle} from '../../db/models/subtitle.js';
 import {createLogger} from '../logger.js';
 import {recordSubtitleSourceFailure} from '../record-subtitle-source-failure.js';
+import {SubtitleMessage} from '../stremio-row/stremio-row-enums.js';
 import {readSubtitleSourceBreaker} from '../subtitle-search/subtitle-source-breaker.js';
 import {
   toBudgetRecoveryWindowMs,
@@ -177,6 +177,10 @@ async function downloadFromSources({
   canSpendCredential,
 }) {
   const {subtitleSource} = subtitle;
+  const client = subtitleSourceRegistry.getSubtitleSourceClient(subtitleSource);
+  if (!client || !(await client.isAvailable())) {
+    return DOWNLOAD_FAILED;
+  }
   if (subtitleSource === SubtitleSource.OPENSUBTITLES) {
     const aliasDownload = await downloadThroughV3({
       subtitle,
@@ -196,9 +200,8 @@ async function downloadFromSources({
       };
     }
   }
-  const client = subtitleSourceRegistry.getSubtitleSourceClient(subtitleSource);
   const subtitleRef = toSubtitleRef(subtitle, videoContext);
-  if (!client || !subtitleRef) {
+  if (!subtitleRef) {
     return DOWNLOAD_FAILED;
   }
   const sourceCredentials = await readDownloadCredentials({

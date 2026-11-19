@@ -35,7 +35,8 @@ export const CREDENTIAL_CHECK_DEADLINE = 5000;
 
 export const LOGIN_REFUSAL = 'Wrong configuration ID or password.';
 
-const SUBTITLE_SOURCE_UNAVAILABLE = 'This source is not available yet.';
+const SUBTITLE_SOURCE_UNREGISTERED_REFUSAL =
+  'This source is not available yet.';
 
 const PASSWORD_RATE_LIMIT_GROUP = 'user-config-password';
 
@@ -67,15 +68,15 @@ export const userConfigGoneRefusal = () =>
 
 export function createPasswordAttemptCheck(fastify) {
   const [ipLimit, userConfigLimit] = [
-    {max: config.userConfigPasswordRateLimitIpMax},
+    {max: config.rateLimitUserConfigPasswordIpMax},
     {
       key: RateLimitKey.USER_CONFIG,
-      max: config.userConfigPasswordRateLimitUserConfigMax,
+      max: config.rateLimitUserConfigPasswordUserConfigMax,
     },
   ].map(window =>
     fastify.rateLimiter({
       ...window,
-      timeWindow: config.userConfigPasswordRateLimitWindow,
+      timeWindow: config.rateLimitUserConfigPasswordWindow,
       scope: PASSWORD_RATE_LIMIT_GROUP,
       penalty: RateLimitPenalty.NONE,
     }),
@@ -106,15 +107,17 @@ export function createPasswordAttemptCheck(fastify) {
   };
 }
 
-export function assertSubtitleSourcesAvailable(
+export function assertSubtitleSourcesRegistered(
   subtitleSourceRegistry,
   credentials = [],
 ) {
-  const isEveryAvailable = credentials.every(
+  const isEveryRegistered = credentials.every(
     ({subtitleSource}) =>
       subtitleSourceRegistry.getSubtitleSourceClient(subtitleSource) !== null,
   );
-  return isEveryAvailable ? null : unprocessable(SUBTITLE_SOURCE_UNAVAILABLE);
+  return isEveryRegistered
+    ? null
+    : unprocessable(SUBTITLE_SOURCE_UNREGISTERED_REFUSAL);
 }
 
 export function getCredentialPositions(credentials) {

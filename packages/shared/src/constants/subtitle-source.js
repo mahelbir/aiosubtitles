@@ -22,6 +22,7 @@ export const SubtitleSource = Enum({
     credentialRequirement: CredentialRequirement.OPTIONAL,
     credentialKinds: [CredentialKind.ACCOUNT, CredentialKind.API_KEY],
     downloadCredentialKinds: [CredentialKind.ACCOUNT],
+    sharedCredentialKind: CredentialKind.API_KEY,
     credentialLimit: 10,
   },
   OPENSUBTITLES_V3: {
@@ -67,6 +68,7 @@ export const SubtitleSource = Enum({
     subtitleSourcePhase: 1,
     credentialRequirement: CredentialRequirement.OPTIONAL,
     credentialKinds: [CredentialKind.ACCESS_TOKEN],
+    sharedCredentialKind: CredentialKind.ACCESS_TOKEN,
     credentialLimit: 1,
   },
   SUBDL: {
@@ -94,6 +96,7 @@ export const SubtitleSource = Enum({
     subtitleSourcePhase: 2,
     credentialRequirement: CredentialRequirement.OPTIONAL,
     credentialKinds: [CredentialKind.API_KEY],
+    sharedCredentialKind: CredentialKind.API_KEY,
     credentialLimit: 1,
   },
   STREMIO_COMMUNITY_SUBTITLES: {
@@ -148,6 +151,7 @@ export const SubtitleSource = Enum({
     subtitleSourcePhase: 2,
     credentialRequirement: CredentialRequirement.OPTIONAL,
     credentialKinds: [CredentialKind.API_KEY],
+    sharedCredentialKind: CredentialKind.API_KEY,
     credentialLimit: 10,
   },
 });

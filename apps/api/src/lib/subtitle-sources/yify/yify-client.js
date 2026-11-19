@@ -17,6 +17,7 @@ export const yifyClient = {
       requestMax: DOWNLOAD_MAX,
     },
   ],
+  isAvailable: () => true,
   canSearchWithoutCredential: () => true,
   canDownloadWithoutCredential: () => true,
   async searchSubtitles(searchQuery, credential, {signal} = {}) {

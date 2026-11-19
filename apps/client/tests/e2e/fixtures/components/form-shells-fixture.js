@@ -11,42 +11,26 @@ import {
   FormPanelContent,
 } from '@/components/form/form-panel';
 import {FormField} from '@/components/form/form-field';
-import {PageCardForm} from '@/components/form/page-card-form';
-import {SaveButton} from '@/components/form/save-button';
-import {TabMenuForm} from '@/components/form/tab-menu-form';
 import {TextInput} from '@/components/form/text-input';
 import {Button} from '@/components/ui/button';
 import {TabMenuCard} from '@/components/common/tab-menu';
-import {getListQueryKeys} from '@/hooks/use-list-query';
-import {PanelAction, usePanelQuery} from '@/hooks/use-panel-query';
 import {useTabQuery} from '@/hooks/use-tab-query';
 import {useAppForm} from '@/lib/form';
-import {optionSource} from '@/lib/option-source';
-import {useFormStatus} from '../hooks/use-form-status';
 import {FIXTURE_PEOPLE, findFixturePerson} from '../lib/fake-people';
 import {FixtureSection} from './fixture-section';
 import {FixtureState} from './fixture-state';
 
+const CREATE_ACTION = 'create';
+const EDIT_ACTION = 'edit';
 const INVITE_ACTION = 'invite';
-const PANEL_ACTIONS = [PanelAction.CREATE, PanelAction.EDIT, INVITE_ACTION];
+const PANEL_ACTIONS = [CREATE_ACTION, EDIT_ACTION, INVITE_ACTION];
+const CLOSED_PANEL = {action: null, targetId: null};
 
-const TAB_RESET_KEYS = getListQueryKeys({
-  status: {source: optionSource.fixed([{value: 'active', label: 'Aktif'}])},
-});
+const TAB_RESET_KEYS = ['pageNumber', 'search', 'sort', 'status'];
 
 const TAB_ITEMS = [
-  {
-    value: 'genel',
-    label: 'Genel',
-    Wrapper: GeneralTabForm,
-    Fields: GeneralTabFields,
-  },
-  {
-    value: 'bildirim',
-    label: 'Bildirimler',
-    Wrapper: NotificationsTabForm,
-    Fields: NotificationsTabFields,
-  },
+  {value: 'genel', label: 'Genel'},
+  {value: 'bildirim', label: 'Bildirimler'},
   {value: 'guvenlik', label: 'Güvenlik'},
 ];
 
@@ -58,17 +42,16 @@ const MANY_TAB_ITEMS = [
   })),
 ];
 
-const TabSubmitContext = createContext(null);
+const PanelContext = createContext(null);
 
 const recordFormSchema = z.object({name: z.string().min(1, 'Ad gerekli')});
 const inviteFormSchema = z.object({
   email: z.email('Geçerli bir e-posta girin'),
 });
-const addressFormSchema = z.object({city: z.string()});
 
 export function FormShellsFixture() {
   const searchParams = useSearchParams();
-  const formPanel = usePanelQuery({actions: PANEL_ACTIONS});
+  const formPanel = useFixturePanel(searchParams);
   const tabItems = searchParams.has('hasManyTabs') ? MANY_TAB_ITEMS : TAB_ITEMS;
   const [activeTab, setActiveTab] = useTabQuery(tabItems, {
     resetKeys: TAB_RESET_KEYS,
@@ -80,21 +63,8 @@ export function FormShellsFixture() {
   const submit = shell => values =>
     setSubmitted(current => ({...current, [shell]: values}));
 
-  const profileForm = useAppForm({
-    schema: recordFormSchema,
-    defaultValues: {name: 'Ada Yılmaz'},
-    onSubmit: ({value}) => submit('profile')(value),
-  });
-  const addressForm = useAppForm({
-    schema: addressFormSchema,
-    defaultValues: {city: ''},
-    onSubmit: ({value}) => submit('address')(value),
-  });
-  const profileStatus = useFormStatus(profileForm);
-  const addressStatus = useFormStatus(addressForm);
-
   return (
-    <>
+    <PanelContext value={formPanel}>
       <FixtureSection title="Kayıtlar">
         <div className="flex flex-wrap gap-2">
           <Button onClick={() => formPanel.open()}>
@@ -120,13 +90,6 @@ export function FormShellsFixture() {
               >
                 {person.name} düzenle
               </Button>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => formPanel.openNear(person.id)}
-              >
-                {person.name} altına ekle
-              </Button>
             </li>
           ))}
         </ul>
@@ -136,11 +99,11 @@ export function FormShellsFixture() {
         onClose={formPanel.close}
         size={searchParams.get('panelSize') ?? undefined}
         title={
-          formPanel.action === PanelAction.EDIT ? 'Kayıt Düzenle' : 'Kayıt Ekle'
+          formPanel.action === EDIT_ACTION ? 'Kayıt Düzenle' : 'Kayıt Ekle'
         }
       >
         <RecordForm
-          key={`${formPanel.action}:${formPanel.targetId ?? formPanel.anchorId ?? 'new'}`}
+          key={`${formPanel.action}:${formPanel.targetId ?? 'new'}`}
           onSubmit={submit('panel')}
         />
       </FormPanel>
@@ -152,96 +115,58 @@ export function FormShellsFixture() {
       >
         <InviteForm onSubmit={submit('dialog')} />
       </FormDialog>
-      <TabSubmitContext value={submit}>
-        <TabMenuCard
-          items={tabItems}
-          value={activeTab}
-          onValueChange={setActiveTab}
-          footer={tab => tab.Wrapper && <SaveButton />}
-          className="md:min-h-96"
-        >
-          {tab => (
-            <>
-              <p>{tab.label} sekmesinin içeriği.</p>
-              {tab.Fields && <tab.Fields />}
-            </>
-          )}
-        </TabMenuCard>
-      </TabSubmitContext>
-      <section aria-label="Profil">
-        <PageCardForm form={profileForm} title="Profil kartı" back="/fixtures">
-          <FormField name="name">
-            <TextInput label="Ad" />
-          </FormField>
-        </PageCardForm>
-      </section>
-      <section aria-label="Adres">
-        <PageCardForm form={addressForm} title="Adres kartı">
-          <FormField name="city">
-            <TextInput label="Şehir" />
-          </FormField>
-        </PageCardForm>
-      </section>
+      <TabMenuCard
+        items={tabItems}
+        value={activeTab}
+        onValueChange={setActiveTab}
+        className="md:min-h-96"
+      >
+        {tab => <p>{tab.label} sekmesinin içeriği.</p>}
+      </TabMenuCard>
       <FixtureState
         value={{
           panel: {
             action: formPanel.action,
             isOpen: formPanel.isOpen,
             targetId: formPanel.targetId,
-            anchorId: formPanel.anchorId,
           },
           tab: activeTab,
-          cards: {profile: profileStatus, address: addressStatus},
           submitted,
         }}
       />
-    </>
+    </PanelContext>
   );
 }
 
-function GeneralTabForm({children}) {
-  const submit = use(TabSubmitContext);
-  const form = useAppForm({
-    defaultValues: {displayName: ''},
-    onSubmit: ({value}) => submit('genel')(value),
-  });
-
-  return <TabMenuForm form={form}>{children}</TabMenuForm>;
+function useFixturePanel(searchParams) {
+  const [panel, setPanel] = useState(() => readPanel(searchParams));
+  return {
+    ...panel,
+    isOpen: panel.action !== null,
+    open: targetId =>
+      setPanel(
+        targetId === undefined
+          ? {action: CREATE_ACTION, targetId: null}
+          : {action: EDIT_ACTION, targetId: String(targetId)},
+      ),
+    openAction: action => setPanel({action, targetId: null}),
+    close: () => setPanel(CLOSED_PANEL),
+  };
 }
 
-function GeneralTabFields() {
-  return (
-    <FormField name="displayName">
-      <TextInput label="Görünen ad" />
-    </FormField>
-  );
-}
-
-function NotificationsTabForm({children}) {
-  const submit = use(TabSubmitContext);
-  const form = useAppForm({
-    defaultValues: {digestEmail: ''},
-    onSubmit: ({value}) => submit('bildirim')(value),
-  });
-
-  return (
-    <TabMenuForm form={form} aria-label="Bildirim ayarları" autoComplete="off">
-      {children}
-    </TabMenuForm>
-  );
-}
-
-function NotificationsTabFields() {
-  return (
-    <FormField name="digestEmail">
-      <TextInput label="Bildirim e-postası" type="email" />
-    </FormField>
-  );
+function readPanel(searchParams) {
+  const action = searchParams.get('action');
+  if (!PANEL_ACTIONS.includes(action)) {
+    return CLOSED_PANEL;
+  }
+  return {
+    action,
+    targetId: action === EDIT_ACTION ? searchParams.get('id') : null,
+  };
 }
 
 function RecordForm({onSubmit}) {
-  const formPanel = usePanelQuery({actions: PANEL_ACTIONS});
-  const anchor = findFixturePerson(formPanel.anchorId);
+  const formPanel = use(PanelContext);
   const form = useAppForm({
     schema: recordFormSchema,
     defaultValues: {name: findFixturePerson(formPanel.targetId)?.name ?? ''},
@@ -254,12 +179,11 @@ function RecordForm({onSubmit}) {
   return (
     <FormPanelContent form={form} onCancel={formPanel.close}>
       {formPanel.targetId && <p>Kayıt no: {formPanel.targetId}</p>}
-      {anchor && <p>Konum: {anchor.name} altı</p>}
       <FormField name="name">
         <TextInput label="Ad" />
       </FormField>
       <div className="flex flex-wrap gap-2">
-        {formPanel.action === PanelAction.EDIT && (
+        {formPanel.action === EDIT_ACTION && (
           <Button type="button" variant="link" onClick={() => formPanel.open()}>
             Yeni kayıt
           </Button>
@@ -277,7 +201,7 @@ function RecordForm({onSubmit}) {
 }
 
 function InviteForm({onSubmit}) {
-  const formPanel = usePanelQuery({actions: PANEL_ACTIONS});
+  const formPanel = use(PanelContext);
   const form = useAppForm({
     schema: inviteFormSchema,
     defaultValues: {email: ''},

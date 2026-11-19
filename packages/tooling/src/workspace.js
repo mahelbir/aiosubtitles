@@ -1,7 +1,6 @@
 import * as fs from 'node:fs';
 import * as path from 'node:path';
 import {fileURLToPath} from 'node:url';
-import {gitVersion} from 'melperjs/node';
 
 const WORKSPACE_MARKER = 'pnpm-workspace.yaml';
 
@@ -20,11 +19,4 @@ export function getWorkspacePath(fallback) {
     }
     current = parent;
   }
-}
-
-/**
- * @returns {string}
- */
-export function getAppVersion() {
-  return process.env.APP_VERSION?.trim() || gitVersion();
 }

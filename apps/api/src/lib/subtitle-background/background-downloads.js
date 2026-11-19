@@ -49,7 +49,7 @@ export function limitPerLanguage(orderedCandidates, storedCandidates = []) {
   return orderedCandidates.filter(({languageCode}) => {
     const languageCount = languageCounts.get(languageCode) ?? 0;
     languageCounts.set(languageCode, languageCount + 1);
-    return languageCount < config.listImprovementCandidateMax;
+    return languageCount < config.subtitleBackgroundCandidateMax;
   });
 }
 

@@ -1,6 +1,6 @@
 import {defineConfig} from 'vitest/config';
 
-const INTEGRATION_DIRS = 'integration,security,contract,concurrency,budget';
+const INTEGRATION_DIRS = 'integration,security,contract,concurrency';
 
 /* The autoloader imports plugins, routes and models with a runtime `import()`,
    which Vite never sees. Left transformed, an integration test would hold a
@@ -93,7 +93,7 @@ export default defineConfig({
       exclude: [
         'apps/api/src/{app,build,server}.js',
         'apps/api/src/{plugins,routes,workers,redis}/**',
-        'apps/api/src/db/{models,migrations,seeders,cli,hooks}/**',
+        'apps/api/src/db/{models,migrations,cli,hooks}/**',
         'apps/api/src/db/{index,init}.js',
         'apps/api/src/lib/settings.js',
       ],

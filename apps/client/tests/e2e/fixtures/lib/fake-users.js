@@ -1,16 +1,16 @@
 import {z} from 'zod';
-import {deburr, isNil, omitBy, range} from 'es-toolkit';
+import {deburr, isNil, omitBy, range, uniq} from 'es-toolkit';
 import {StatusCodes} from 'http-status-codes';
 import {ErrorCode} from '@repo/shared/constants/error-code.js';
-import {toOffsetPagePayload} from '@repo/shared/lib/pagination.js';
 import {
-  getMultiFilterField,
-  getOffsetPaginationSchema,
-} from '@repo/shared/schemas/pagination.js';
+  MAX_FILTER_VALUES,
+  MAX_PAGE_SIZE,
+  SEARCH_MIN_LENGTH,
+} from '@repo/shared/constants/pagination.js';
+import {toOffsetPagePayload} from '@repo/shared/lib/pagination.js';
 import {env} from '@/config/env';
 import {ApiError} from '@/lib/api-request';
 import {getIntlFormatter} from '@/lib/intl';
-import {queryToSorting} from '@/lib/table';
 
 const FIRST_NAMES = [
   'Ada',
@@ -51,16 +51,35 @@ const DEPARTMENTS = [
   {id: 'uretim', label: 'Üretim'},
 ];
 const DISABLED_EVERY = 4;
+const DEFAULT_PAGE_SIZE = 25;
 
 export const FAKE_USER_SORT_FIELDS = Object.freeze(['id', 'name', 'createdAt']);
 
-const listUsersSchema = getOffsetPaginationSchema({
-  sort: FAKE_USER_SORT_FIELDS,
-  id: getMultiFilterField(z.coerce.number().int()).optional(),
-  disabled: getMultiFilterField(z.boolean()).optional(),
-  department: getMultiFilterField(
+function getListField(schema) {
+  return z
+    .union([z.array(schema).max(MAX_FILTER_VALUES), schema])
+    .transform(value => uniq(Array.isArray(value) ? value : [value]))
+    .optional();
+}
+
+const listUsersSchema = z.object({
+  pageNumber: z.coerce.number().int().min(1).default(1),
+  pageSize: z.coerce
+    .number()
+    .int()
+    .min(1)
+    .max(MAX_PAGE_SIZE)
+    .default(DEFAULT_PAGE_SIZE),
+  windowSize: z.coerce.number().int().min(1).optional(),
+  search: z.string().trim().min(SEARCH_MIN_LENGTH).optional(),
+  sort: getListField(
+    z.enum(FAKE_USER_SORT_FIELDS.flatMap(field => [field, `-${field}`])),
+  ),
+  id: getListField(z.coerce.number().int()),
+  disabled: getListField(z.boolean()),
+  department: getListField(
     z.enum(DEPARTMENTS.map(department => department.id)),
-  ).optional(),
+  ),
   createdFrom: z.iso.date().optional(),
   createdTo: z.iso.date().optional(),
   seenFrom: z.iso.datetime().optional(),
@@ -151,12 +170,15 @@ function isMatch(user, {search, id, disabled, department, ...bounds}) {
 }
 
 function sortUsers(users, sort = []) {
-  const sorting = queryToSorting(sort);
   return users.toSorted((a, b) => {
-    for (const {id, desc} of sorting) {
-      const order = SORT_COMPARATORS[id](a, b);
+    for (const field of sort) {
+      const isDescending = field.startsWith('-');
+      const order = SORT_COMPARATORS[isDescending ? field.slice(1) : field](
+        a,
+        b,
+      );
       if (order) {
-        return desc ? -order : order;
+        return isDescending ? -order : order;
       }
     }
     return SORT_COMPARATORS.id(a, b);

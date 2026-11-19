@@ -36,10 +36,6 @@ function openFormSkeletons(page, searchParams) {
   return openFixture(page, 'form-skeletons', searchParams);
 }
 
-function getCard(page) {
-  return page.getByRole('region', {name: 'Kart'});
-}
-
 function getEditPanel(page) {
   return getDialog(page, 'Kayıt Düzenle');
 }
@@ -139,63 +135,6 @@ function readEditPanelTwins(page, searchParams) {
   });
 }
 
-test.describe('page card form skeleton', () => {
-  function readCardDigest(page) {
-    return readDigest(page, 'section[aria-label="Kart"]');
-  }
-
-  function readCardTwins(page) {
-    return readTwins(page, {getScope: getCard, read: readCardDigest});
-  }
-
-  function getCardFrame(digest) {
-    return {
-      width: digest.size.w,
-      title: getSlotBox(digest, 'card-title'),
-      footerHeight: getSlotBox(digest, 'card-footer').h,
-    };
-  }
-
-  test('stands in for the card under its title and back link while the record loads, then the form takes its place', async ({
-    page,
-  }) => {
-    await openFormSkeletons(page, {delay: LATENCY_MS});
-    const card = getCard(page);
-
-    await expectSkeleton(card, busy => [
-      expect(busy.getByText('Profil kartı')).toBeVisible(),
-      expect(busy.getByRole('link', {name: 'Go back'})).toHaveAttribute(
-        'href',
-        '/fixtures',
-      ),
-    ]);
-
-    await expectForm(card, 'Cem Demir');
-  });
-
-  test('keeps the card width, its title box and its footer height when the form lands', async ({
-    page,
-  }) => {
-    const {skeleton, form} = await readCardTwins(page);
-
-    expect(getCardFrame(skeleton)).toEqual(getCardFrame(form));
-  });
-
-  test('keeps the card height when the form lands', async ({page}) => {
-    const {skeleton, form} = await readCardTwins(page);
-
-    expect(skeleton.size.h).toBe(form.size.h);
-  });
-
-  test('announces the load by role while the skeleton shows, and no longer once the form lands', async ({
-    page,
-  }) => {
-    await openFormSkeletons(page, {delay: LATENCY_MS});
-
-    await expectLoadingAnnounced(getCard(page), 'Cem Demir');
-  });
-});
-
 test.describe('form panel skeleton', () => {
   test('stands in for the form inside the sheet while the record loads, with focus inside, then the form takes its place', async ({
     page,
@@ -245,22 +184,6 @@ test.describe('form panel skeleton', () => {
 
     await expectSkeleton(panel, () => [expect(panel).toBeFocused()]);
     await expectForm(panel, 'Ada Yılmaz', () => [expect(panel).toBeFocused()]);
-  });
-
-  test('hands the focus from Close into a leading group once the form lands', async ({
-    page,
-  }) => {
-    const panel = await openLoadingEditPanel(page, {lead: 'group'});
-
-    await expectSkeleton(panel, () => [
-      expect(getCloseButton(panel)).toBeFocused(),
-    ]);
-
-    await expectForm(panel, 'Ada Yılmaz', () => [
-      expect(
-        panel.getByRole('button', {name: 'Üstüne', exact: true}),
-      ).toBeFocused(),
-    ]);
   });
 
   test('hands the focus from Close past a disabled leading field to the next one once the form lands', async ({
@@ -388,16 +311,6 @@ test.describe('form panel skeleton', () => {
       );
     });
 
-    test('keeps the drawer height when a checkbox field lands', async ({
-      page,
-    }) => {
-      const {skeleton, form} = await readEditPanelTwins(page, {
-        lead: 'checkbox',
-      });
-
-      expect(skeleton.size.h).toBe(form.size.h);
-    });
-
     test('glides the drawer when the form lands taller than its skeleton', async ({
       page,
     }) => {
@@ -421,9 +334,7 @@ test.describe('form panel skeleton', () => {
       await recordBoxes(page, DIALOG_SELECTOR);
       await recordBoxes(page, fieldBelow);
 
-      await expect(
-        panel.getByRole('button', {name: 'Üstüne', exact: true}),
-      ).toBeVisible();
+      await expect(getField(panel, 'Konum')).toBeVisible();
       await settleAnimations(panel);
 
       const [panelBoxes, fieldBoxes] = await Promise.all([
@@ -451,7 +362,9 @@ test.describe('form panel skeleton', () => {
       page,
     }) => {
       await openFormSkeletons(page);
-      await expect(getField(getCard(page), 'Ad')).toHaveValue('Cem Demir');
+      await expect(getField(getGeneralTabPanel(page), 'Ad')).toHaveValue(
+        'Cem Demir',
+      );
 
       await clickButton(page, 'Cem Demir düzenle');
 

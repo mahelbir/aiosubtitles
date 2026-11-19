@@ -13,6 +13,7 @@ const REPORT_NAME = 'name-parser';
 
 export const writeParserReport = async ({
   atlasRoot,
+  codenames,
   reportsDir,
   reportDate,
   markdown,
@@ -22,11 +23,12 @@ export const writeParserReport = async ({
     reportDate,
     reportName: REPORT_NAME,
     markdown,
-    privateValues: await readReportPrivateValues({atlasRoot}),
+    privateValues: await readReportPrivateValues({atlasRoot, codenames}),
   });
 
 export const runParserTestCommand = async ({
   atlasRoot,
+  codenames,
   commandOptions,
   writeLine,
   referenceRoot = resolveReferenceRoot(),
@@ -45,6 +47,7 @@ export const runParserTestCommand = async ({
   ]);
   const reportPath = await writeParserReport({
     atlasRoot,
+    codenames,
     reportsDir,
     reportDate,
     markdown: buildParserReport({outcome, reportDate, runFingerprint}),

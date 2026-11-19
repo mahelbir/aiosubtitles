@@ -12,11 +12,16 @@ export const settingsDefinition = defineSettings({
   editableFields: {},
   serverFields: {
     sharedCredentials: z
-      .object({
-        [SubtitleSource.JIMAKU]: sharedCredentialListField,
-        [SubtitleSource.BETASERIES]: sharedCredentialListField,
-        [SubtitleSource.ANISUB]: sharedCredentialListField,
-      })
+      .object(
+        Object.fromEntries(
+          SubtitleSource.values
+            .filter(
+              subtitleSource =>
+                SubtitleSource.raw(subtitleSource).sharedCredentialKind,
+            )
+            .map(subtitleSource => [subtitleSource, sharedCredentialListField]),
+        ),
+      )
       .prefault({}),
   },
   rules: [],

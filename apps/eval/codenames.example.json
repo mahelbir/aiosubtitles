@@ -1,0 +1,6 @@
+{
+  "atlas": "Name of the corpus project",
+  "orion": "Name of the first peer addon",
+  "lyra": "Name of the second peer addon",
+  "vega": "Name of the third peer addon"
+}

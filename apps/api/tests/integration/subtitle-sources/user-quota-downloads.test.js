@@ -30,6 +30,7 @@ const SHIPPED_CLIENT_FIELDS = [
   'credentialKinds',
   'isSearchHashSensitive',
   'downloadBudgets',
+  'isAvailable',
   'canSearchWithoutCredential',
   'canDownloadWithoutCredential',
   'canUseSharedCredential',

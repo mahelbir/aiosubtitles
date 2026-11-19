@@ -1,9 +1,7 @@
 import {z} from 'zod';
-import {
-  SubtitleFileExtension,
-  SubtitleMessage,
-} from '@repo/subtitle-core/constants/subtitle-core-enums.js';
+import {SubtitleFileExtension} from '@repo/subtitle-core/constants/subtitle-core-enums.js';
 import {Subtitle} from '../../db/models/subtitle.js';
+import {SubtitleMessage} from '../../lib/stremio-row/stremio-row-enums.js';
 import {
   downloadSubtitleFile,
   readStoredSubtitleFile,

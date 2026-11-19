@@ -2,7 +2,7 @@ import {isNil, uniq} from 'es-toolkit';
 import {CredentialKind} from '@repo/shared/constants/credential.js';
 import {SubtitleSource} from '@repo/shared/constants/subtitle-source.js';
 import {listArchiveEntriesForVideo} from '@repo/subtitle-core/archive/pick-archive-entry.js';
-import {SubtitleNotice} from '@repo/subtitle-core/constants/subtitle-core-enums.js';
+import {SubtitleNotice} from '../../../lib/stremio-row/stremio-row-enums.js';
 import {
   readSearchCredentials,
   readUsableCredentials,
@@ -73,7 +73,7 @@ export function readOpensubtitlesNotice({credentials}) {
 }
 
 async function canSourceListUnstoredRows({cachedUserConfig, client}) {
-  if (!client) {
+  if (!client || !(await client.isAvailable())) {
     return false;
   }
   if (client.subtitleSource === SubtitleSource.OPENSUBTITLES) {

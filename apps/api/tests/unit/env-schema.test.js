@@ -114,25 +114,82 @@ describe('the rate limit allow-list', () => {
   );
 });
 
+describe('the per-route rate limit keys', () => {
+  it('fall back to their defaults when left unset', () => {
+    expect(parseEnv({}).data).toMatchObject({
+      RATE_LIMIT_SUBTITLE_LIST_IP_MAX: 60,
+      RATE_LIMIT_SUBTITLE_LIST_USER_CONFIG_MAX: 30,
+      RATE_LIMIT_SUBTITLE_FILE_IP_MAX: 60,
+      RATE_LIMIT_SUBTITLE_FILE_USER_CONFIG_MAX: 30,
+      RATE_LIMIT_USER_CONFIG_PASSWORD_WINDOW: 900000,
+      RATE_LIMIT_USER_CONFIG_PASSWORD_IP_MAX: 20,
+      RATE_LIMIT_USER_CONFIG_PASSWORD_USER_CONFIG_MAX: 5,
+    });
+  });
+
+  it('reach the config object under their camelCase names', () => {
+    expect(Object.keys(config)).toEqual(
+      expect.arrayContaining([
+        'rateLimitSubtitleListIpMax',
+        'rateLimitSubtitleListUserConfigMax',
+        'rateLimitSubtitleFileIpMax',
+        'rateLimitSubtitleFileUserConfigMax',
+        'rateLimitUserConfigPasswordWindow',
+        'rateLimitUserConfigPasswordIpMax',
+        'rateLimitUserConfigPasswordUserConfigMax',
+      ]),
+    );
+  });
+
+  describe('when each key holds a value of its own', () => {
+    const distinctEnv = {
+      RATE_LIMIT_SUBTITLE_LIST_IP_MAX: '1007',
+      RATE_LIMIT_SUBTITLE_LIST_USER_CONFIG_MAX: '1008',
+      RATE_LIMIT_SUBTITLE_FILE_IP_MAX: '1009',
+      RATE_LIMIT_SUBTITLE_FILE_USER_CONFIG_MAX: '1010',
+      RATE_LIMIT_USER_CONFIG_PASSWORD_WINDOW: '1011',
+      RATE_LIMIT_USER_CONFIG_PASSWORD_IP_MAX: '1012',
+      RATE_LIMIT_USER_CONFIG_PASSWORD_USER_CONFIG_MAX: '1013',
+    };
+
+    afterEach(() => {
+      vi.unstubAllEnvs();
+      vi.resetModules();
+    });
+
+    it('map each one to its own camelCase name', async () => {
+      for (const [envKey, envValue] of Object.entries(distinctEnv)) {
+        vi.stubEnv(envKey, envValue);
+      }
+      vi.resetModules();
+
+      const {config: distinctConfig} =
+        await import('../../src/config/index.js');
+
+      expect(distinctConfig).toMatchObject({
+        rateLimitSubtitleListIpMax: 1007,
+        rateLimitSubtitleListUserConfigMax: 1008,
+        rateLimitSubtitleFileIpMax: 1009,
+        rateLimitSubtitleFileUserConfigMax: 1010,
+        rateLimitUserConfigPasswordWindow: 1011,
+        rateLimitUserConfigPasswordIpMax: 1012,
+        rateLimitUserConfigPasswordUserConfigMax: 1013,
+      });
+    });
+  });
+});
+
 describe('the subtitle service keys', () => {
   it('fall back to their defaults when left unset', () => {
     expect(parseEnv({}).data).toMatchObject({
-      OPENSUBTITLES_API_KEY: '',
       SUBTITLE_SEARCH_DEADLINE: 7000,
       SUBTITLE_SEARCH_CACHE_FRESH_TTL: 21600,
       SUBTITLE_SEARCH_CACHE_STALE_TTL: 2592000,
+      SUBTITLE_BACKGROUND_RATE_SHARE: 0.5,
+      SUBTITLE_BACKGROUND_QUOTA_SHARE: 0.5,
+      SUBTITLE_BACKGROUND_CANDIDATE_MAX: 3,
       USER_CONFIG_CACHE_TTL: 60,
       USER_CONFIG_SESSION_TTL: 1800,
-      SUBTITLE_SOURCE_BACKGROUND_SHARE: 0.5,
-      LIST_IMPROVEMENT_CANDIDATE_MAX: 3,
-      LIST_IMPROVEMENT_VIEWER_SHARE: 0.5,
-      SUBTITLE_LIST_RATE_LIMIT_IP_MAX: 60,
-      SUBTITLE_LIST_RATE_LIMIT_USER_CONFIG_MAX: 30,
-      SUBTITLE_FILE_RATE_LIMIT_IP_MAX: 60,
-      SUBTITLE_FILE_RATE_LIMIT_USER_CONFIG_MAX: 30,
-      USER_CONFIG_PASSWORD_RATE_LIMIT_WINDOW: 900000,
-      USER_CONFIG_PASSWORD_RATE_LIMIT_IP_MAX: 20,
-      USER_CONFIG_PASSWORD_RATE_LIMIT_USER_CONFIG_MAX: 5,
     });
   });
 
@@ -175,14 +232,13 @@ describe('the subtitle service keys', () => {
     ]);
   });
 
-  it('refuse a background share above one', () => {
-    const {success, error} = parseEnv({
-      SUBTITLE_SOURCE_BACKGROUND_SHARE: '1.5',
-    });
+  it.each([
+    'SUBTITLE_BACKGROUND_RATE_SHARE',
+    'SUBTITLE_BACKGROUND_QUOTA_SHARE',
+  ])('refuse a %s above one', envKey => {
+    const {success, error} = parseEnv({[envKey]: '1.5'});
     expect(success).toBe(false);
-    expect(error.issues.map(issue => issue.path)).toEqual([
-      ['SUBTITLE_SOURCE_BACKGROUND_SHARE'],
-    ]);
+    expect(error.issues.map(issue => issue.path)).toEqual([[envKey]]);
   });
 
   it('know no shared Community Subtitles token', () => {
@@ -192,67 +248,58 @@ describe('the subtitle service keys', () => {
     expect(config).not.toHaveProperty('stremioCommunitySubtitlesToken');
   });
 
-  it('keep the OpenSubtitles API key untrimmed, since a secret may end in a space', () => {
-    expect(parseEnv({OPENSUBTITLES_API_KEY: ' k '}).data).toMatchObject({
-      OPENSUBTITLES_API_KEY: ' k ',
-    });
+  it('know no OpenSubtitles app key, which lives in the settings file', () => {
+    expect(
+      parseEnv({OPENSUBTITLES_API_KEY: 'env-opensubtitles-key'}).data,
+    ).not.toHaveProperty('OPENSUBTITLES_API_KEY');
+    expect(config).not.toHaveProperty('opensubtitlesApiKey');
   });
 
-  it('read no OpenSubtitles-only list improvement key, keeping the defaults', () => {
-    const {data} = parseEnv({
+  it('read no retired background key, keeping the defaults', () => {
+    const retiredEnv = {
       OPENSUBTITLES_QUOTA_CANDIDATE_MAX: '9',
       OPENSUBTITLES_QUOTA_VIEWER_SHARE: '0.12',
-    });
+      SUBTITLE_SOURCE_BACKGROUND_SHARE: '0.13',
+      LIST_IMPROVEMENT_VIEWER_SHARE: '0.14',
+      LIST_IMPROVEMENT_CANDIDATE_MAX: '8',
+    };
+    const {data} = parseEnv(retiredEnv);
 
     expect(data).toMatchObject({
-      LIST_IMPROVEMENT_CANDIDATE_MAX: 3,
-      LIST_IMPROVEMENT_VIEWER_SHARE: 0.5,
+      SUBTITLE_BACKGROUND_RATE_SHARE: 0.5,
+      SUBTITLE_BACKGROUND_QUOTA_SHARE: 0.5,
+      SUBTITLE_BACKGROUND_CANDIDATE_MAX: 3,
     });
-    expect(data).not.toHaveProperty('OPENSUBTITLES_QUOTA_CANDIDATE_MAX');
-    expect(data).not.toHaveProperty('OPENSUBTITLES_QUOTA_VIEWER_SHARE');
+    for (const retiredKey of Object.keys(retiredEnv)) {
+      expect(data).not.toHaveProperty(retiredKey);
+    }
   });
 
   it('reach the config object under their camelCase names', () => {
     expect(Object.keys(config)).toEqual(
       expect.arrayContaining([
-        'opensubtitlesApiKey',
         'subtitleSearchDeadline',
         'subtitleSearchCacheFreshTtl',
         'subtitleSearchCacheStaleTtl',
+        'subtitleBackgroundRateShare',
+        'subtitleBackgroundQuotaShare',
+        'subtitleBackgroundCandidateMax',
         'userConfigCacheTtl',
         'userConfigSessionTtl',
-        'subtitleSourceBackgroundShare',
-        'listImprovementCandidateMax',
-        'listImprovementViewerShare',
-        'subtitleListRateLimitIpMax',
-        'subtitleListRateLimitUserConfigMax',
-        'subtitleFileRateLimitIpMax',
-        'subtitleFileRateLimitUserConfigMax',
-        'userConfigPasswordRateLimitWindow',
-        'userConfigPasswordRateLimitIpMax',
-        'userConfigPasswordRateLimitUserConfigMax',
       ]),
     );
   });
 
   describe('when each key holds a value of its own', () => {
     const distinctEnv = {
-      OPENSUBTITLES_API_KEY: 'distinct-opensubtitles-api-key',
       SUBTITLE_SEARCH_DEADLINE: '1001',
       SUBTITLE_SEARCH_CACHE_FRESH_TTL: '1002',
       SUBTITLE_SEARCH_CACHE_STALE_TTL: '1003',
+      SUBTITLE_BACKGROUND_RATE_SHARE: '0.11',
+      SUBTITLE_BACKGROUND_QUOTA_SHARE: '0.12',
+      SUBTITLE_BACKGROUND_CANDIDATE_MAX: '1006',
       USER_CONFIG_CACHE_TTL: '1004',
       USER_CONFIG_SESSION_TTL: '1005',
-      SUBTITLE_SOURCE_BACKGROUND_SHARE: '0.11',
-      LIST_IMPROVEMENT_CANDIDATE_MAX: '1006',
-      LIST_IMPROVEMENT_VIEWER_SHARE: '0.12',
-      SUBTITLE_LIST_RATE_LIMIT_IP_MAX: '1007',
-      SUBTITLE_LIST_RATE_LIMIT_USER_CONFIG_MAX: '1008',
-      SUBTITLE_FILE_RATE_LIMIT_IP_MAX: '1009',
-      SUBTITLE_FILE_RATE_LIMIT_USER_CONFIG_MAX: '1010',
-      USER_CONFIG_PASSWORD_RATE_LIMIT_WINDOW: '1011',
-      USER_CONFIG_PASSWORD_RATE_LIMIT_IP_MAX: '1012',
-      USER_CONFIG_PASSWORD_RATE_LIMIT_USER_CONFIG_MAX: '1013',
     };
 
     afterEach(() => {
@@ -270,22 +317,14 @@ describe('the subtitle service keys', () => {
         await import('../../src/config/index.js');
 
       expect(distinctConfig).toMatchObject({
-        opensubtitlesApiKey: 'distinct-opensubtitles-api-key',
         subtitleSearchDeadline: 1001,
         subtitleSearchCacheFreshTtl: 1002,
         subtitleSearchCacheStaleTtl: 1003,
+        subtitleBackgroundRateShare: 0.11,
+        subtitleBackgroundQuotaShare: 0.12,
+        subtitleBackgroundCandidateMax: 1006,
         userConfigCacheTtl: 1004,
         userConfigSessionTtl: 1005,
-        subtitleSourceBackgroundShare: 0.11,
-        listImprovementCandidateMax: 1006,
-        listImprovementViewerShare: 0.12,
-        subtitleListRateLimitIpMax: 1007,
-        subtitleListRateLimitUserConfigMax: 1008,
-        subtitleFileRateLimitIpMax: 1009,
-        subtitleFileRateLimitUserConfigMax: 1010,
-        userConfigPasswordRateLimitWindow: 1011,
-        userConfigPasswordRateLimitIpMax: 1012,
-        userConfigPasswordRateLimitUserConfigMax: 1013,
       });
     });
   });

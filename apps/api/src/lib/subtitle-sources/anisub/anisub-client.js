@@ -70,6 +70,7 @@ export function createAnisubClient({
         requestMax: CREDENTIAL_DOWNLOAD_MAX,
       },
     ],
+    isAvailable: () => true,
     canSearchWithoutCredential: () => true,
     canDownloadWithoutCredential: () => true,
     async searchSubtitles(searchQuery, credential, {signal} = {}) {

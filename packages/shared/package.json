@@ -11,8 +11,8 @@
   },
   "dependencies": {
     "@cospired/i18n-iso-languages": "^4.2.0",
-    "enum-plus": "^3.4.0",
-    "es-toolkit": "^1.53.1",
+    "enum-plus": "^3.4.1",
+    "es-toolkit": "^1.53.2",
     "qs": "^6.17.1",
     "zod": "^4.6.7"
   }

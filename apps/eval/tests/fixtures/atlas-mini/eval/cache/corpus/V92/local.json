@@ -12,7 +12,7 @@
     "sha256": "0000000000000000000000000000000000000000000000000000000000000004"
   },
   "lists": {
-    "Orion": {
+    "orion": {
       "role": "pool",
       "fetchedAt": "2026-01-01T00:00:00.000Z",
       "sha256": "9db9d3cb4c6ce27250abd2f3d28dbf825fffda005c7b8b018563b2fcdc871eb5",
@@ -25,12 +25,12 @@
   "nextCandidate": 3,
   "candidates": {
     "V92/c1": {
-      "entryName": "Orion",
+      "entryName": "orion",
       "rowId": "[AltyazıDB] ✓ Ücretsiz | Fixture Film (2019)",
       "rank": 0,
       "language": "tur",
-      "source": "Orion",
-      "via": "addon:Orion",
+      "source": "orion",
+      "via": "addon:orion",
       "costsQuota": "unknown",
       "status": "frozen",
       "rawSha256": "c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1",
@@ -43,12 +43,12 @@
       "timeFamily": "f1"
     },
     "V92/c2": {
-      "entryName": "Orion",
+      "entryName": "orion",
       "rowId": "[TheSubtitleDB] ✓ Ücretsiz | Fixture.Film.2019.1080p",
       "rank": 1,
       "language": "tur",
-      "source": "Orion",
-      "via": "addon:Orion",
+      "source": "orion",
+      "via": "addon:orion",
       "costsQuota": "unknown",
       "status": "frozen",
       "rawSha256": "c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2",

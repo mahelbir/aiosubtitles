@@ -8,13 +8,16 @@ import {
   readOpensubtitlesSession,
   storeOpensubtitlesQuota,
   storeOpensubtitlesSession,
+  toOpensubtitlesAppKeyFingerprint,
 } from '../../../src/lib/subtitle-sources/opensubtitles/opensubtitles-session.js';
 import {redis} from '../../../src/redis/index.js';
 
 const RESET_AT = '2026-11-19T00:00:00.000Z';
+const APP_KEY = 'fixture-opensubtitles-app-key';
 const session = {
   token: 'fixture-opensubtitles-token',
   baseUrl: 'https://vip-api.opensubtitles.com/api/v1',
+  appKeyFingerprint: toOpensubtitlesAppKeyFingerprint(APP_KEY),
 };
 
 function toTokenKey(credentialId) {
@@ -44,6 +47,27 @@ describe('the OpenSubtitles session store', () => {
     expect(tokenTtl).toBeGreaterThan(OPENSUBTITLES_TOKEN_TTL - 60);
     expect(tokenTtl).toBeLessThanOrEqual(OPENSUBTITLES_TOKEN_TTL);
     expect(await readOpensubtitlesSession(credentialId)).toEqual(session);
+  });
+
+  it('keeps a fingerprint of the app key that logged the session in, never the key', async () => {
+    const credentialId = crypto.randomUUID();
+
+    await storeOpensubtitlesSession(credentialId, session);
+
+    expect(await redis.get(toTokenKey(credentialId))).not.toContain(APP_KEY);
+    expect(session.appKeyFingerprint).not.toBe(
+      toOpensubtitlesAppKeyFingerprint('another-app-key'),
+    );
+  });
+
+  it('reads a session stored without its app key fingerprint as none', async () => {
+    const credentialId = crypto.randomUUID();
+    await redis.set(
+      toTokenKey(credentialId),
+      JSON.stringify({token: session.token, baseUrl: session.baseUrl}),
+    );
+
+    expect(await readOpensubtitlesSession(credentialId)).toBeNull();
   });
 
   it('reads no session for a credential that never logged in', async () => {

@@ -79,6 +79,7 @@ export function createJimakuClient({
         requestMax: DOWNLOAD_MAX,
       },
     ],
+    isAvailable: () => true,
     canSearchWithoutCredential: () =>
       sharedCredentialPool.hasUsableCredential(subtitleSource),
     canDownloadWithoutCredential: () => true,

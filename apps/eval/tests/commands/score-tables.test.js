@@ -3,7 +3,6 @@ import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import {afterAll, beforeAll, describe, expect, it} from 'vitest';
 import {AIOSUBTITLES_SCORE_TABLE} from '@repo/subtitle-core/scoring/aiosubtitles-score-table.js';
-import {READY_MADE_SCORE_TABLES} from '@repo/subtitle-core/scoring/ready-made-score-tables.js';
 import {DEFAULT_TIMING_SETTINGS} from '@repo/subtitle-core/timing/compare-cue-timings.js';
 import {
   EVAL_COMMANDS,
@@ -15,6 +14,7 @@ import {
   computeCorpusFingerprint,
   getCodeFingerprint,
 } from '../../src/report/fingerprint.js';
+import {READY_MADE_SCORE_TABLES} from '../../src/score-tables/ready-made-score-tables.js';
 import {
   FIXTURE_PRIVATE_VALUES,
   ATLAS_FIXTURE_ROOT,

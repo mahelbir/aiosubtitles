@@ -4,7 +4,7 @@ import {splitTrim} from 'melperjs';
 import proxyAddr from 'proxy-addr';
 import {z} from 'zod';
 import {getCrossFieldCheck, portField} from '@repo/shared/schemas/common.js';
-import {DEFAULT_LOCALE, DEFAULT_TIMEZONE} from '@repo/shared/constants/app.js';
+import {DEFAULT_LOCALE} from '@repo/shared/constants/app.js';
 import {RateLimitPenalty} from '../lib/rate-limit.js';
 
 const ADDRESS_LIST_MESSAGE =
@@ -106,7 +106,6 @@ export function getEnvSchema({appPath}) {
       .transform(value => value.trim().toLowerCase()),
     CLIENT_IPV6_SUBNET: z.coerce.number().int().min(1).max(128).default(64),
 
-    TIMEZONE: z.string().trim().default(DEFAULT_TIMEZONE),
     LOCALE: z.string().trim().default(DEFAULT_LOCALE),
 
     STORAGE_PATH: z
@@ -127,6 +126,14 @@ export function getEnvSchema({appPath}) {
       .transform(value => splitTrim(value, ','))
       .refine(isAddressList, ADDRESS_LIST_MESSAGE),
     RATE_LIMIT_HEADERS: z.stringbool().default(false),
+    RATE_LIMIT_SUBTITLE_LIST_IP_MAX: positiveIntField.default(60),
+    RATE_LIMIT_SUBTITLE_LIST_USER_CONFIG_MAX: positiveIntField.default(30),
+    RATE_LIMIT_SUBTITLE_FILE_IP_MAX: positiveIntField.default(60),
+    RATE_LIMIT_SUBTITLE_FILE_USER_CONFIG_MAX: positiveIntField.default(30),
+    RATE_LIMIT_USER_CONFIG_PASSWORD_WINDOW: positiveIntField.default(900000),
+    RATE_LIMIT_USER_CONFIG_PASSWORD_IP_MAX: positiveIntField.default(20),
+    RATE_LIMIT_USER_CONFIG_PASSWORD_USER_CONFIG_MAX:
+      positiveIntField.default(5),
 
     DB_HOST: z.string().trim().default(BUNDLED_DB_HOST),
     DB_PORT: portField,
@@ -148,7 +155,6 @@ export function getEnvSchema({appPath}) {
       .regex(/^\d+(?:[kmg]b?)?$/i, 'Must be a size such as 512mb or 1gb')
       .default('512mb'),
 
-    OPENSUBTITLES_API_KEY: z.string().default(''),
     SUBTITLE_SEARCH_DEADLINE: z.coerce
       .number()
       .int()
@@ -157,19 +163,11 @@ export function getEnvSchema({appPath}) {
       .default(7000),
     SUBTITLE_SEARCH_CACHE_FRESH_TTL: ttlField.default(21600),
     SUBTITLE_SEARCH_CACHE_STALE_TTL: positiveIntField.default(2592000),
+    SUBTITLE_BACKGROUND_RATE_SHARE: shareField.default(0.5),
+    SUBTITLE_BACKGROUND_QUOTA_SHARE: shareField.default(0.5),
+    SUBTITLE_BACKGROUND_CANDIDATE_MAX: positiveIntField.default(3),
     USER_CONFIG_CACHE_TTL: ttlField.default(60),
     USER_CONFIG_SESSION_TTL: positiveIntField.default(1800),
-    SUBTITLE_SOURCE_BACKGROUND_SHARE: shareField.default(0.5),
-    LIST_IMPROVEMENT_CANDIDATE_MAX: positiveIntField.default(3),
-    LIST_IMPROVEMENT_VIEWER_SHARE: shareField.default(0.5),
-    SUBTITLE_LIST_RATE_LIMIT_IP_MAX: positiveIntField.default(60),
-    SUBTITLE_LIST_RATE_LIMIT_USER_CONFIG_MAX: positiveIntField.default(30),
-    SUBTITLE_FILE_RATE_LIMIT_IP_MAX: positiveIntField.default(60),
-    SUBTITLE_FILE_RATE_LIMIT_USER_CONFIG_MAX: positiveIntField.default(30),
-    USER_CONFIG_PASSWORD_RATE_LIMIT_WINDOW: positiveIntField.default(900000),
-    USER_CONFIG_PASSWORD_RATE_LIMIT_IP_MAX: positiveIntField.default(20),
-    USER_CONFIG_PASSWORD_RATE_LIMIT_USER_CONFIG_MAX:
-      positiveIntField.default(5),
   });
 
   return schema

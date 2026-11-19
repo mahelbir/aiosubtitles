@@ -3,7 +3,6 @@ import {
   FIXTURE_RECORD_PATH,
   getApiFailure,
   getApiUrl,
-  getErrorEnvelope,
   getFailedRequestPattern,
   getSuccessEnvelope,
   getTransientFailures,
@@ -17,7 +16,6 @@ import {
   openFixture,
 } from '../lib/fixture-page.js';
 import {getLoadingStatus} from '../lib/locators.js';
-import {expectNotFound} from '../lib/not-found.js';
 import {clickButton} from '../lib/page.js';
 import {expect, test} from '../lib/test.js';
 import {REFETCH_FAILURE_TOAST, expectToasts} from '../lib/toasts.js';
@@ -29,7 +27,6 @@ const PAGE_ENTITY_NAME = getEntityName(PAGE_ENTITY_ID);
 const RECORD = {id: 1, name: 'Ada Yılmaz'};
 const RENAMED_RECORD = {...RECORD, name: 'Ada Kaya'};
 const LOAD_FAILURE = 'Kayıt yüklenemedi.';
-const MISSING_MESSAGE = 'Record not found.';
 const SETTLED_SUCCESS = {status: 'success', fetchStatus: 'idle'};
 const UNAVAILABLE_FAILURE = getApiFailure(
   StatusCodes.SERVICE_UNAVAILABLE,
@@ -68,14 +65,6 @@ function stubRecord(page, respond = recordResponse) {
 
 function stubEntities(page, respond) {
   return stubApi(page, url => url.href.startsWith(`${ENTITIES_URL}/`), respond);
-}
-
-function stubEntity(page, id, response) {
-  return stubApi(page, `${ENTITIES_URL}/${id}`, () => response);
-}
-
-function getMissingResponse(status) {
-  return {status, json: getErrorEnvelope(MISSING_MESSAGE)};
 }
 
 function stubRecordFailingAfterLoad(page, failure) {
@@ -359,96 +348,6 @@ test.describe('boundaries', () => {
         expectFixtureState(page).toMatchObject({record: SETTLED_SUCCESS}),
       ]);
       expect(hits).toHaveLength(2);
-    });
-  });
-
-  test.describe('EntityBoundary', () => {
-    test('an existing entity renders its content', async ({page}) => {
-      await openFixture(page, 'boundaries');
-
-      await expect(
-        getPageEntitySection(page).getByText(PAGE_ENTITY_NAME),
-      ).toBeVisible();
-      await expectFixtureState(page).toMatchObject({
-        entity: {status: 'success'},
-      });
-    });
-
-    test('without an id renders the create state and fetches nothing', async ({
-      page,
-    }) => {
-      const hits = await stubEntities(page, () => ({
-        json: getSuccessEnvelope(null),
-      }));
-
-      await openFixture(page, 'boundaries', {entity: ''});
-
-      await expect(
-        getPageEntitySection(page).getByText('Yeni kayıt'),
-      ).toBeVisible();
-      await expectFixtureState(page).toMatchObject({
-        entity: {status: 'pending', fetchStatus: 'idle'},
-      });
-      expect(hits).toEqual([]);
-    });
-
-    for (const status of [
-      StatusCodes.NOT_FOUND,
-      StatusCodes.UNPROCESSABLE_ENTITY,
-    ]) {
-      test.describe(`with a ${status} for the entity`, () => {
-        test.use({
-          allowedConsoleError: getFailedRequestPattern({
-            '/fixtures/entities/:id': [status],
-          }),
-        });
-
-        test('a page boundary renders EntityNotFound with a way back, without retrying', async ({
-          page,
-        }) => {
-          const hits = await stubEntity(
-            page,
-            PAGE_ENTITY_ID,
-            getMissingResponse(status),
-          );
-
-          await openFixture(page, 'boundaries');
-
-          const section = getPageEntitySection(page);
-          await expectNotFound(section);
-          await expect(
-            section.getByRole('link', {name: 'Go back'}),
-          ).toHaveAttribute('href', '/fixtures');
-          await expectFixtureState(page).toMatchObject({
-            entity: {status: 'error'},
-          });
-          expect(hits).toHaveLength(1);
-        });
-      });
-    }
-
-    test.describe('with a missing panel entity', () => {
-      test.use({
-        allowedConsoleError: getFailedRequestPattern({
-          '/fixtures/entities/:id': [StatusCodes.NOT_FOUND],
-        }),
-      });
-
-      test('a panel boundary toasts the error and closes the panel', async ({
-        page,
-      }) => {
-        await stubEntity(page, 9, getMissingResponse(StatusCodes.NOT_FOUND));
-        await openFixture(page, 'boundaries');
-
-        await getSection(page, 'Kayıt paneli')
-          .getByRole('button', {name: 'Paneli aç'})
-          .click();
-
-        await expectToasts(page, [MISSING_MESSAGE]);
-        await expectFixtureState(page).toMatchObject({
-          panel: {id: null, closeCount: 1},
-        });
-      });
     });
   });
 });

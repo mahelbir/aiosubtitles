@@ -13,6 +13,8 @@ import {makeSubtitleSourceCredential} from '../helpers/subtitle-source-factories
 const JIMAKU = SubtitleSource.JIMAKU;
 const BETASERIES = SubtitleSource.BETASERIES;
 const ANISUB = SubtitleSource.ANISUB;
+const OPENSUBTITLES = SubtitleSource.OPENSUBTITLES;
+const REJECTION_REST_MS = 600000;
 const KEY_A = 'shared-key-a-secret';
 const KEY_B = 'shared-key-b-secret';
 const KEY_C = 'shared-key-c-secret';
@@ -103,6 +105,24 @@ describe('sharedCredentialPool.callWithCredential order', () => {
     });
     expect(jimakuCredential.credentialId).not.toContain(KEY_A);
     expect(anisubCredential.credentialId).not.toContain(TOKEN_A);
+  });
+
+  it('runs an OpenSubtitles shared key as the app key its source declares, not its first credential kind', async () => {
+    const {sharedCredentialPool} = createTestSharedCredentialPool({
+      [OPENSUBTITLES]: [KEY_A],
+    });
+
+    const sharedCredential = await callShared(
+      sharedCredentialPool,
+      async credential => credential,
+      {subtitleSource: OPENSUBTITLES},
+    );
+
+    expect(sharedCredential).toMatchObject({
+      credentialKind: CredentialKind.API_KEY,
+      apiKey: KEY_A,
+    });
+    expect(sharedCredential).not.toHaveProperty('username');
   });
 
   it('runs the keyless path when the source has no shared key', async () => {
@@ -210,19 +230,121 @@ describe('sharedCredentialPool rotation', () => {
     ).resolves.toEqual([KEY_B, KEY_B]);
   });
 
-  it('skips a rejected key on every later call, whatever the time', async () => {
+  it('skips a rejected key for ten minutes, then tries it again', async () => {
     const {sharedCredentialPool, clock} = createTestSharedCredentialPool({
       [JIMAKU]: [KEY_A, KEY_B],
     });
     await expect(
       callShared(sharedCredentialPool, rejectKeys([KEY_A], toCredentialError)),
     ).resolves.toBe(KEY_B);
-    clock.nowMs += 86400000;
+    const runCall = vi.fn(async credential => answerWithKey(credential));
+    clock.nowMs += REJECTION_REST_MS - 1;
+
+    const restingAnswers = await collectCalls(sharedCredentialPool, runCall, 3);
+    clock.nowMs += 1;
+    const restedAnswers = await collectCalls(sharedCredentialPool, runCall, 2);
+
+    expect(restingAnswers).toEqual([KEY_B, KEY_B, KEY_B]);
+    expect(restedAnswers).toEqual(expect.arrayContaining([KEY_A, KEY_B]));
+  });
+
+  it('warns again when a rested key is rejected again', async () => {
+    const {sharedCredentialPool, clock, logger} =
+      createTestSharedCredentialPool({[JIMAKU]: [KEY_A]});
+    const runCall = rejectKeys([KEY_A], toCredentialError);
+    await collectCalls(sharedCredentialPool, runCall, 3);
+    const warningsWhileResting = logger.warn.mock.calls.length;
+    clock.nowMs += REJECTION_REST_MS;
+
+    await collectCalls(sharedCredentialPool, runCall, 3);
+
+    expect(warningsWhileResting).toBe(1);
+    expect(logger.warn).toHaveBeenCalledTimes(2);
+    expect(
+      runCall.mock.calls.filter(([credential]) => credential),
+    ).toHaveLength(2);
+  });
+
+  it('clears a rejection at once when the settings change', async () => {
+    const {sharedCredentialPool, writeSharedCredentials} =
+      createTestSharedCredentialPool({[JIMAKU]: [KEY_A]});
+    await callShared(
+      sharedCredentialPool,
+      rejectKeys([KEY_A], toCredentialError),
+    );
+
+    await writeSharedCredentials({[JIMAKU]: [KEY_A, KEY_C]});
+
+    await expect(
+      collectCalls(
+        sharedCredentialPool,
+        async credential => answerWithKey(credential),
+        2,
+      ),
+    ).resolves.toEqual(expect.arrayContaining([KEY_A, KEY_C]));
+  });
+
+  it('takes the preferred key first on every call, leaving the rotation where it was', async () => {
+    const {sharedCredentialPool} = createTestSharedCredentialPool({
+      [JIMAKU]: [KEY_A, KEY_B, KEY_C],
+    });
+    const runCall = async credential => answerWithKey(credential);
+    const isPreferredCredential = credential => credential.apiKey === KEY_B;
+
+    await expect(
+      Promise.all(
+        [1, 2].map(() =>
+          callShared(sharedCredentialPool, runCall, {isPreferredCredential}),
+        ),
+      ),
+    ).resolves.toEqual([KEY_B, KEY_B]);
+    await expect(callShared(sharedCredentialPool, runCall)).resolves.toBe(
+      KEY_A,
+    );
+  });
+
+  it('moves on round robin once the preferred key is rejected', async () => {
+    const {sharedCredentialPool} = createTestSharedCredentialPool({
+      [JIMAKU]: [KEY_A, KEY_B],
+    });
+    const isPreferredCredential = credential => credential.apiKey === KEY_B;
+
+    await expect(
+      callShared(sharedCredentialPool, rejectKeys([KEY_B], toCredentialError), {
+        isPreferredCredential,
+      }),
+    ).resolves.toBe(KEY_A);
+    await expect(
+      callShared(
+        sharedCredentialPool,
+        async credential => answerWithKey(credential),
+        {isPreferredCredential},
+      ),
+    ).resolves.toBe(KEY_A);
+  });
+
+  it('still takes a resting preferred key first, and rests it again on a new limit', async () => {
+    const {sharedCredentialPool} = createTestSharedCredentialPool({
+      [JIMAKU]: [KEY_A, KEY_B],
+    });
+    const isPreferredCredential = credential => credential.apiKey === KEY_A;
+    await callShared(
+      sharedCredentialPool,
+      rejectKeys([KEY_A], toRateLimitError),
+    );
     const runCall = vi.fn(async credential => answerWithKey(credential));
 
     await expect(
-      collectCalls(sharedCredentialPool, runCall, 3),
-    ).resolves.toEqual([KEY_B, KEY_B, KEY_B]);
+      callShared(sharedCredentialPool, runCall, {isPreferredCredential}),
+    ).resolves.toBe(KEY_A);
+    await expect(
+      callShared(sharedCredentialPool, rejectKeys([KEY_A], toRateLimitError), {
+        isPreferredCredential,
+      }),
+    ).resolves.toBe(KEY_B);
+    await expect(callShared(sharedCredentialPool, runCall)).resolves.toBe(
+      KEY_B,
+    );
   });
 
   it('takes a rejected key back once the settings change', async () => {
@@ -395,6 +517,35 @@ describe('sharedCredentialPool with every key limited', () => {
         {subtitleSource: ANISUB, isBreakerOnEveryLimit: true},
       ),
     ).resolves.toBe('keyless');
+  });
+});
+
+describe('sharedCredentialPool.hasConfiguredCredential', () => {
+  it('answers false while the settings list no key for the source', async () => {
+    const {sharedCredentialPool} = createTestSharedCredentialPool({
+      [JIMAKU]: [],
+    });
+
+    await expect(
+      sharedCredentialPool.hasConfiguredCredential(JIMAKU),
+    ).resolves.toBe(false);
+  });
+
+  it('answers true while a key is listed, even once every key is rejected', async () => {
+    const {sharedCredentialPool, writeSharedCredentials} =
+      createTestSharedCredentialPool({[JIMAKU]: [KEY_A]});
+    await callShared(
+      sharedCredentialPool,
+      rejectKeys([KEY_A], toCredentialError),
+    );
+
+    await expect(
+      sharedCredentialPool.hasConfiguredCredential(JIMAKU),
+    ).resolves.toBe(true);
+    await writeSharedCredentials({});
+    await expect(
+      sharedCredentialPool.hasConfiguredCredential(JIMAKU),
+    ).resolves.toBe(false);
   });
 });
 

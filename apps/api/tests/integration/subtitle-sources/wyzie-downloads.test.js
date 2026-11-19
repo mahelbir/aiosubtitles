@@ -6,9 +6,9 @@ import {
   CredentialStatus,
 } from '@repo/shared/constants/credential.js';
 import {SubtitleSource} from '@repo/shared/constants/subtitle-source.js';
-import {computeUrlCode} from '@repo/subtitle-core/stremio-row/url-code.js';
 import {parseReleaseName} from '@repo/subtitle-core/release-name/parse-release-name.js';
 import {Subtitle} from '../../../src/db/models/subtitle.js';
+import {computeUrlCode} from '../../../src/lib/stremio-row/url-code.js';
 import {drainBackgroundQueues} from '../../../src/lib/subtitle-background/background-queues.js';
 import {
   downloadFreeCandidates,
@@ -64,6 +64,7 @@ const wyzieFixtureClient = createFixtureSubtitleSourceClient({
     'credentialKinds',
     'isSearchHashSensitive',
     'downloadBudgets',
+    'isAvailable',
     'canSearchWithoutCredential',
     'canDownloadWithoutCredential',
   ]),
@@ -209,7 +210,7 @@ describe('Wyzie background downloads', () => {
     }
   });
 
-  it('keeps the viewer share of the Wyzie daily allowance', async () => {
+  it('spends only the background share of the Wyzie daily allowance', async () => {
     setWyzieQuota(10);
 
     await runWyzieBackgroundWork({});

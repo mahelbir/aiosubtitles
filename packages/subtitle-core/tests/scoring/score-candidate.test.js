@@ -9,7 +9,6 @@ import {
   ScoringSignal,
 } from '../../src/constants/subtitle-core-enums.js';
 import {AIOSUBTITLES_SCORE_TABLE} from '../../src/scoring/aiosubtitles-score-table.js';
-import {READY_MADE_SCORE_TABLES} from '../../src/scoring/ready-made-score-tables.js';
 import {
   compareScoreBreakdowns,
   scoreSubtitleCandidate,
@@ -224,7 +223,7 @@ describe('scoreSubtitleCandidate', () => {
     });
 
     it.each(
-      [AIOSUBTITLES_SCORE_TABLE, ...READY_MADE_SCORE_TABLES].map(scoreTable => [
+      [AIOSUBTITLES_SCORE_TABLE].map(scoreTable => [
         scoreTable.tableName,
         scoreTable,
       ]),

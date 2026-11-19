@@ -707,7 +707,7 @@ describe('the search lock', () => {
 
 describe('spendSubtitleSourceBudget', () => {
   it('spends the background share of a budget and leaves the rest to the viewer', async () => {
-    expect(config.subtitleSourceBackgroundShare).toBe(0.5);
+    expect(config.subtitleBackgroundRateShare).toBe(0.5);
     const client = createFixtureSubtitleSourceClient({
       downloadBudgets: [subtitleSourceBudget],
     });

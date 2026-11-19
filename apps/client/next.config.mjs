@@ -1,5 +1,5 @@
 import {PHASE_DEVELOPMENT_SERVER} from 'next/constants.js';
-import {getAppVersion, getWorkspacePath} from '@repo/tooling/workspace.js';
+import {getWorkspacePath} from '@repo/tooling/workspace.js';
 import {DEFAULT_LOCALE} from '@repo/shared/constants/app.js';
 import {loadClientEnv} from './env.mjs';
 
@@ -18,7 +18,6 @@ export default function nextConfig(phase) {
     pageExtensions: isDev ? ['dev.js', 'js'] : ['js'],
     env: {
       LOCALE: process.env.LOCALE ?? DEFAULT_LOCALE,
-      APP_VERSION: getAppVersion(),
       NEXT_PUBLIC_API_URL: isDev ? process.env.NEXT_PUBLIC_API_URL : '',
     },
     reactCompiler: !isDev || isTest, // The feature has been disabled to save device's battery life

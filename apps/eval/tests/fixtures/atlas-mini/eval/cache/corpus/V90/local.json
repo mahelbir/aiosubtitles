@@ -12,7 +12,7 @@
     "sha256": "0000000000000000000000000000000000000000000000000000000000000002"
   },
   "lists": {
-    "Orion": {
+    "orion": {
       "role": "pool",
       "fetchedAt": "2026-01-01T00:00:00.000Z",
       "sha256": "efbbfa80dc39bf85141bfbb8d380128330b8221bb2b389f7014a58defc5bc5cd",
@@ -29,12 +29,12 @@
   "nextCandidate": 8,
   "candidates": {
     "V90/c1": {
-      "entryName": "Orion",
+      "entryName": "orion",
       "rowId": "[OpenSubtitles] 1 hak harcar · bugün 9 kaldı | Fixture.Show.S01E01.1080p.WEB-FAKE",
       "rank": 0,
       "language": "tur",
-      "source": "Orion",
-      "via": "addon:Orion",
+      "source": "orion",
+      "via": "addon:orion",
       "costsQuota": "unknown",
       "status": "frozen",
       "rawSha256": "a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1",
@@ -47,12 +47,12 @@
       "timeFamily": "f1"
     },
     "V90/c2": {
-      "entryName": "Orion",
+      "entryName": "orion",
       "rowId": "[AltyazıDB] ✓ Ücretsiz · HI | Fixture.Show.S01E01.1080p.WEB-FAKE (2)",
       "rank": 1,
       "language": "tur",
-      "source": "Orion",
-      "via": "addon:Orion",
+      "source": "orion",
+      "via": "addon:orion",
       "costsQuota": "unknown",
       "status": "frozen",
       "rawSha256": "a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2",
@@ -65,12 +65,12 @@
       "timeFamily": "f1"
     },
     "V90/c3": {
-      "entryName": "Orion",
+      "entryName": "orion",
       "rowId": "[TheSubtitleDB] ✓ Ücretsiz | Fixture Show S01E01",
       "rank": 2,
       "language": "tur",
-      "source": "Orion",
-      "via": "addon:Orion",
+      "source": "orion",
+      "via": "addon:orion",
       "costsQuota": "unknown",
       "status": "frozen",
       "rawSha256": "a3a3a3a3a3a3a3a3a3a3a3a3a3a3a3a3a3a3a3a3a3a3a3a3a3a3a3a3a3a3a3a3",
@@ -83,12 +83,12 @@
       "timeFamily": "f2"
     },
     "V90/c4": {
-      "entryName": "Orion",
+      "entryName": "orion",
       "rowId": "[SubSource] ✓ Ücretsiz | Fixture_Show_S01E01",
       "rank": 2,
       "language": "tur",
-      "source": "Orion",
-      "via": "addon:Orion",
+      "source": "orion",
+      "via": "addon:orion",
       "costsQuota": "unknown",
       "status": "frozen",
       "rawSha256": "a4a4a4a4a4a4a4a4a4a4a4a4a4a4a4a4a4a4a4a4a4a4a4a4a4a4a4a4a4a4a4a4",
@@ -101,12 +101,12 @@
       "timeFamily": "f2"
     },
     "V90/c5": {
-      "entryName": "Orion",
+      "entryName": "orion",
       "rowId": "[OpenSubtitles] ✓ Ücretsiz · Resmi | Fixture.Show.S01E01.720p",
       "rank": 3,
       "language": "tur",
-      "source": "Orion",
-      "via": "addon:Orion",
+      "source": "orion",
+      "via": "addon:orion",
       "costsQuota": "unknown",
       "status": "frozen",
       "rawSha256": "a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5",
@@ -119,12 +119,12 @@
       "timeFamily": null
     },
     "V90/c6": {
-      "entryName": "Orion",
+      "entryName": "orion",
       "rowId": "[SubDL] ✓ Ücretsiz | Fixture.Show.S01E01.WEB _ Fixture.Show.S01E01.HDTV",
       "rank": 4,
       "language": "tur",
-      "source": "Orion",
-      "via": "addon:Orion",
+      "source": "orion",
+      "via": "addon:orion",
       "costsQuota": "unknown",
       "status": "frozen",
       "rawSha256": "a6a6a6a6a6a6a6a6a6a6a6a6a6a6a6a6a6a6a6a6a6a6a6a6a6a6a6a6a6a6a6a6",
@@ -137,12 +137,12 @@
       "timeFamily": null
     },
     "V90/c7": {
-      "entryName": "Orion",
+      "entryName": "orion",
       "rowId": "[AniSub] ✓ Ücretsiz | Fixture Show 01",
       "rank": 5,
       "language": "tur",
-      "source": "Orion",
-      "via": "addon:Orion",
+      "source": "orion",
+      "via": "addon:orion",
       "costsQuota": "unknown",
       "status": "error-file",
       "reason": "fixture error text"

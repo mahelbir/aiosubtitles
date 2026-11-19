@@ -1,5 +1,4 @@
 import {describe, expect, it} from 'vitest';
-import {SubtitleMessage} from '../../src/constants/subtitle-core-enums.js';
 import {buildMessageSrt} from '../../src/file-format/message-srt.js';
 import {parseSubtitleText} from '../../src/file-format/parse-subtitle.js';
 
@@ -11,7 +10,8 @@ describe('buildMessageSrt', () => {
   });
 
   it('writes a file the SRT reader reads back as one cue', () => {
-    const messageText = SubtitleMessage.label('SUBTITLE_DOWNLOAD_FAILED');
+    const messageText =
+      'This subtitle could not be downloaded. Please try another one.';
 
     expect(
       parseSubtitleText({text: buildMessageSrt(messageText)}).cues,

@@ -1,13 +1,10 @@
 'use client';
 
-import {Fragment} from 'react';
+import {Fragment, useState} from 'react';
 import {useSearchParams} from 'next/navigation';
 import {pick} from 'es-toolkit';
-import {CheckboxInput} from '@/components/form/checkbox-input';
-import {
-  CheckboxFieldSkeleton,
-  FieldSkeleton,
-} from '@/components/form/field-skeleton';
+import {FieldSkeleton} from '@/components/form/field-skeleton';
+import {Form} from '@/components/form/form';
 import {FormField} from '@/components/form/form-field';
 import {FormGrid} from '@/components/form/form-grid';
 import {
@@ -16,32 +13,24 @@ import {
   FormPanelContent,
   FormPanelContentSkeleton,
 } from '@/components/form/form-panel';
-import {
-  PageCardForm,
-  PageCardFormSkeleton,
-} from '@/components/form/page-card-form';
 import {SaveButton, SaveButtonSkeleton} from '@/components/form/save-button';
-import {TabMenuForm} from '@/components/form/tab-menu-form';
 import {TextInput} from '@/components/form/text-input';
-import {ToggleGroupInput} from '@/components/form/toggle-group-input';
+import {UnsavedChangesGuard} from '@/components/form/unsaved-changes-guard';
 import {Button} from '@/components/ui/button';
-import {PanelEntityBoundary} from '@/components/common/entity-boundary';
 import {QueryBoundary} from '@/components/common/query-boundary';
 import {TabMenuCard, TabMenuPanelSkeleton} from '@/components/common/tab-menu';
 import {useIsOnline} from '@/hooks/use-is-online';
-import {PanelAction, usePanelQuery} from '@/hooks/use-panel-query';
 import {useTabQuery} from '@/hooks/use-tab-query';
 import {useAppForm} from '@/lib/form';
 import {useFixturePerson} from '../api';
 import {useLatency} from '../hooks/use-latency';
 import {FIXTURE_PEOPLE} from '../lib/fake-people';
-import {FIXTURE_PLACEMENT_OPTIONS} from '../lib/fixture-placement';
 import {FixtureSection} from './fixture-section';
 import {FixtureState} from './fixture-state';
 
+const EDIT_ACTION = 'edit';
 const QUICK_EDIT_ACTION = 'quick-edit';
-const PANEL_ACTIONS = [PanelAction.EDIT, QUICK_EDIT_ACTION];
-const CARD_PROPS = {title: 'Profil kartı', back: '/fixtures'};
+const CLOSED_PANEL = {action: null, targetId: null};
 const GENERAL_TAB_LABEL = 'Genel';
 const LATE_PERSON_ID = '2';
 const LATE_FIELD_MS = 400;
@@ -57,7 +46,7 @@ function usePersonForm(person) {
 function PlacementField() {
   return (
     <FormField name="placement">
-      <ToggleGroupInput label="Konum" options={FIXTURE_PLACEMENT_OPTIONS} />
+      <TextInput label="Konum" />
     </FormField>
   );
 }
@@ -70,18 +59,8 @@ function IdField() {
   );
 }
 
-function ActiveField() {
-  return (
-    <FormField name="isActive">
-      <CheckboxInput label="Aktif" />
-    </FormField>
-  );
-}
-
 const LEADING_FIELDS = {
-  group: {Field: PlacementField, Skeleton: FieldSkeleton},
   disabled: {Field: IdField, Skeleton: FieldSkeleton},
-  checkbox: {Field: ActiveField, Skeleton: CheckboxFieldSkeleton},
   unmatched: {Field: PlacementField, Skeleton: Fragment},
 };
 
@@ -112,23 +91,23 @@ function PersonFieldsSkeleton() {
 }
 
 export function FormSkeletonsFixture() {
-  const formPanel = usePanelQuery({actions: PANEL_ACTIONS});
+  const [panel, setPanel] = useState(CLOSED_PANEL);
+  const closePanel = () => setPanel(CLOSED_PANEL);
   const personQuery = useFixturePerson({
-    id: formPanel.targetId,
+    id: panel.targetId,
     latency: useLatency(),
   });
   const isOnline = useIsOnline();
   const body = (
     <PersonPanelBody
-      id={formPanel.targetId}
+      id={panel.targetId}
       query={personQuery}
-      onClose={formPanel.close}
+      onClose={closePanel}
     />
   );
 
   return (
     <>
-      <ProfileCard />
       <FixtureSection title="Panel">
         <ul className="flex flex-col gap-2">
           {FIXTURE_PEOPLE.map(person => (
@@ -136,7 +115,9 @@ export function FormSkeletonsFixture() {
               <Button
                 variant="outline"
                 size="sm"
-                onClick={() => formPanel.open(person.id)}
+                onClick={() =>
+                  setPanel({action: EDIT_ACTION, targetId: person.id})
+                }
               >
                 {person.name} düzenle
               </Button>
@@ -144,7 +125,7 @@ export function FormSkeletonsFixture() {
                 variant="outline"
                 size="sm"
                 onClick={() =>
-                  formPanel.openAction(QUICK_EDIT_ACTION, person.id)
+                  setPanel({action: QUICK_EDIT_ACTION, targetId: person.id})
                 }
               >
                 {person.name} hızlı düzenle
@@ -154,15 +135,15 @@ export function FormSkeletonsFixture() {
         </ul>
       </FixtureSection>
       <FormPanel
-        open={formPanel.action === PanelAction.EDIT}
-        onClose={formPanel.close}
+        open={panel.action === EDIT_ACTION}
+        onClose={closePanel}
         title="Kayıt Düzenle"
       >
         {body}
       </FormPanel>
       <FormDialog
-        open={formPanel.action === QUICK_EDIT_ACTION}
-        onClose={formPanel.close}
+        open={panel.action === QUICK_EDIT_ACTION}
+        onClose={closePanel}
         title="Hızlı Düzenle"
       >
         {body}
@@ -184,11 +165,13 @@ export function FormSkeletonsFixture() {
 function PersonPanelBody({id, query, onClose}) {
   const leadingField = LEADING_FIELDS[useLead()];
 
+  if (!id) {
+    return null;
+  }
+
   return (
-    <PanelEntityBoundary
-      id={id}
+    <QueryBoundary
       query={query}
-      onClose={onClose}
       className="px-4"
       pending={
         <FormPanelContentSkeleton>
@@ -197,12 +180,10 @@ function PersonPanelBody({id, query, onClose}) {
         </FormPanelContentSkeleton>
       }
     >
-      {person =>
-        person && (
-          <PersonPanelForm key={person.id} person={person} onDone={onClose} />
-        )
-      }
-    </PanelEntityBoundary>
+      {person => (
+        <PersonPanelForm key={person.id} person={person} onDone={onClose} />
+      )}
+    </QueryBoundary>
   );
 }
 
@@ -223,32 +204,12 @@ function PersonPanelForm({person, onDone}) {
   );
 }
 
-function ProfileCard() {
-  const profileQuery = useProfile();
-
+function TabForm({form, children}) {
   return (
-    <section aria-label="Kart">
-      <QueryBoundary
-        query={profileQuery}
-        pending={
-          <PageCardFormSkeleton {...CARD_PROPS}>
-            <PersonFieldsSkeleton />
-          </PageCardFormSkeleton>
-        }
-      >
-        {profile => <ProfileCardForm profile={profile} />}
-      </QueryBoundary>
-    </section>
-  );
-}
-
-function ProfileCardForm({profile}) {
-  const form = usePersonForm(profile);
-
-  return (
-    <PageCardForm form={form} {...CARD_PROPS}>
-      <PersonFields />
-    </PageCardForm>
+    <Form form={form} className="flex-1 gap-0">
+      <UnsavedChangesGuard />
+      {children}
+    </Form>
   );
 }
 
@@ -279,13 +240,13 @@ function GeneralWrapper({children}) {
 function GeneralFormProvider({profile, children}) {
   const form = usePersonForm(profile);
 
-  return <TabMenuForm form={form}>{children}</TabMenuForm>;
+  return <TabForm form={form}>{children}</TabForm>;
 }
 
 function NotificationsWrapper({children}) {
   const form = useAppForm({defaultValues: {digestEmail: ''}});
 
-  return <TabMenuForm form={form}>{children}</TabMenuForm>;
+  return <TabForm form={form}>{children}</TabForm>;
 }
 
 function NotificationsPanel() {

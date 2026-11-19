@@ -103,6 +103,23 @@ describe('SubtitleSource', () => {
     ).toEqual(SUBTITLE_SOURCE_CREDENTIALS);
   });
 
+  it('declares the shared server credential kind for exactly the sources that take shared keys', () => {
+    expect(
+      SubtitleSource.toList({
+        extra: subtitleSourceItem => ({
+          sharedCredentialKind: subtitleSourceItem.raw.sharedCredentialKind,
+        }),
+      })
+        .filter(({sharedCredentialKind}) => sharedCredentialKind)
+        .map(({value, sharedCredentialKind}) => [value, sharedCredentialKind]),
+    ).toEqual([
+      [SubtitleSource.OPENSUBTITLES, CredentialKind.API_KEY],
+      [SubtitleSource.ANISUB, CredentialKind.ACCESS_TOKEN],
+      [SubtitleSource.JIMAKU, CredentialKind.API_KEY],
+      [SubtitleSource.BETASERIES, CredentialKind.API_KEY],
+    ]);
+  });
+
   it.each(SUBTITLE_SOURCES)(
     'describes %s',
     (subtitleSource, label, subtitleSourcePhase, credentialRequirement) => {

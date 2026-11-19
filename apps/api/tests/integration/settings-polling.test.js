@@ -11,6 +11,7 @@ import {fixtureSettingsDefinition} from '../helpers/settings.js';
 const POLL_SECONDS = 0.01;
 const BROKEN = {limit: -1};
 const POLLING_FILE = path.join(config.privateStoragePath, 'polling.json');
+const STAGING_FILE = `${POLLING_FILE}.tmp`;
 
 let log;
 let settings;
@@ -55,7 +56,7 @@ it('logs the failure again once a reload has recovered in between', async () => 
 
 it('logs a broken file by its path and cause, never a fragment of its content', async () => {
   const secret = 'qzxjvkwpfgmhtrsd';
-  await fs.writeFile(POLLING_FILE, `{"apiKeys": ['${secret}']}`);
+  await writeContent(`{"apiKeys": ['${secret}']}`);
 
   await vi.waitFor(() => expect(log.error).toHaveBeenCalledOnce());
 
@@ -70,5 +71,10 @@ it('logs a broken file by its path and cause, never a fragment of its content', 
 });
 
 async function writeFile(values) {
-  await fs.writeFile(POLLING_FILE, JSON.stringify(values));
+  await writeContent(JSON.stringify(values));
+}
+
+async function writeContent(content) {
+  await fs.writeFile(STAGING_FILE, content);
+  await fs.rename(STAGING_FILE, POLLING_FILE);
 }

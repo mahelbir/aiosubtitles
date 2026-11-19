@@ -35,13 +35,6 @@ export function createMigrator(log = console) {
   });
 }
 
-export function createSeeder(log = console) {
-  return new Umzug({
-    ...getOptions('seeder'),
-    logger: toUmzugLogger(log),
-  });
-}
-
 export function runCli(umzug) {
   return umzug.getCli().executeWithoutErrorHandling();
 }

@@ -1,5 +1,5 @@
 import {randomUUID} from 'node:crypto';
-import {delay, mapValues} from 'es-toolkit';
+import {compact, delay, mapValues} from 'es-toolkit';
 import {StatusCodes} from 'http-status-codes';
 import {describe, expect, it} from 'vitest';
 import {CredentialKind} from '@repo/shared/constants/credential.js';
@@ -12,6 +12,7 @@ import * as opensubtitlesSession from '../../src/lib/subtitle-sources/opensubtit
 import {opensubtitlesV3Client} from '../../src/lib/subtitle-sources/opensubtitles-v3/opensubtitles-v3-client.js';
 import {SubtitleAliasSource} from '../../src/lib/subtitle-sources/subtitle-alias-source.js';
 import {requestSubtitleSource} from '../../src/lib/subtitle-sources/subtitle-source-request.js';
+import {createTestSharedCredentialPool} from '../helpers/shared-credentials.js';
 import {
   listMissingSecretNames,
   runLiveCase,
@@ -46,7 +47,11 @@ const secretNames = [
 const liveSecrets = loadLiveSecrets();
 const opensubtitlesClient = createOpensubtitlesClient({
   requestSubtitleSource,
-  apiKey: liveSecrets.OPENSUBTITLES_API_KEY,
+  sharedCredentialPool: createTestSharedCredentialPool({
+    [SubtitleSource.OPENSUBTITLES]: compact([
+      liveSecrets.OPENSUBTITLES_API_KEY,
+    ]),
+  }).sharedCredentialPool,
   sessionStore: {
     ...opensubtitlesSession,
     readOpensubtitlesQuota: async () => null,

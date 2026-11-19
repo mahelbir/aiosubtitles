@@ -58,8 +58,8 @@ const buildLabelledAtlas = async () => {
     'local.json',
   );
   const localJson = await readJson(localJsonPath);
-  localJson.lists.Orion.sha256 = listSha256;
-  localJson.lists.Orion.rowIds = [LABEL_ROW_ID, TWIN_ROW_ID];
+  localJson.lists.orion.sha256 = listSha256;
+  localJson.lists.orion.rowIds = [LABEL_ROW_ID, TWIN_ROW_ID];
   localJson.candidates['V92/c1'].rowId = LABEL_ROW_ID;
   await writeJson(localJsonPath, localJson);
   return atlasRoot;

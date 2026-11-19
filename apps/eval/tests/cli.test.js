@@ -1,12 +1,18 @@
 import {execFile} from 'node:child_process';
+import {rm} from 'node:fs/promises';
 import {join} from 'node:path';
 import {promisify} from 'node:util';
-import {describe, expect, it} from 'vitest';
+import {afterAll, beforeAll, describe, expect, it} from 'vitest';
 import {EVAL_COMMANDS, EvalUsageError} from '../src/cli-args.js';
 import {runEvalCli} from '../src/cli.js';
+import {loadCodenames} from '../src/codenames.js';
+import {Codename} from '../src/constants/codename.js';
+import {CODENAMES_LOCAL_PATH} from '../src/eval-paths.js';
 import {
-  FIXTURE_PRIVATE_VALUES,
   ATLAS_FIXTURE_ROOT,
+  copyAtlasFixture,
+  FIXTURE_PRIVATE_VALUES,
+  renamePoolList,
 } from './support/atlas-fixture.js';
 
 const CLI_PATH = join(import.meta.dirname, '..', 'src', 'cli.js');
@@ -82,12 +88,24 @@ describe('EVAL_COMMANDS', () => {
 });
 
 describe('cli.js process', () => {
-  it('runs inspect and exits 0', async () => {
+  let mappedAtlasRoot;
+
+  beforeAll(async () => {
+    mappedAtlasRoot = await copyAtlasFixture();
+    const codenames = await loadCodenames(CODENAMES_LOCAL_PATH);
+    await renamePoolList(mappedAtlasRoot, codenames[Codename.ORION]);
+  });
+
+  afterAll(async () => {
+    await rm(mappedAtlasRoot, {recursive: true, force: true});
+  });
+
+  it('runs inspect through the loaded codenames and exits 0', async () => {
     const {stdout} = await runNode(process.execPath, [
       CLI_PATH,
       'inspect',
       '--atlas',
-      ATLAS_FIXTURE_ROOT,
+      mappedAtlasRoot,
     ]);
     expect(stdout).toMatch(/^cases: 2$/m);
     expect(stdout).toMatch(/^content groups: 3$/m);

@@ -4,8 +4,8 @@ import {readCorpus} from '../corpus/read-corpus.js';
 
 const UNCLASSED_LABEL = 'unclassed';
 
-export const runInspect = async ({atlasRoot, writeLine}) => {
-  const evalCases = await readCorpus({atlasRoot});
+export const runInspect = async ({atlasRoot, codenames, writeLine}) => {
+  const evalCases = await readCorpus({atlasRoot, codenames});
   const contentGroups = evalCases.flatMap(getContentGroups);
   const contentGroupsByClass = Map.groupBy(
     contentGroups,

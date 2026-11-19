@@ -2,7 +2,7 @@ Tailwind CSS v4 + shadcn/ui on **Base UI** (`@base-ui/react`). `src/styles/globa
 list, and that order is the cascade: framework, then tokens, then the base reset, then the override and bespoke layers.
 A new stylesheet is imported into the layer it belongs to, never appended at the end. The token files (`theme.css`,
 `themes/`, `semantic.css`) are the theme layer — swapping the palette, adding a custom colour, or changing the
-radius/font scales is the **`change-theme` skill's** job. `base.css` carries no colour value — only the custom
+radius/font scales happens there. `base.css` carries no colour value — only the custom
 variants, the `@layer base` reset and the reduced-motion block.
 
 - **UI code starts from the installed shadcn and Tailwind skills** — load them before writing or reviewing a call
@@ -86,7 +86,7 @@ variants, the `@layer base` reset and the reduced-motion block.
   link carrying the button variants — never a `Button` rendering a `Link`.
 - **Information is revealed by a `Popover` opened on hover; a `Tooltip` only labels.** When opening the popup is the
   trigger's whole purpose — a note, an info tip, the detail behind a badge — it is a hover `Popover`, since Base UI
-  disables tooltips on touch, composed from the `InfoPopover` parts in `components/common`. A tooltip sits on a control
+  disables tooltips on touch. A tooltip sits on a control
   whose purpose lies elsewhere, and that control's accessible name carries the same text.
 - Breakpoints: Tailwind variants only, never raw px. Default to `md`. A form lays its fields on `FormGrid`, a `FieldGroup`
   container, so a field's columns follow the form's own width through `@…/field-group:` variants, never the viewport.

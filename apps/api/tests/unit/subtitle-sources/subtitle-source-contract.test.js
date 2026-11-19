@@ -1,6 +1,6 @@
 import {describe, expect, it} from 'vitest';
 import {SubtitleSource} from '@repo/shared/constants/subtitle-source.js';
-import {computeUrlCode} from '@repo/subtitle-core/stremio-row/url-code.js';
+import {computeUrlCode} from '../../../src/lib/stremio-row/url-code.js';
 import {
   createSubtitleSourceRegistry,
   listSubtitleSourceClients,
@@ -448,6 +448,25 @@ describe('createSubtitleSourceRegistry', () => {
     ).toThrow();
   });
 
+  it('lists only the clients that answer they are available, in label order', async () => {
+    const hiddenClient = createFixtureSubtitleSourceClient({
+      subtitleSource: 'opensubtitles',
+      isAvailable: async () => false,
+    });
+    const registry = createSubtitleSourceRegistry([
+      theSubtitleDbClient,
+      hiddenClient,
+      altyaziDbClient,
+    ]);
+
+    await expect(
+      registry.listAvailableSubtitleSourceClients(),
+    ).resolves.toEqual([altyaziDbClient, theSubtitleDbClient]);
+    expect(registry.getSubtitleSourceClient('opensubtitles')).toBe(
+      hiddenClient,
+    );
+  });
+
   it('answers null for a subtitle source it does not hold', () => {
     const registry = createSubtitleSourceRegistry([theSubtitleDbClient]);
     expect(registry.getSubtitleSourceClient('unknown')).toBeNull();
@@ -468,6 +487,7 @@ describe('shipped subtitle source clients', () => {
       );
       expect(Array.isArray(client.downloadBudgets), subtitleSource).toBe(true);
       for (const methodName of [
+        'isAvailable',
         'canSearchWithoutCredential',
         'canDownloadWithoutCredential',
         'searchSubtitles',

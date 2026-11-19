@@ -2,20 +2,13 @@
 
 import {useId, useState} from 'react';
 import {useSearchParams} from 'next/navigation';
-import {delay, isEqual} from 'es-toolkit';
+import {isEqual} from 'es-toolkit';
 import {useSelector} from '@tanstack/react-form';
-import {CheckboxInput} from '@/components/form/checkbox-input';
-import {CreatableMultiSelectInput} from '@/components/form/creatable-multi-select-input';
-import {DateInput} from '@/components/form/date-input';
 import {Form} from '@/components/form/form';
 import {FormField} from '@/components/form/form-field';
 import {FormGrid} from '@/components/form/form-grid';
-import {MultiSelectInput} from '@/components/form/multi-select-input';
 import {SelectInput} from '@/components/form/select-input';
-import {TagsInput} from '@/components/form/tags-input';
 import {TextInput} from '@/components/form/text-input';
-import {TextareaInput} from '@/components/form/textarea-input';
-import {TimestampCheckbox} from '@/components/form/timestamp-checkbox';
 import {useAppForm} from '@/lib/form';
 import {optionSource} from '@/lib/option-source';
 import {
@@ -66,7 +59,6 @@ const USER_TOTAL = 150;
 
 const CONTROLS = [
   {name: 'name', Control: TextInput, label: 'Ad'},
-  {name: 'note', Control: TextareaInput, label: 'Not'},
   {
     name: 'city',
     Control: SelectInput,
@@ -79,9 +71,6 @@ const CONTROLS = [
     label: 'Ülke',
     source: optionSource.fixed(COUNTRY_OPTIONS),
   },
-  {name: 'birthDate', Control: DateInput, label: 'Doğum tarihi'},
-  {name: 'isSubscribed', Control: CheckboxInput, label: 'Bülten'},
-  {name: 'archivedAt', Control: TimestampCheckbox, label: 'Arşivlendi'},
 ];
 
 const GROUPED_CONTROLS = [
@@ -93,43 +82,27 @@ const GROUPED_CONTROLS = [
   {name: 'branch', label: 'Şube', source: optionSource.fixed(BRANCH_OPTIONS)},
 ];
 
-const HELD_DEPARTMENT = {value: 'arsiv', label: 'Arşiv', disabled: true};
-
 const OPTIONS_FIELDS = {
   api: DepartmentField,
   memory: DepartmentField,
-  held: HeldDepartmentsField,
   grouped: GroupedFields,
   users: UserField,
-  members: MembersField,
-  tags: TagsField,
-  creatable: CreatableField,
 };
 
 export function FormControlsFixture() {
   const hintId = useId();
   const searchParams = useSearchParams();
   const OptionsField = OPTIONS_FIELDS[searchParams.get('options')];
-  const latency = useLatency();
   const [callerBlurs, setCallerBlurs] = useState({});
-  const [created, setCreated] = useState([]);
   const form = useAppForm({
     defaultValues: {
       name: '',
-      note: '',
       city: null,
       country: null,
       department: null,
-      departments: [HELD_DEPARTMENT.value],
       office: null,
       branch: null,
       user: null,
-      members: [],
-      tags: [],
-      records: [],
-      birthDate: undefined,
-      isSubscribed: false,
-      archivedAt: null,
     },
   });
   const fields = useFieldStates(form);
@@ -139,15 +112,6 @@ export function FormControlsFixture() {
 
   const countBlur = name =>
     setCallerBlurs(counts => ({...counts, [name]: (counts[name] ?? 0) + 1}));
-
-  const createRecord = async text => {
-    setCreated(texts => [...texts, text]);
-    await delay(latency);
-    if (searchParams.get('create') === 'fail') {
-      throw new Error('Kayıt oluşturulamadı.');
-    }
-    return {value: 'yeni', label: text};
-  };
 
   return (
     <>
@@ -166,10 +130,10 @@ export function FormControlsFixture() {
               />
             </FormField>
           ))}
-          {OptionsField && <OptionsField onCreate={createRecord} />}
+          {OptionsField && <OptionsField />}
         </FormGrid>
       </Form>
-      <FixtureState value={{fields, callerBlurs, hookBlurs, created}} />
+      <FixtureState value={{fields, callerBlurs, hookBlurs}} />
     </>
   );
 }
@@ -205,71 +169,6 @@ function UserField() {
   return (
     <FormField name="user">
       <SelectInput label="Kullanıcı" source={source} />
-    </FormField>
-  );
-}
-
-function HeldDepartmentsField() {
-  return (
-    <FormField name="departments">
-      <MultiSelectInput
-        label="Departmanlar"
-        source={getFixtureDepartmentOptionSource({source: 'api'})}
-        knownOptions={[HELD_DEPARTMENT]}
-      />
-    </FormField>
-  );
-}
-
-function MembersField() {
-  const searchParams = useSearchParams();
-  const max = searchParams.has('max')
-    ? Number(searchParams.get('max'))
-    : undefined;
-  const source = fixtureUserOptionSources.remote({
-    source: 'memory',
-    total: USER_TOTAL,
-    latency: useLatency(),
-  });
-
-  return (
-    <FormField name="members">
-      <MultiSelectInput label="Üyeler" source={source} max={max} />
-    </FormField>
-  );
-}
-
-function TagsField() {
-  const source = getFixtureDepartmentOptionSource({
-    source: 'memory',
-    latency: useLatency(),
-  });
-
-  return (
-    <FormField name="tags">
-      <TagsInput label="Etiketler" source={source} />
-    </FormField>
-  );
-}
-
-function CreatableField({onCreate}) {
-  const latency = useLatency();
-  const source =
-    useSearchParams().get('source') === 'remote'
-      ? fixtureUserOptionSources.remote({
-          source: 'memory',
-          total: USER_TOTAL,
-          latency,
-        })
-      : getFixtureDepartmentOptionSource({source: 'memory', latency});
-
-  return (
-    <FormField name="records">
-      <CreatableMultiSelectInput
-        label="Kayıtlar"
-        source={source}
-        onCreate={onCreate}
-      />
     </FormField>
   );
 }

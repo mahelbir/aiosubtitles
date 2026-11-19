@@ -23,6 +23,7 @@ import {
 import {getTabPanel} from '../lib/locators.js';
 import {holdRequest} from '../lib/requests.js';
 import {
+  closeTabMenuItems,
   openTabMenuItem,
   openTabMenuItems,
   readTokenColor,
@@ -877,6 +878,66 @@ test.describe('sources', () => {
       }),
     ).toBeVisible();
     await expect(panel.getByText(/left today/)).toHaveCount(0);
+  });
+
+  test('lists no OpenSubtitles when the API leaves it out, and a save keeps its stored account', async ({
+    page,
+    userConfigs,
+  }) => {
+    await page.route(getApiUrl(SUBTITLE_SOURCES_PATH), async route => {
+      const response = await route.fetch();
+      const envelope = await response.json();
+      await route.fulfill({
+        response,
+        json: {
+          ...envelope,
+          data: envelope.data.filter(
+            ({subtitleSource}) =>
+              subtitleSource !== SubtitleSource.OPENSUBTITLES,
+          ),
+        },
+      });
+    });
+    const userConfig = await userConfigs.create({
+      password: PASSWORD,
+      languageCodes: STORED_LANGUAGE_CODES,
+      credentials: [
+        {
+          subtitleSource: SubtitleSource.OPENSUBTITLES,
+          credentialKind: CredentialKind.ACCOUNT,
+          credentialSecret: {...OPENSUBTITLES_VALID_ACCOUNT},
+        },
+      ],
+    });
+    await openSignedIn(page, userConfig);
+
+    const tabMenuItems = await openTabMenuItems(page);
+    await expect(
+      tabMenuItems.getByText(OPENSUBTITLES_V3, {exact: true}),
+    ).toBeVisible();
+    await expect(
+      tabMenuItems.getByText(OPENSUBTITLES, {exact: true}),
+    ).toHaveCount(0);
+    await closeTabMenuItems(page);
+    const panel = await openTabMenuItem(page, THESUBTITLEDB);
+    await getSourceSwitch(panel, THESUBTITLEDB).click();
+    const patch = await saveAndSettle(page, userConfig);
+
+    const savedValues = patch.postDataJSON();
+    expect(savedValues.credentials).toEqual([
+      expect.objectContaining({
+        credentialId: expect.any(String),
+        subtitleSource: SubtitleSource.OPENSUBTITLES,
+        credentialKind: CredentialKind.ACCOUNT,
+      }),
+    ]);
+    expect(savedValues.subtitleSourceSwitchStates).toMatchObject({
+      [SubtitleSource.OPENSUBTITLES]: true,
+      [SubtitleSource.THESUBTITLEDB]: false,
+    });
+    expect(savedValues.listImprovementSwitchStates).toHaveProperty(
+      SubtitleSource.OPENSUBTITLES,
+    );
   });
 
   test('the global control is disabled while every listed source is locked', async ({

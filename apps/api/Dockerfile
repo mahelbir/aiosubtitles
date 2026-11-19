@@ -29,7 +29,7 @@ ENV NEXT_TELEMETRY_DISABLED=1
 # only, so no layer keeps it.
 RUN --mount=type=bind,target=/context \
     if [ -f /context/.env ]; then ln -s /context/.env .env; fi \
-    && APP_VERSION="$(date -u +%y%m%d.%H%M)" pnpm --filter client build \
+    && pnpm --filter client build \
     && rm -f .env
 
 FROM pnpm AS build
@@ -49,8 +49,7 @@ COPY --from=client /repo/apps/client/out apps/api/public-client
 # Self-contained production bundle (workspace deps injected, dev deps dropped).
 # Injection is scoped to this step so dev installs keep symlinking the workspace.
 RUN --mount=type=cache,id=pnpm-store,target=/pnpm-store \
-    PNPM_CONFIG_INJECT_WORKSPACE_PACKAGES=true pnpm --filter api deploy --prod /out \
-    && date -u +%y%m%d.%H%M > /out/.revision
+    PNPM_CONFIG_INJECT_WORKSPACE_PACKAGES=true pnpm --filter api deploy --prod /out
 
 FROM node:26-alpine
 ENV NODE_ENV=production

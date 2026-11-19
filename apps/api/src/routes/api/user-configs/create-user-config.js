@@ -11,7 +11,7 @@ import {hashPassword} from '../../../lib/crypto.js';
 import {getSuccessEnvelopeSchema} from '../../../lib/response.js';
 import {getSubtitleSourceRegistry} from '../../_subtitle-source-registry.js';
 import {
-  assertSubtitleSourcesAvailable,
+  assertSubtitleSourcesRegistered,
   checkCredentials,
   getCredentialPositions,
   toCredentialRow,
@@ -39,7 +39,7 @@ export default async function (fastify, opts) {
     async (request, reply) => {
       const {password, credentials, ...preferences} = request.body;
       reply.abort(
-        assertSubtitleSourcesAvailable(subtitleSourceRegistry, credentials),
+        assertSubtitleSourcesRegistered(subtitleSourceRegistry, credentials),
       );
       const userConfigId = uuidV4();
       const manifestUrl = createdUserConfigSchema.shape.manifestUrl.safeParse(

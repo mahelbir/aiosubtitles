@@ -51,6 +51,14 @@ describe('the subtitle source registry', () => {
     },
   );
 
+  it.each(
+    registeredClients.filter(
+      ([subtitleSource]) => subtitleSource !== SubtitleSource.OPENSUBTITLES,
+    ),
+  )('%s is always available', async (subtitleSource, client) => {
+    await expect(Promise.resolve(client.isAvailable())).resolves.toBe(true);
+  });
+
   it('lets exactly Jimaku, BetaSeries and AniSub draw on shared server credentials', () => {
     expect(
       registeredClients

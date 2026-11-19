@@ -23,6 +23,7 @@ const SHIPPED_CLIENT_FIELDS = [
   'credentialKinds',
   'isSearchHashSensitive',
   'downloadBudgets',
+  'isAvailable',
 ];
 
 const UNCOUNTED_QUOTA = Object.freeze({

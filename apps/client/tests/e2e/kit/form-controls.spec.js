@@ -18,15 +18,8 @@ import {expectToasts} from '../lib/toasts.js';
 
 const LABELLED_CONTROLS = [
   {name: 'name', label: 'Ad', role: 'textbox'},
-  {name: 'note', label: 'Not', role: 'textbox'},
   {name: 'city', label: 'Şehir', role: 'combobox'},
   {name: 'country', label: 'Ülke', role: 'combobox'},
-  {name: 'birthDate', label: 'Doğum tarihi', role: 'textbox'},
-];
-
-const CHECKBOX_CONTROLS = [
-  {name: 'isSubscribed', label: 'Bülten'},
-  {name: 'archivedAt', label: 'Arşivlendi'},
 ];
 
 const CITY_LABELS = ['İstanbul', 'Ankara', 'İzmir'];
@@ -54,15 +47,6 @@ const COUNTER_PATTERN = /^\d+ \/ \d+$/;
 
 const CLEAR_SELECTION = 'Clear selection';
 
-const DATE_ORDER_PROBE = '01022000';
-
-const DATE_ORDER_BY_PROBE_VALUE = {
-  '2000-01-02': ['month', 'day', 'year'],
-  '2000-02-01': ['day', 'month', 'year'],
-};
-
-const DEFAULT_DATE_ORDER = ['year', 'month', 'day'];
-
 const CLEARABLE_SELECTS = [
   {label: 'Şehir', name: 'city', option: 'Ankara'},
   {label: 'Ülke', name: 'country', option: 'Fransa'},
@@ -76,20 +60,6 @@ function getSelect(page, name) {
   return page.getByRole('combobox', {name, exact: true});
 }
 
-function getChip(page, label, text) {
-  return page
-    .getByRole('group')
-    .filter({has: getSelect(page, label)})
-    .getByText(text, {exact: true});
-}
-
-async function choose(page, label, options) {
-  await getSelect(page, label).click();
-  for (const name of options) {
-    await page.getByRole('option', {name, exact: true}).click();
-  }
-}
-
 function readFocused(page) {
   return page.evaluate(() => window.__fixture.focused());
 }
@@ -100,24 +70,6 @@ async function readTriggerLook(page, label) {
     element => element.role === 'combobox' && element.label === label,
   );
   return {height: trigger.box.h, ...pick(trigger.style, TRIGGER_LOOK)};
-}
-
-async function typeDate(control, monthDayYear) {
-  await control.focus();
-  await control.pressSequentially(DATE_ORDER_PROBE);
-  const order =
-    DATE_ORDER_BY_PROBE_VALUE[await control.inputValue()] ?? DEFAULT_DATE_ORDER;
-  await control.fill('');
-  await control.blur();
-  await control.focus();
-  const segments = {
-    month: monthDayYear.slice(0, 2),
-    day: monthDayYear.slice(2, 4),
-    year: monthDayYear.slice(4),
-  };
-  await control.pressSequentially(
-    order.map(segment => segments[segment]).join(''),
-  );
 }
 
 async function clear(control) {
@@ -143,52 +95,19 @@ test.describe('form controls', () => {
     }
   });
 
-  test('every checkbox is named by its label and reachable through it', async ({
-    page,
-  }) => {
-    for (const {label} of CHECKBOX_CONTROLS) {
-      const checkbox = getControl(page, label);
+  test('an emptied text control stores an empty string', async ({page}) => {
+    const control = getControl(page, 'Ad');
 
-      await expect(checkbox).toHaveRole('checkbox');
-      await expect(
-        page.getByRole('checkbox', {name: label, exact: true}),
-      ).toHaveAttribute('aria-checked', 'false');
-      await checkbox.press('Space');
-      await expect(checkbox).toHaveAttribute('aria-checked', 'true');
-    }
-  });
-
-  test('every checkbox toggles from its label', async ({page}) => {
-    for (const {label} of CHECKBOX_CONTROLS) {
-      await page.getByText(label, {exact: true}).click();
-
-      await expect(getControl(page, label)).toHaveAttribute(
-        'aria-checked',
-        'true',
-      );
-    }
-  });
-
-  for (const {name, label} of [
-    {name: 'name', label: 'Ad'},
-    {name: 'note', label: 'Not'},
-  ]) {
-    test(`an emptied ${name} control stores an empty string`, async ({
-      page,
-    }) => {
-      const control = getControl(page, label);
-
-      await control.pressSequentially('abc');
-      await expectFixtureState(page).toMatchObject({
-        fields: {[name]: {value: 'abc'}},
-      });
-      await clear(control);
-
-      await expectFixtureState(page).toMatchObject({
-        fields: {[name]: {value: '', type: 'string'}},
-      });
+    await control.pressSequentially('abc');
+    await expectFixtureState(page).toMatchObject({
+      fields: {name: {value: 'abc'}},
     });
-  }
+    await clear(control);
+
+    await expectFixtureState(page).toMatchObject({
+      fields: {name: {value: '', type: 'string'}},
+    });
+  });
 
   test('the select opens from the keyboard and stores the option value', async ({
     page,
@@ -262,91 +181,7 @@ test.describe('form controls', () => {
     );
   });
 
-  test('a typed date stores its YYYY-MM-DD string', async ({page}) => {
-    const date = getControl(page, 'Doğum tarihi');
-
-    await typeDate(date, '03152024');
-
-    await expect(date).toHaveValue('2024-03-15');
-    await expectFixtureState(page).toMatchObject({
-      fields: {birthDate: {value: '2024-03-15', type: 'string'}},
-    });
-  });
-
-  test('an emptied date stores undefined', async ({page}) => {
-    const date = getControl(page, 'Doğum tarihi');
-    await typeDate(date, '03152024');
-    await expectFixtureState(page).toMatchObject({
-      fields: {birthDate: {value: '2024-03-15'}},
-    });
-
-    await date.press('Backspace');
-
-    await expect(date).toHaveValue('');
-    await expectFixtureState(page).toMatchObject({
-      fields: {birthDate: {type: 'undefined'}},
-    });
-  });
-
-  for (const typed of ['02312024', '02292023']) {
-    test(`refuses the impossible date ${typed}`, async ({page}) => {
-      const date = getControl(page, 'Doğum tarihi');
-
-      await typeDate(date, typed);
-
-      await expect(date).toHaveValue('');
-      await expectFixtureState(page).toMatchObject({
-        fields: {birthDate: {type: 'undefined'}},
-      });
-    });
-  }
-
-  test('an unchecked checkbox stores false and Space toggles it', async ({
-    page,
-  }) => {
-    const checkbox = getControl(page, 'Bülten');
-    await checkbox.focus();
-
-    await page.keyboard.press('Space');
-
-    await expect(checkbox).toHaveAttribute('aria-checked', 'true');
-    await expectFixtureState(page).toMatchObject({
-      fields: {isSubscribed: {value: true, type: 'boolean'}},
-    });
-
-    await page.keyboard.press('Space');
-
-    await expect(checkbox).toHaveAttribute('aria-checked', 'false');
-    await expectFixtureState(page).toMatchObject({
-      fields: {isSubscribed: {value: false, type: 'boolean'}},
-    });
-  });
-
-  test('the timestamp checkbox toggles between null and an ISO timestamp', async ({
-    page,
-  }) => {
-    const label = page.getByText('Arşivlendi', {exact: true});
-
-    await label.click();
-
-    await expectFixtureState(page).toMatchObject({
-      fields: {
-        archivedAt: {
-          value: expect.stringMatching(
-            /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/,
-          ),
-        },
-      },
-    });
-
-    await label.click();
-
-    await expectFixtureState(page).toMatchObject({
-      fields: {archivedAt: {value: null, type: 'object'}},
-    });
-  });
-
-  for (const {name, label} of [...LABELLED_CONTROLS, ...CHECKBOX_CONTROLS]) {
+  for (const {name, label} of LABELLED_CONTROLS) {
     test(`${name} composes the caller’s blur handler and description with the bound ones`, async ({
       page,
     }) => {
@@ -402,20 +237,6 @@ test.describe('form controls over an option source', () => {
       expect(page.getByText('Loading…')).toBeVisible(),
       expect(page.getByRole('option')).toHaveCount(0),
     ]);
-  });
-
-  test('a combobox still loading a preloaded list says loading, not searching', async ({
-    page,
-  }) => {
-    await openFixture(page, 'form-controls', {
-      options: 'tags',
-      delay: LATENCY_MS,
-    });
-
-    await getSelect(page, 'Etiketler').press('ArrowDown');
-
-    await expect(page.getByText('Loading…')).toBeVisible();
-    await expect(page.getByText('Searching…')).toBeHidden();
   });
 
   test('the trigger keeps focus when a preloaded list lands past the threshold', async ({
@@ -515,106 +336,17 @@ test.describe('form controls over an option source', () => {
   });
 });
 
-test.describe('form controls over a multi-select', () => {
-  test('chips are added by choosing and removed with Backspace', async ({
-    page,
-  }) => {
-    await openFixture(page, 'form-controls', {options: 'members'});
-
-    await choose(page, 'Üyeler', ['Ada Yılmaz', 'Barış Yılmaz']);
-
-    await expect(getChip(page, 'Üyeler', 'Ada Yılmaz')).toBeVisible();
-    await expect(getChip(page, 'Üyeler', 'Barış Yılmaz')).toBeVisible();
-    await expectFixtureState(page).toMatchObject({
-      fields: {members: {value: [1, 2]}},
-    });
-
-    await getSelect(page, 'Üyeler').press('Backspace');
-
-    await expect(getChip(page, 'Üyeler', 'Barış Yılmaz')).toHaveCount(0);
-    await expectFixtureState(page).toMatchObject({
-      fields: {members: {value: [1]}},
-    });
-  });
-
-  test('a known disabled option renders a chip that cannot be removed', async ({
-    page,
-  }) => {
-    await stubDepartments(page);
-    await openFixture(page, 'form-controls', {options: 'held'});
-    const held = getChip(page, 'Departmanlar', 'Arşiv');
-    await expect(held).toBeVisible();
-    await expect(held.getByRole('button')).toHaveCount(0);
-    await choose(page, 'Departmanlar', ['Destek']);
-    await expectFixtureState(page).toMatchObject({
-      fields: {departments: {value: ['arsiv', 'destek']}},
-    });
-
-    await page.keyboard.press('Backspace');
-    await page.keyboard.press('Backspace');
-    await page.keyboard.press('Escape');
-    await expect(page.getByRole('listbox')).toBeHidden();
-    await page.keyboard.press('Escape');
-
-    await expect(held).toBeVisible();
-    await expect(getChip(page, 'Departmanlar', 'Destek')).toHaveCount(0);
-    await expectFixtureState(page).toMatchObject({
-      fields: {departments: {value: ['arsiv']}},
-    });
-  });
-
-  test('max disables the remaining options and says why', async ({page}) => {
-    await openFixture(page, 'form-controls', {options: 'members', max: 2});
-    await choose(page, 'Üyeler', ['Ada Yılmaz']);
-    await expect(page.getByRole('option', {disabled: true})).toHaveCount(0);
-
-    await page.getByRole('option', {name: 'Barış Yılmaz', exact: true}).click();
-
-    await expect(page.getByText('You can select up to 2.')).toBeVisible();
-    await expect(page.getByRole('option')).toHaveCount(OPTION_PAGE_SIZE);
-    await expect(page.getByRole('option', {disabled: true})).toHaveCount(
-      OPTION_PAGE_SIZE - 2,
-    );
-    for (const name of ['Ada Yılmaz', 'Barış Yılmaz']) {
-      await expect(
-        page.getByRole('option', {name, exact: true}),
-      ).not.toHaveAttribute('aria-disabled', 'true');
-    }
-    await expect(
-      page.getByRole('option', {name: 'Cem Yılmaz', exact: true}),
-    ).toHaveAttribute('aria-disabled', 'true');
-  });
-
-  test('a chosen chip keeps its label after a remote search moves on', async ({
-    page,
-  }) => {
-    await openFixture(page, 'form-controls', {options: 'members'});
-    const members = getSelect(page, 'Üyeler');
-    await members.pressSequentially('Ada');
-    await page.getByRole('option', {name: 'Ada Aydın', exact: true}).click();
-
-    await members.pressSequentially('Cem');
-
-    await expect(page.getByRole('option')).toHaveCount(13);
-    await expect(page.getByRole('option').first()).toHaveText('Cem Yılmaz');
-    await expect(getChip(page, 'Üyeler', 'Ada Aydın')).toBeVisible();
-    await expect(getChip(page, 'Üyeler', '73')).toHaveCount(0);
-    await expectFixtureState(page).toMatchObject({
-      fields: {members: {value: [73]}},
-    });
-  });
-
+test.describe('form controls over a paged remote source', () => {
   test('the counter shows only while more pages remain', async ({page}) => {
-    await openFixture(page, 'form-controls', {options: 'members'});
-    const members = getSelect(page, 'Üyeler');
+    await openFixture(page, 'form-controls', {options: 'users'});
 
-    await members.click();
+    await getSelect(page, 'Kullanıcı').click();
 
     await expect(
       page.getByText(`${OPTION_PAGE_SIZE} / ${USER_TOTAL}`),
     ).toBeVisible();
 
-    await members.pressSequentially('Ada');
+    await page.keyboard.type('Ada');
 
     await expect(page.getByRole('option')).toHaveCount(13);
     await expect(page.getByText(COUNTER_PATTERN)).toHaveCount(0);
@@ -623,8 +355,8 @@ test.describe('form controls over a multi-select', () => {
   test('scrolling to the end of the list loads the next page', async ({
     page,
   }) => {
-    await openFixture(page, 'form-controls', {options: 'members'});
-    await getSelect(page, 'Üyeler').click();
+    await openFixture(page, 'form-controls', {options: 'users'});
+    await getSelect(page, 'Kullanıcı').click();
     await expect(page.getByRole('option')).toHaveCount(OPTION_PAGE_SIZE);
 
     await page
@@ -638,194 +370,13 @@ test.describe('form controls over a multi-select', () => {
   });
 
   test('arrowing to the last option loads the next page', async ({page}) => {
-    await openFixture(page, 'form-controls', {options: 'members'});
-    await getSelect(page, 'Üyeler').click();
+    await openFixture(page, 'form-controls', {options: 'users'});
+    await getSelect(page, 'Kullanıcı').click();
     await expect(page.getByRole('option')).toHaveCount(OPTION_PAGE_SIZE);
 
     await page.keyboard.press('ArrowUp');
 
     await expect(page.getByRole('option')).toHaveCount(2 * OPTION_PAGE_SIZE);
-  });
-});
-
-test.describe('form controls over free and creatable tags', () => {
-  test('Enter turns the typed text into a tag stored as written', async ({
-    page,
-  }) => {
-    await openFixture(page, 'form-controls', {options: 'tags'});
-    const tags = getSelect(page, 'Etiketler');
-
-    await tags.pressSequentially('  Acil ');
-    await tags.press('Enter');
-
-    await expect(getChip(page, 'Etiketler', 'Acil')).toBeVisible();
-    await expect(
-      page.getByRole('button', {name: 'Remove: Acil', exact: true}),
-    ).toBeVisible();
-    await expect(tags).toHaveValue('');
-    await expectFixtureState(page).toMatchObject({
-      fields: {tags: {value: ['Acil']}},
-    });
-  });
-
-  test('a suggestion adds its label as a tag', async ({page}) => {
-    await openFixture(page, 'form-controls', {options: 'tags'});
-
-    await choose(page, 'Etiketler', ['Destek']);
-
-    await expect(getChip(page, 'Etiketler', 'Destek')).toBeVisible();
-    await expectFixtureState(page).toMatchObject({
-      fields: {tags: {value: ['Destek']}},
-    });
-  });
-
-  test('a duplicate tag is ignored', async ({page}) => {
-    await openFixture(page, 'form-controls', {options: 'tags'});
-    const tags = getSelect(page, 'Etiketler');
-
-    await tags.pressSequentially('Acil');
-    await tags.press('Enter');
-    await tags.pressSequentially('Acil');
-    await tags.press('Enter');
-
-    await expect(getChip(page, 'Etiketler', 'Acil')).toHaveCount(1);
-    await expect(tags).toHaveValue('');
-    await expectFixtureState(page).toMatchObject({
-      fields: {tags: {value: ['Acil']}},
-    });
-  });
-
-  test('a text with no exact match offers to create it', async ({page}) => {
-    await openFixture(page, 'form-controls', {options: 'creatable'});
-    const records = getSelect(page, 'Kayıtlar');
-
-    await records.pressSequentially('Yeni');
-
-    await expect(
-      page.getByRole('option', {name: 'Create: "Yeni"', exact: true}),
-    ).toBeVisible();
-
-    await clear(records);
-    await records.pressSequentially('Dest');
-
-    await expect(
-      page.getByRole('option', {name: 'Create: "Dest"', exact: true}),
-    ).toBeVisible();
-
-    for (const text of ['Destek', 'destek']) {
-      await clear(records);
-      await records.pressSequentially(text);
-
-      await expect(
-        page.getByRole('option', {name: 'Destek', exact: true}),
-      ).toBeVisible();
-      await expect(page.getByRole('option', {name: /^Create/})).toHaveCount(0);
-    }
-  });
-
-  test('choosing create awaits the caller and selects the new record', async ({
-    page,
-  }) => {
-    await openFixture(page, 'form-controls', {
-      options: 'creatable',
-      delay: SEARCH_LATENCY_MS,
-    });
-    const records = getSelect(page, 'Kayıtlar');
-    await records.pressSequentially('Yeni');
-
-    await page
-      .getByRole('option', {name: 'Create: "Yeni"', exact: true})
-      .click();
-
-    await expect(getChip(page, 'Kayıtlar', 'Yeni')).toBeVisible();
-    await expect(records).toHaveValue('');
-    await expectFixtureState(page).toMatchObject({
-      created: ['Yeni'],
-      fields: {records: {value: ['yeni']}},
-    });
-  });
-
-  test('a create resolving late keeps the chip changes made while it waited', async ({
-    page,
-  }) => {
-    await openFixture(page, 'form-controls', {
-      options: 'creatable',
-      delay: SEARCH_LATENCY_MS,
-    });
-    const records = getSelect(page, 'Kayıtlar');
-    await choose(page, 'Kayıtlar', ['Destek']);
-    await expect(getChip(page, 'Kayıtlar', 'Destek')).toBeVisible();
-    await records.pressSequentially('Yeni');
-    await page
-      .getByRole('option', {name: 'Create: "Yeni"', exact: true})
-      .click();
-
-    await page
-      .getByRole('button', {name: 'Remove: Destek', exact: true})
-      .click();
-
-    await expect(getChip(page, 'Kayıtlar', 'Yeni')).toBeVisible();
-    await expect(getChip(page, 'Kayıtlar', 'Destek')).toHaveCount(0);
-    await expectFixtureState(page).toMatchObject({
-      created: ['Yeni'],
-      fields: {records: {value: ['yeni']}},
-    });
-  });
-
-  test('a remote source offers to create only for searched text with no exact match', async ({
-    page,
-  }) => {
-    await openFixture(page, 'form-controls', {
-      options: 'creatable',
-      source: 'remote',
-    });
-    const records = getSelect(page, 'Kayıtlar');
-    const createOption = page.getByRole('option', {name: /^Create/});
-    await records.click();
-    await expect(page.getByRole('option')).toHaveCount(OPTION_PAGE_SIZE);
-
-    await records.pressSequentially('Z');
-
-    await expect(page.getByText('Searching…')).toBeHidden();
-    await expect(createOption).toHaveCount(0);
-
-    await clear(records);
-    await records.pressSequentially('Ada Yılmaz');
-
-    await expect(
-      page.getByRole('option', {name: 'Ada Yılmaz', exact: true}),
-    ).toBeVisible();
-    await expect(page.getByText('Searching…')).toBeHidden();
-    await expect(createOption).toHaveCount(0);
-
-    await clear(records);
-    await records.pressSequentially('Zzzz Yok');
-
-    await expect(
-      page.getByRole('option', {name: 'Create: "Zzzz Yok"', exact: true}),
-    ).toBeVisible();
-  });
-
-  test('a rejected create keeps the text and selects nothing', async ({
-    page,
-  }) => {
-    await openFixture(page, 'form-controls', {
-      options: 'creatable',
-      create: 'fail',
-    });
-    const records = getSelect(page, 'Kayıtlar');
-    await records.pressSequentially('Yeni');
-
-    await page
-      .getByRole('option', {name: 'Create: "Yeni"', exact: true})
-      .click();
-
-    await expectFixtureState(page).toMatchObject({
-      created: ['Yeni'],
-      fields: {records: {value: []}},
-    });
-    await expect(records).toHaveValue('Yeni');
-    await expect(getChip(page, 'Kayıtlar', 'Yeni')).toHaveCount(0);
   });
 });
 
@@ -881,22 +432,6 @@ test.describe('form controls over an options query', () => {
         expect(page.getByText(OPTIONS_LOAD_FAILURE)).toBeHidden(),
       ]);
       await expectToasts(page, []);
-    });
-
-    test('a multi-select whose options fail lists none of them, while a held chip keeps its label', async ({
-      page,
-    }) => {
-      await stubDepartments(page, () => DEPARTMENTS_FAILURE.response);
-      await openFixture(page, 'form-controls', {options: 'held'});
-      await getSelect(page, 'Departmanlar').focus();
-
-      await page.keyboard.press('ArrowDown');
-
-      await expect(page.getByText(OPTIONS_LOAD_FAILURE)).toBeVisible();
-      await Promise.all([
-        expect(page.getByRole('option')).toHaveCount(0),
-        expect(getChip(page, 'Departmanlar', 'Arşiv')).toBeVisible(),
-      ]);
     });
   });
 });

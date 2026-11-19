@@ -1,5 +1,7 @@
 export const THESUBTITLEDB_VALID_API_KEY = 'sdb_valid_fixture';
 
+export const OPENSUBTITLES_SHARED_API_KEY = 'opensubtitles-shared-fixture-key';
+
 export const THESUBTITLEDB_LATE_API_KEY_PREFIX = 'sdb_late_fixture_';
 
 export const OPENSUBTITLES_VALID_ACCOUNT = Object.freeze({

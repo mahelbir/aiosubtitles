@@ -106,54 +106,6 @@ describe('findOneAndUpdate', () => {
   });
 });
 
-describe('findOffsetPage', () => {
-  it('counts what the eliminating include leaves, not the joined rows', async () => {
-    const tag = await createFixtureTag({label: 'counted', rank: 900});
-    const holder = await createFixtureRecord({
-      name: toEmail('holder'),
-      tags: [tag],
-    });
-    await createFixtureRecord({name: toEmail('outsider')});
-
-    const page = await FixtureRecord.withScope('withTags').findOffsetPage(
-      0,
-      100,
-      {
-        attributes: ['id'],
-        include: [{association: 'tags', required: true, where: {id: tag.id}}],
-      },
-    );
-
-    expect(page.count).toBe(1);
-    expect(page.rows.map(row => row.id)).toEqual([holder.id]);
-  });
-
-  it('reads rows and total from one snapshot when consistency is asked for', async () => {
-    await createFixtureRecord({name: toEmail('first')});
-    const page = await FixtureRecord.findOffsetPage(0, 100, {
-      attributes: ['id'],
-      consistent: true,
-    });
-    expect(page.count).toBe(page.rows.length);
-  });
-
-  it('joins a caller transaction instead of opening its own', async () => {
-    await sequelize.transaction(async transaction => {
-      await FixtureRecord.create(
-        {name: toEmail('invisible-outside'), secret: 'x'},
-        {transaction},
-      );
-      const page = await FixtureRecord.findOffsetPage(0, 100, {
-        attributes: ['id', 'name'],
-        transaction,
-      });
-      expect(page.rows.map(row => row.name)).toContain(
-        toEmail('invisible-outside'),
-      );
-    });
-  });
-});
-
 describe('locking helpers', () => {
   it('holds a row until the transaction ends', async () => {
     const record = await createFixtureRecord({name: toEmail('locked-row')});

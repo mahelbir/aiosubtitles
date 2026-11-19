@@ -18,7 +18,7 @@ import {getSuccessEnvelopeSchema} from '../../../../lib/response.js';
 import {getSubtitleSourceRegistry} from '../../../_subtitle-source-registry.js';
 import {
   USER_CONFIG_API_ROUTE_CONFIG,
-  assertSubtitleSourcesAvailable,
+  assertSubtitleSourcesRegistered,
   checkCredentials,
   getCredentialPositions,
   readMaskedUserConfig,
@@ -53,7 +53,7 @@ export default async function (fastify, opts) {
       const {userConfigId} = request.params;
       const {credentials, ...preferences} = request.body;
       reply.abort(
-        assertSubtitleSourcesAvailable(subtitleSourceRegistry, credentials),
+        assertSubtitleSourcesRegistered(subtitleSourceRegistry, credentials),
       );
       const changedCredentials = await sequelize.transaction(
         async transaction => {

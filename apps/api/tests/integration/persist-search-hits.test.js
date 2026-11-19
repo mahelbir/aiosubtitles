@@ -1,11 +1,11 @@
 import {describe, expect, it} from 'vitest';
 import {SubtitleSource} from '@repo/shared/constants/subtitle-source.js';
 import {SubtitleFileExtension} from '@repo/subtitle-core/constants/subtitle-core-enums.js';
-import {computeUrlCode} from '@repo/subtitle-core/stremio-row/url-code.js';
 import {SubtitleAlias} from '../../src/db/models/subtitle-alias.js';
 import {SubtitleHashMatch} from '../../src/db/models/subtitle-hash-match.js';
 import {SubtitleVideoCandidate} from '../../src/db/models/subtitle-video-candidate.js';
 import {Subtitle} from '../../src/db/models/subtitle.js';
+import {computeUrlCode} from '../../src/lib/stremio-row/url-code.js';
 import {SubtitleAliasSource} from '../../src/lib/subtitle-sources/subtitle-alias-source.js';
 import {persistSearchHits} from '../../src/lib/subtitle-store/persist-search-hits.js';
 import {makeSubtitleSourceHit} from '../helpers/subtitle-source-factories.js';
