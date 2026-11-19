@@ -13,6 +13,8 @@ import {
 } from '../../../lib/video-catalog/video-variants.js';
 import {AddonVideoType} from '../_addon-video-type.js';
 
+const UNRESOLVED_CATALOG_META = Symbol('unresolved-catalog-meta');
+
 const logger = createLogger('subtitle-list');
 
 export async function resolveListVideo({
@@ -36,13 +38,22 @@ export async function resolveListVideo({
     }),
     resolvePlayedVideo({videoId, extras}),
   ]);
-  const {imdbId, catalogSeason, catalogEpisode, catalogMeta} = catalogVideo;
+  const {
+    imdbId,
+    catalogSeason,
+    catalogEpisode,
+    catalogMeta,
+    isEpisodeResolved,
+    isCatalogResolved,
+  } = catalogVideo;
+  const {kitsuId, kitsuEpisode} = parsedVideoId;
   const {videoHash, videoSizeBytes, videoFilename} = playedVideo;
   return {
     videoContext: {
       videoId,
       catalogSeason,
       catalogEpisode,
+      kitsuEpisode,
       videoHash,
       videoRelease: videoFilename ? parseReleaseName(videoFilename) : null,
       catalogDurationMs: catalogMeta?.catalogDurationMs ?? null,
@@ -51,15 +62,18 @@ export async function resolveListVideo({
       videoId,
       videoType: searchVideoType,
       imdbId,
-      kitsuId: parsedVideoId.kitsuId,
+      kitsuId,
       catalogSeason,
       catalogEpisode,
+      kitsuEpisode,
       tvdbId: catalogMeta?.tvdbId ?? null,
       catalogTitle: catalogMeta?.catalogTitle ?? null,
       catalogYear: catalogMeta?.catalogYear ?? null,
       videoHash,
       videoSizeBytes,
       videoFilename,
+      isEpisodeResolved,
+      isCatalogResolved,
     },
   };
 }
@@ -84,20 +98,23 @@ async function resolveCatalogVideo({
     }),
     UNRESOLVED_VIDEO_EPISODE,
   );
-  const catalogMeta = catalogVideo.imdbId
+  const catalogAnswer = catalogVideo.imdbId
     ? await raceDeadline(
         videoCatalog.readCatalogMeta({
           videoType: searchVideoType,
           imdbId: catalogVideo.imdbId,
         }),
-        null,
+        UNRESOLVED_CATALOG_META,
       )
     : null;
+  const isCatalogResolved = catalogAnswer !== UNRESOLVED_CATALOG_META;
   return {
     imdbId: catalogVideo.imdbId,
     catalogSeason: catalogVideo.catalogSeason,
     catalogEpisode: catalogVideo.catalogEpisode,
-    catalogMeta,
+    catalogMeta: isCatalogResolved ? catalogAnswer : null,
+    isEpisodeResolved: catalogVideo.isEpisodeResolved,
+    isCatalogResolved,
   };
 }
 

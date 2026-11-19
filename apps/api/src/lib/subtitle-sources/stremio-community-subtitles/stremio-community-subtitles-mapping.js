@@ -14,13 +14,16 @@ import {
 } from '../subtitle-source-errors.js';
 import {
   readSubtitleSourceContentType,
+  parseSiteFileUrl,
   readSubtitleSourceFileName,
+  readSubtitleSourceErrorBody,
+  readSubtitleSourceJson,
+  requireSubtitleSourceList,
   toSubtitleSourceStatusError,
 } from '../subtitle-source-request.js';
 
 const SITE_URL = 'https://stremio-community-subtitles.top';
 const SITE_HOSTNAME = 'stremio-community-subtitles.top';
-const SITE_PROTOCOLS = new Set(['http:', 'https:']);
 const SITE_LANGUAGE_CODES = [
   'eng',
   'pol',
@@ -171,18 +174,18 @@ function buildSearchRequest(searchQuery, credential) {
   return buildTokenRequest(
     `/subtitles/${encodeURIComponent(videoType)}/${videoId}/${toExtras(searchQuery, siteLanguageCodes)}.json`,
     credential,
+    {responseType: 'bytes', acceptedStatuses: [StatusCodes.FORBIDDEN]},
   );
 }
 
 function readSiteFileId(siteFileUrl) {
-  if (typeof siteFileUrl !== 'string' || !URL.canParse(siteFileUrl)) {
-    return null;
-  }
-  const {protocol, hostname, pathname} = new URL(siteFileUrl);
-  if (!SITE_PROTOCOLS.has(protocol) || hostname !== SITE_HOSTNAME) {
-    return null;
-  }
-  const siteFileId = SITE_DOWNLOAD_PATH_PATTERN.exec(pathname)?.[1];
+  const fileUrl = parseSiteFileUrl(siteFileUrl, {
+    isSiteHostname: hostname => hostname === SITE_HOSTNAME,
+    isHttpAllowed: true,
+  });
+  const siteFileId = fileUrl
+    ? SITE_DOWNLOAD_PATH_PATTERN.exec(fileUrl.pathname)?.[1]
+    : null;
   return isSiteFileId(siteFileId) ? siteFileId : null;
 }
 
@@ -216,11 +219,25 @@ function toSearchHit(siteSubtitle, askedLanguageCodes) {
   };
 }
 
-function toSearchHits({body}, {languageCodes}) {
-  const siteSubtitles = body?.subtitles;
-  if (!Array.isArray(siteSubtitles)) {
+function readSiteJson({headers, body}) {
+  try {
+    return readSubtitleSourceJson(body, headers);
+  } catch {
+    throw toUnavailableError('Answer is not JSON.');
+  }
+}
+
+function toSearchHits(response, {languageCodes}, credential = null) {
+  if (response.status === StatusCodes.FORBIDDEN) {
+    throw toForbiddenError(response, credential);
+  }
+  if (response.status === StatusCodes.NOT_FOUND) {
     return [];
   }
+  const siteSubtitles = requireSubtitleSourceList(
+    readSiteJson(response)?.subtitles,
+    {subtitleSource: SubtitleSource.STREMIO_COMMUNITY_SUBTITLES},
+  );
   const askedLanguageCodes = new Set(languageCodes);
   return siteSubtitles
     .map(siteSubtitle => toSearchHit(siteSubtitle, askedLanguageCodes))
@@ -280,29 +297,26 @@ function toFileNameHint(headers) {
   );
 }
 
-function readBodyText(body) {
-  if (typeof body === 'string') {
-    return body;
-  }
-  return body instanceof Uint8Array
-    ? new TextDecoder().decode(body.subarray(0, PLACEHOLDER_SAMPLE_BYTES))
-    : '';
+function isSiteAnswer(response) {
+  const siteMessage = SITE_STATUS_MESSAGES.get(response.status);
+  return (
+    Boolean(siteMessage) &&
+    readSubtitleSourceErrorBody(response).bodyText.includes(siteMessage)
+  );
 }
 
-function isSiteAnswer({status, body}) {
-  const siteMessage = SITE_STATUS_MESSAGES.get(status);
-  return Boolean(siteMessage) && readBodyText(body).includes(siteMessage);
+function toForbiddenError(response, credential) {
+  return isSiteAnswer(response)
+    ? new SourceCredentialError({
+        subtitleSource: SubtitleSource.STREMIO_COMMUNITY_SUBTITLES,
+        credentialId: credential?.credentialId ?? null,
+      })
+    : toUnavailableError(`Status ${response.status}.`);
 }
 
 function toDownload(response, credential = null) {
   if (response.status === StatusCodes.FORBIDDEN) {
-    if (!isSiteAnswer(response)) {
-      throw toUnavailableError(`Status ${response.status}.`);
-    }
-    throw new SourceCredentialError({
-      subtitleSource: SubtitleSource.STREMIO_COMMUNITY_SUBTITLES,
-      credentialId: credential?.credentialId ?? null,
-    });
+    throw toForbiddenError(response, credential);
   }
   if (response.status === StatusCodes.NOT_FOUND) {
     throw toSubtitleSourceStatusError(response, {

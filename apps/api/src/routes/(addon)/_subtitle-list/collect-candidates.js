@@ -77,7 +77,7 @@ function canSourceListUnstoredRows({cachedUserConfig, client}) {
 
 function isPackRowVisible(
   {packInnerEntryPaths, isPackInner, isPackBound, archiveEntryPath},
-  {catalogSeason, catalogEpisode},
+  {catalogSeason, catalogEpisode, kitsuEpisode = null},
 ) {
   if (packInnerEntryPaths) {
     return (
@@ -85,6 +85,7 @@ function isPackRowVisible(
         innerEntryPaths: packInnerEntryPaths,
         catalogSeason,
         catalogEpisode,
+        kitsuEpisode,
       }) === null
     );
   }
@@ -96,6 +97,7 @@ function isPackRowVisible(
         entryPaths: [archiveEntryPath],
         seasonNumber: catalogSeason,
         episodeNumber: catalogEpisode,
+        alternateEpisodeNumber: kitsuEpisode,
       }).length > 0
     );
   }

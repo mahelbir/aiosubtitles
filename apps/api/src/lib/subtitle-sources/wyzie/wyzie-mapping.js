@@ -1,4 +1,4 @@
-import {compact, uniq} from 'es-toolkit';
+import {compact, isNil, uniq} from 'es-toolkit';
 import {StatusCodes} from 'http-status-codes';
 import {CredentialStatus} from '@repo/shared/constants/credential.js';
 import {SubtitleLanguage} from '@repo/shared/constants/subtitle-language.js';
@@ -7,17 +7,13 @@ import {VideoType} from '@repo/shared/constants/video-type.js';
 import {toSubtitleLanguageCode} from '@repo/shared/lib/subtitle-language.js';
 import {dropCues} from '@repo/subtitle-core/file-format/drop-cues.js';
 import {normalizeCueText} from '@repo/subtitle-core/file-format/normalize-cue-text.js';
-import {
-  parseStremioVideoId,
-  VideoIdKind,
-} from '../../video-catalog/parse-video-id.js';
 import {fromSiteLanguageCode} from '../site-language-codes.js';
 import {
-  INTEGER_COLUMN_MAX,
   toHitFileExtension,
   toHitReleaseNames,
   toHitSiteFileId,
   toNullableBoolean,
+  toSiteCount,
   VIDEO_HASH_PATTERN,
 } from '../subtitle-source-contract.js';
 import {
@@ -29,10 +25,14 @@ import {
   isSubtitleSourceFileUrl,
   readSubtitleSourceFileName,
   SUBTITLE_SOURCE_RETRY_AFTER_DEFAULT,
+  parseSiteFileUrl,
+  readSubtitleSourceErrorBody,
+  requireSubtitleSourceList,
   toSubtitleSourceStatusError,
 } from '../subtitle-source-request.js';
 
 const WYZIE_API_URL = 'https://sub.wyzie.io';
+const WYZIE_API_HOSTNAME = new URL(WYZIE_API_URL).hostname;
 const SEARCH_PATH = '/search';
 const SOURCES_PATH = '/sources';
 const USAGE_PATH = '/usage';
@@ -73,19 +73,17 @@ function toWyzieLanguageCodes(languageCodes) {
 }
 
 function toSearchTarget({
-  videoId,
   videoType,
   imdbId,
+  kitsuId,
   catalogSeason,
   catalogEpisode,
+  kitsuEpisode,
 }) {
-  const parsedVideoId = parseStremioVideoId(videoId ?? '');
-  if (parsedVideoId.videoIdKind === VideoIdKind.KITSU) {
+  if (!isNil(kitsuId)) {
     return {
-      kitsu: parsedVideoId.kitsuId,
-      ...(parsedVideoId.catalogEpisode === null
-        ? {}
-        : {episode: String(parsedVideoId.catalogEpisode)}),
+      kitsu: kitsuId,
+      ...(isNil(kitsuEpisode) ? {} : {episode: String(kitsuEpisode)}),
     };
   }
   if (!imdbId) {
@@ -130,43 +128,33 @@ function toUnavailableError(causeMessage) {
   });
 }
 
-function readRefusalBody(body) {
-  if (body instanceof Uint8Array || typeof body === 'string') {
-    try {
-      return JSON.parse(
-        typeof body === 'string' ? body : new TextDecoder().decode(body),
-      );
-    } catch {
-      return null;
-    }
-  }
-  return body;
-}
-
-function readRefusalMessage(body) {
-  const message = readRefusalBody(body)?.message;
+function readRefusalMessage(response) {
+  const message = readSubtitleSourceErrorBody(response).bodyJson?.message;
   return typeof message === 'string' ? message : '';
 }
 
-function isUnreadableRefusal({status, body}) {
-  return status === StatusCodes.FORBIDDEN && readRefusalMessage(body) === '';
+function isUnreadableRefusal(response) {
+  return (
+    response.status === StatusCodes.FORBIDDEN &&
+    readRefusalMessage(response) === ''
+  );
 }
 
 function isRefusal({status}) {
   return REFUSAL_STATUSES.includes(status);
 }
 
-function isFreePlanRefusal({status, body}) {
+function isFreePlanRefusal(response) {
   return (
-    status === StatusCodes.FORBIDDEN &&
-    FREE_PLAN_PATTERN.test(readRefusalMessage(body))
+    response.status === StatusCodes.FORBIDDEN &&
+    FREE_PLAN_PATTERN.test(readRefusalMessage(response))
   );
 }
 
-function isLimitRefusal({status, body}) {
+function isLimitRefusal(response) {
   return (
-    status === StatusCodes.PAYMENT_REQUIRED ||
-    KEY_ON_HOLD_PATTERN.test(readRefusalMessage(body))
+    response.status === StatusCodes.PAYMENT_REQUIRED ||
+    KEY_ON_HOLD_PATTERN.test(readRefusalMessage(response))
   );
 }
 
@@ -245,14 +233,6 @@ function isAskedRow(siteSubtitle, codenames) {
   );
 }
 
-function toSiteDownloadCount(downloadCount) {
-  return Number.isSafeInteger(downloadCount) &&
-    downloadCount >= 0 &&
-    downloadCount <= INTEGER_COLUMN_MAX
-    ? downloadCount
-    : null;
-}
-
 function toReleaseNames({releases, release, fileName}) {
   return toHitReleaseNames(
     [...(Array.isArray(releases) ? releases : []), release, fileName].filter(
@@ -298,7 +278,7 @@ function toSearchHit(siteSubtitle, {searchQuery, searchTarget}) {
       siteSubtitle.quality.flags.includes(MACHINE_TRANSLATED_FLAG),
     isUploaderTrusted: null,
     isQuotaCostly: true,
-    siteDownloadCount: toSiteDownloadCount(siteSubtitle.downloadCount),
+    siteDownloadCount: toSiteCount(siteSubtitle.downloadCount),
     siteFps: null,
     siteFileUrl: buildRecipeUrl(
       searchTarget,
@@ -325,11 +305,14 @@ function toSearchHits(response, {searchQuery, credential, codenames}) {
     throw toRefusalError(response, credential);
   }
   const searchTarget = toSearchTarget(searchQuery);
-  if (!Array.isArray(response.body) || searchTarget === null) {
+  const siteSubtitles = requireSubtitleSourceList(response.body, {
+    subtitleSource: SubtitleSource.WYZIE,
+  });
+  if (searchTarget === null) {
     return [];
   }
   return compact(
-    response.body
+    siteSubtitles
       .filter(siteSubtitle => isAskedRow(siteSubtitle, codenames))
       .map(siteSubtitle =>
         toSearchHit(siteSubtitle, {searchQuery, searchTarget}),
@@ -371,13 +354,12 @@ function readRecipeLanguageCode({siteFileUrl}) {
 }
 
 function isWyzieFileUrl(siteUrl) {
-  if (typeof siteUrl !== 'string' || !isSubtitleSourceFileUrl(siteUrl)) {
-    return false;
-  }
-  const fileUrl = new URL(siteUrl);
   return (
-    fileUrl.origin === WYZIE_API_URL &&
-    fileUrl.pathname.startsWith(FILE_PATH_PREFIX)
+    isSubtitleSourceFileUrl(siteUrl) &&
+    parseSiteFileUrl(siteUrl, {
+      isSiteHostname: hostname => hostname === WYZIE_API_HOSTNAME,
+      pathPrefix: FILE_PATH_PREFIX,
+    }) !== null
   );
 }
 
@@ -485,10 +467,6 @@ function buildQuotaRequest(credential) {
   );
 }
 
-function toQuotaCount(siteCount) {
-  return Number.isSafeInteger(siteCount) && siteCount >= 0 ? siteCount : null;
-}
-
 function toQuotaResetAt(resetAtSeconds) {
   return Number.isFinite(resetAtSeconds)
     ? new Date(resetAtSeconds * 1000).toISOString()
@@ -517,8 +495,8 @@ function toQuota(response) {
   return {
     credentialStatus:
       usage.held === true ? CredentialStatus.LIMITED : CredentialStatus.VALID,
-    quotaRemainingCount: toQuotaCount(usage.balance),
-    quotaAllowedCount: toQuotaCount(usage.daily_limit),
+    quotaRemainingCount: toSiteCount(usage.balance),
+    quotaAllowedCount: toSiteCount(usage.daily_limit),
     quotaResetAt: toQuotaResetAt(usage.reset_at),
   };
 }

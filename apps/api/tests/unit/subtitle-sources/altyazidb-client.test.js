@@ -27,6 +27,18 @@ afterEach(() => {
   vi.resetAllMocks();
 });
 
+describe('altyazidbClient without an imdb id', () => {
+  it('answers could-not-search without a request', async () => {
+    await expect(
+      altyazidbClient.searchSubtitles(
+        makeSearchQuery({videoId: 'kitsu:7442:5', imdbId: null}),
+        makeSubtitleSourceCredential(),
+      ),
+    ).resolves.toBeNull();
+    expect(requestSubtitleSource).not.toHaveBeenCalled();
+  });
+});
+
 describe('altyazidbClient', () => {
   it('names its subtitle source and needs an api key', () => {
     expect(altyazidbClient.subtitleSource).toBe(SubtitleSource.ALTYAZIDB);

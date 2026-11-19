@@ -14,6 +14,7 @@ import {
   toHitReleaseNames,
   toHitSiteFileId,
   toNullableBoolean,
+  toSiteCount,
   toSubtitleRowValues,
 } from '../../../src/lib/subtitle-sources/subtitle-source-contract.js';
 import {
@@ -225,6 +226,31 @@ describe('buildImdbVideoId', () => {
   it('names no series episode without its season or episode', () => {
     expect(buildImdbVideoId({...episode, catalogSeason: null})).toBeNull();
     expect(buildImdbVideoId({...episode, catalogEpisode: null})).toBeNull();
+  });
+});
+
+describe('toSiteCount', () => {
+  it.each([
+    [0, 0],
+    [42, 42],
+    ['42', 42],
+    [' 7 ', 7],
+    [2147483647, 2147483647],
+  ])('reads %j as %j', (siteValue, siteCount) => {
+    expect(toSiteCount(siteValue)).toBe(siteCount);
+  });
+
+  it.each([
+    ['a negative count', -1],
+    ['a count past the column cap', 2147483648],
+    ['a fraction', 1.5],
+    ['blank text', ' '],
+    ['text that is no number', '12k'],
+    ['null', null],
+    ['undefined', undefined],
+    ['a boolean', true],
+  ])('reads %s as unknown', (_, siteValue) => {
+    expect(toSiteCount(siteValue)).toBeNull();
   });
 });
 

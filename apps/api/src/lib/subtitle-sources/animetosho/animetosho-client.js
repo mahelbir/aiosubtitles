@@ -8,13 +8,6 @@ import {animetoshoMapping} from './animetosho-mapping.js';
 const DOWNLOAD_WINDOW = 60000;
 const DOWNLOAD_MAX = 10;
 
-function readTorrentHitLists(settledResults) {
-  const hitLists = settledResults
-    .filter(({status}) => status === 'fulfilled')
-    .map(({value}) => value);
-  return hitLists.length > 0 ? hitLists : readSettledHitLists(settledResults);
-}
-
 export function createAnimetoshoClient({readAnidbId = readKitsuAnidbId} = {}) {
   return {
     subtitleSource: SubtitleSource.ANIMETOSHO,
@@ -32,7 +25,7 @@ export function createAnimetoshoClient({readAnidbId = readKitsuAnidbId} = {}) {
     async searchSubtitles(searchQuery, credential, {signal} = {}) {
       const animeLookup = animetoshoMapping.toAnimeLookup(searchQuery);
       if (animeLookup === null) {
-        return [];
+        return null;
       }
       const anidbId = await readAnidbId(animeLookup.kitsuId);
       if (anidbId === null) {
@@ -59,7 +52,7 @@ export function createAnimetoshoClient({readAnidbId = readKitsuAnidbId} = {}) {
           ),
         ),
       );
-      return readTorrentHitLists(settledResults).flat();
+      return readSettledHitLists(settledResults, {isPartialKept: true}).flat();
     },
     async downloadSubtitle(subtitleRef, credential, {signal} = {}) {
       return animetoshoMapping.toDownload(

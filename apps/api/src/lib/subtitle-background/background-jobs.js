@@ -9,7 +9,11 @@ import {
 import {SubtitleHashMatch} from '../../db/models/subtitle-hash-match.js';
 import {SubtitleReferenceComparison} from '../../db/models/subtitle-reference-comparison.js';
 import {Subtitle} from '../../db/models/subtitle.js';
-import {readUsableCredentials} from '../subtitle-source-credentials.js';
+import {
+  readDownloadCredentials,
+  readUsableCredentials,
+} from '../subtitle-source-credentials.js';
+import {userConfigCache} from '../user-config-cache.js';
 import {
   isHashMatchVerified,
   readCandidateCues,
@@ -74,12 +78,22 @@ export function scheduleListBackgroundWork({
       subtitleSource,
       jobKey: toJobKey({subtitleSource, cachedUserConfig, videoContext}),
       runJob: async ({signal}) => {
+        const jobUserConfig = await readJobUserConfig(
+          cachedUserConfig,
+          subtitleSource,
+        );
+        if (!jobUserConfig) {
+          return;
+        }
         const downloadedIds = await downloadFreeCandidates({
           client,
           candidates: sourceCandidates,
           videoContext,
-          credentials,
-          cachedUserConfig,
+          credentials: readDownloadCredentials({
+            cachedUserConfig: jobUserConfig,
+            client,
+          }),
+          cachedUserConfig: jobUserConfig,
           subtitleSourceRegistry,
           signal,
         });
@@ -90,11 +104,7 @@ export function scheduleListBackgroundWork({
       },
     });
   }
-  const accounts = readUsableCredentials({
-    cachedUserConfig,
-    subtitleSource: SubtitleSource.OPENSUBTITLES,
-    credentialKinds: [CredentialKind.ACCOUNT],
-  });
+  const accounts = readOpensubtitlesAccounts(cachedUserConfig);
   if (
     !isSourceOn(SubtitleSource.OPENSUBTITLES) ||
     accounts.length === 0 ||
@@ -110,11 +120,18 @@ export function scheduleListBackgroundWork({
       videoContext,
     }),
     runJob: async ({signal}) => {
+      const jobUserConfig = await readJobUserConfig(
+        cachedUserConfig,
+        SubtitleSource.OPENSUBTITLES,
+      );
+      if (!jobUserConfig) {
+        return;
+      }
       const downloadedIds = await spendOpensubtitlesQuota({
         candidates: wantedCandidates,
         videoContext,
-        accounts,
-        cachedUserConfig,
+        accounts: readOpensubtitlesAccounts(jobUserConfig),
+        cachedUserConfig: jobUserConfig,
         subtitleSourceRegistry,
         signal,
       });
@@ -189,6 +206,21 @@ export async function downloadFreeCandidates({
     }
   }
   return downloadedIds;
+}
+
+function readOpensubtitlesAccounts(cachedUserConfig) {
+  return readUsableCredentials({
+    cachedUserConfig,
+    subtitleSource: SubtitleSource.OPENSUBTITLES,
+    credentialKinds: [CredentialKind.ACCOUNT],
+  });
+}
+
+async function readJobUserConfig({userConfigId}, subtitleSource) {
+  const jobUserConfig = await userConfigCache.get(userConfigId);
+  return jobUserConfig?.subtitleSourceSwitchStates[subtitleSource] === false
+    ? null
+    : jobUserConfig;
 }
 
 function withoutStoredDuplicates(candidates) {

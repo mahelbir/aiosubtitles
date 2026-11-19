@@ -146,12 +146,9 @@ describe('gestdownMapping.findShowId', () => {
 
   it.each([
     ['an empty list', {shows: []}],
-    ['no list', {shows: null}],
-    ['a bare show', {id: SHOW_ID, tvDbId: 81189}],
     ['a show without an id', {shows: [{tvDbId: 81189}]}],
     ['a show with a numeric id', {shows: [{id: 42, tvDbId: 81189}]}],
     ['a show with an empty id', {shows: [{id: '', tvDbId: 81189}]}],
-    ['a text body', 'Show not found'],
   ])('finds nothing in %s', (_, body) => {
     expect(
       gestdownMapping.findShowId(
@@ -160,6 +157,24 @@ describe('gestdownMapping.findShowId', () => {
       ),
     ).toBeNull();
   });
+
+  it.each([
+    ['no list', {shows: null}],
+    ['a bare show', {id: SHOW_ID, tvDbId: 81189}],
+    ['a text body', 'Show not found'],
+  ])(
+    'reads %s in place of the show list as an unavailable source',
+    (_, body) => {
+      expect(
+        catchError(() =>
+          gestdownMapping.findShowId(
+            {status: StatusCodes.OK, headers: {}, body},
+            episodeQuery,
+          ),
+        ),
+      ).toBeInstanceOf(SourceUnavailableError);
+    },
+  );
 });
 
 describe('gestdownMapping.buildSubtitlesRequest', () => {
@@ -320,6 +335,12 @@ describe('gestdownMapping.toSearchHits', () => {
     });
   });
 
+  it('reads a count past the column cap as unknown', async () => {
+    const [firstRow] = await readSubtitleRows();
+    const [hit] = toHitsOf([{...firstRow, downloadCount: 2147483648}]);
+    expect(hit.siteDownloadCount).toBeNull();
+  });
+
   it('drops a malformed row rather than failing', async () => {
     const [firstRow] = await readSubtitleRows();
     const hits = toHitsOf([
@@ -351,19 +372,32 @@ describe('gestdownMapping.toSearchHits', () => {
     ).toEqual([]);
   });
 
-  it.each([
-    ['an empty list', {matchingSubtitles: []}],
-    ['an object', {matchingSubtitles: {subtitleId: '1'}}],
-    ['no list', {matchingSubtitles: null}],
-    ['a text body', 'Not found.'],
-  ])('reads %s in place of the row list as no hits', (_, body) => {
+  it('reads an empty row list as no hits', () => {
     expect(
       gestdownMapping.toSearchHits(
-        {status: StatusCodes.OK, headers: {}, body},
+        {status: StatusCodes.OK, headers: {}, body: {matchingSubtitles: []}},
         'pob',
       ),
     ).toEqual([]);
   });
+
+  it.each([
+    ['an object', {matchingSubtitles: {subtitleId: '1'}}],
+    ['no list', {matchingSubtitles: null}],
+    ['a text body', 'Not found.'],
+  ])(
+    'reads %s in place of the row list as an unavailable source',
+    (_, body) => {
+      expect(
+        catchError(() =>
+          gestdownMapping.toSearchHits(
+            {status: StatusCodes.OK, headers: {}, body},
+            'pob',
+          ),
+        ),
+      ).toBeInstanceOf(SourceUnavailableError);
+    },
+  );
 });
 
 describe('gestdownMapping.buildDownloadRequest', () => {

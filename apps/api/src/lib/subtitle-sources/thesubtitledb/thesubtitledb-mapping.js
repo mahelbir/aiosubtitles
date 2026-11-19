@@ -14,6 +14,7 @@ import {
 } from '../subtitle-source-contract.js';
 import {
   readSubtitleSourceFileName,
+  requireSubtitleSourceList,
   toSubtitleSourceStatusError,
 } from '../subtitle-source-request.js';
 
@@ -118,11 +119,15 @@ function toSearchHit(siteSubtitle) {
   };
 }
 
-function toSearchHits({body}) {
-  const siteSubtitles = body?.subtitles?.items;
-  return Array.isArray(siteSubtitles)
-    ? siteSubtitles.map(toSearchHit).filter(Boolean)
-    : [];
+function toSearchHits({status, body}) {
+  if (status === StatusCodes.NOT_FOUND) {
+    return [];
+  }
+  return requireSubtitleSourceList(body?.subtitles?.items, {
+    subtitleSource: SubtitleSource.THESUBTITLEDB,
+  })
+    .map(toSearchHit)
+    .filter(Boolean);
 }
 
 function buildDownloadRequest({siteFileId}, credential) {

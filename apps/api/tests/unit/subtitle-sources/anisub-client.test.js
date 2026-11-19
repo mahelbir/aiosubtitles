@@ -149,7 +149,7 @@ describe('anisubClient', () => {
         }),
         null,
       ),
-    ).resolves.toEqual([]);
+    ).resolves.toBeNull();
   });
 
   it('rejects a download without a file url as an unavailable source, without the token', async () => {

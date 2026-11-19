@@ -164,6 +164,17 @@ describe('the subtitle service keys', () => {
     ]);
   });
 
+  it('refuse a stale search cache of zero seconds, even beside a zero fresh one', () => {
+    const {success, error} = parseEnv({
+      SUBTITLE_SEARCH_CACHE_FRESH_TTL: '0',
+      SUBTITLE_SEARCH_CACHE_STALE_TTL: '0',
+    });
+    expect(success).toBe(false);
+    expect(error.issues.map(issue => issue.path)).toEqual([
+      ['SUBTITLE_SEARCH_CACHE_STALE_TTL'],
+    ]);
+  });
+
   it('refuse a background share above one', () => {
     const {success, error} = parseEnv({
       SUBTITLE_SOURCE_BACKGROUND_SHARE: '1.5',

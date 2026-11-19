@@ -45,6 +45,7 @@ const kitsuEpisodeQuery = makeSearchQuery({
   kitsuId: '7442',
   catalogSeason: 2,
   catalogEpisode: 17,
+  kitsuEpisode: 5,
   languageCodes: ['eng'],
 });
 const subtitleRef = {
@@ -192,7 +193,7 @@ describe('animetoshoClient', () => {
         }),
         null,
       ),
-    ).resolves.toEqual([]);
+    ).resolves.toBeNull();
     expect(readAnidbId).not.toHaveBeenCalled();
     expect(requestSubtitleSource).not.toHaveBeenCalled();
   });

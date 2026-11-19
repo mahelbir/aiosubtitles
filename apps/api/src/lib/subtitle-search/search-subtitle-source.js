@@ -1,3 +1,5 @@
+import {isNil} from 'es-toolkit';
+import {VideoType} from '@repo/shared/constants/video-type.js';
 import {createLogger} from '../logger.js';
 import {waitForAbort} from '../shutdown-deadline.js';
 import {persistSearchHits} from '../subtitle-store/persist-search-hits.js';
@@ -60,6 +62,9 @@ async function runSubtitleSourceSearch({
   const {subtitleSource} = client;
   const startedAtMs = Date.now();
   const readNowMs = () => nowMs + Date.now() - startedAtMs;
+  if (isVideoTypeMismatch(searchQuery)) {
+    return [];
+  }
   if (client.isSearchCredentialScoped) {
     return runUncachedSearch({
       client,
@@ -87,9 +92,6 @@ async function runSubtitleSourceSearch({
     ),
     readSubtitleSourceBreaker(subtitleSource, nowMs),
   ]);
-  const cachedHits = searchCacheEntries.flatMap(
-    searchCacheEntry => searchCacheEntry?.searchResults ?? [],
-  );
   const candidateCredentials = toCandidateCredentials({
     credentials,
     hasConfiguredCredential,
@@ -98,7 +100,19 @@ async function runSubtitleSourceSearch({
   const canSearch =
     !subtitleSourceBreaker.isOpen && candidateCredentials.length > 0;
   if (!canSearch) {
-    return cachedHits;
+    return [];
+  }
+  if (!isQueryResolved(searchQuery)) {
+    return searchUnresolvedLanguages({
+      client,
+      searchQuery,
+      candidateCredentials,
+      readNowMs,
+      unsettledSearches: languageSearches.filter(
+        (_, languageIndex) =>
+          searchCacheEntries[languageIndex]?.isFresh !== true,
+      ),
+    });
   }
   const staleSearches = languageSearches.filter(
     (_, languageIndex) => searchCacheEntries[languageIndex]?.isFresh === false,
@@ -129,22 +143,52 @@ async function runSubtitleSourceSearch({
       }),
     );
   }
-  const [liveHits, waitedHits] = await Promise.all([
+  const [liveHits] = await Promise.all([
     runLiveSearch({
       ...liveOptions,
       lockedSearches: wonMissingLocks.lockedSearches,
     }),
     waitForLockedSearches(
       missingLocks.filter(({lockToken}) => !lockToken),
-      {signal, nowMs},
+      signal,
     ),
   ]);
-  return [
-    ...cachedHits,
-    ...wonMissingLocks.settledHits,
-    ...liveHits,
-    ...waitedHits,
-  ];
+  return liveHits;
+}
+
+function isVideoTypeMismatch({videoType, catalogEpisode, kitsuEpisode}) {
+  const hasEpisode = !isNil(catalogEpisode ?? kitsuEpisode);
+  return (
+    (videoType === VideoType.MOVIE && hasEpisode) ||
+    (videoType === VideoType.SERIES && !hasEpisode)
+  );
+}
+
+function isQueryResolved({isEpisodeResolved, isCatalogResolved}) {
+  return isEpisodeResolved !== false && isCatalogResolved !== false;
+}
+
+async function searchUnresolvedLanguages({
+  client,
+  searchQuery,
+  candidateCredentials,
+  readNowMs,
+  unsettledSearches,
+}) {
+  if (unsettledSearches.length === 0) {
+    return [];
+  }
+  return (
+    (await searchAndStore({
+      client,
+      searchQuery: {
+        ...searchQuery,
+        languageCodes: unsettledSearches.map(({languageCode}) => languageCode),
+      },
+      candidateCredentials,
+      readNowMs,
+    })) ?? []
+  );
 }
 
 function acquireSearchLocks(languageSearches) {
@@ -167,7 +211,7 @@ function releaseSearchLocks(lockedSearches) {
 async function keepUnsettledLocks(searchLocks, nowMs) {
   const wonSearches = searchLocks.filter(({lockToken}) => lockToken);
   if (wonSearches.length === 0) {
-    return {lockedSearches: [], settledHits: []};
+    return {lockedSearches: []};
   }
   const searchCacheEntries = await readSearchCacheEntries(
     wonSearches.map(({searchCacheParts}) => searchCacheParts),
@@ -182,27 +226,16 @@ async function keepUnsettledLocks(searchLocks, nowMs) {
     lockedSearches: wonSearches.filter(
       (_, languageIndex) => !isSettled(languageIndex),
     ),
-    settledHits: searchCacheEntries.flatMap(
-      (searchCacheEntry, languageIndex) =>
-        isSettled(languageIndex) ? searchCacheEntry.searchResults : [],
-    ),
   };
 }
 
-async function waitForLockedSearches(lockedSearches, {signal, nowMs}) {
+async function waitForLockedSearches(lockedSearches, signal) {
   if (lockedSearches.length === 0) {
-    return [];
+    return;
   }
-  const searchCachePartsList = lockedSearches.map(
-    ({searchCacheParts}) => searchCacheParts,
-  );
-  await waitForSearchLocks(searchCachePartsList, signal);
-  const searchCacheEntries = await readSearchCacheEntries(
-    searchCachePartsList,
-    nowMs,
-  );
-  return searchCacheEntries.flatMap(
-    searchCacheEntry => searchCacheEntry?.searchResults ?? [],
+  await waitForSearchLocks(
+    lockedSearches.map(({searchCacheParts}) => searchCacheParts),
+    signal,
   );
 }
 
@@ -265,6 +298,7 @@ async function searchAndStore({
   await persistSearchHits({
     videoId: searchQuery.videoId,
     searchHits: languageHits,
+    isCandidateLinked: !client.isSearchCredentialScoped,
   });
   return languageHits;
 }
@@ -292,12 +326,7 @@ async function runLiveSearch({
       return [];
     }
     await writeSearchCacheEntries(
-      lockedSearches.map(({languageCode, searchCacheParts}) => ({
-        searchCacheParts,
-        searchResults: languageHits.filter(
-          searchHit => searchHit.languageCode === languageCode,
-        ),
-      })),
+      lockedSearches.map(({searchCacheParts}) => searchCacheParts),
       nowMs,
     );
     return languageHits;

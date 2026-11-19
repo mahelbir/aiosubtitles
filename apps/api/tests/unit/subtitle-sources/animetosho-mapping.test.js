@@ -40,6 +40,7 @@ const kitsuEpisodeQuery = makeSearchQuery({
   kitsuId: '7442',
   catalogSeason: 2,
   catalogEpisode: 17,
+  kitsuEpisode: 5,
   languageCodes: ['eng'],
 });
 const sampleSubtitleRef = {
@@ -152,6 +153,16 @@ describe('the AnimeTosho anime lookup', () => {
     });
   });
 
+  it('reads the Kitsu id and episode the query carries, not the video id', () => {
+    expect(
+      animetoshoMapping.toAnimeLookup({
+        ...kitsuEpisodeQuery,
+        videoId: 'kitsu:7442',
+        kitsuEpisode: 7,
+      }),
+    ).toEqual({kitsuId: '7442', kitsuEpisode: 7});
+  });
+
   it('asks nothing for an IMDb video', () => {
     expect(
       animetoshoMapping.toAnimeLookup(
@@ -234,6 +245,14 @@ describe('the AnimeTosho requests', () => {
     [
       'an attachment url on a look-alike host',
       'https://storage.animetosho.net.example.com/attachments/002bd/e25.xz',
+    ],
+    [
+      'an attachment url with a user and password',
+      'https://u:p@storage.animetosho.net/attachments/002bd/e25.xz',
+    ],
+    [
+      'an attachment url with a port',
+      'https://storage.animetosho.net:8443/attachments/002bd/e25.xz',
     ],
   ])('refuses %s as an unavailable source', (label, siteFileUrl) => {
     expect(

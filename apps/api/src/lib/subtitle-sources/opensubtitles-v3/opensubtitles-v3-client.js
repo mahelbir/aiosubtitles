@@ -23,7 +23,7 @@ export const opensubtitlesV3Client = {
     const searchRequest =
       opensubtitlesV3Mapping.buildSearchRequest(searchQuery);
     if (searchRequest === null) {
-      return [];
+      return null;
     }
     return opensubtitlesV3Mapping.toSearchHits(
       await requestSubtitleSource({...searchRequest, signal}),

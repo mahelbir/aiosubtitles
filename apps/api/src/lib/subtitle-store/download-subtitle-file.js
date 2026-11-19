@@ -20,6 +20,7 @@ import {
 } from '../subtitle-search/subtitle-source-budget.js';
 import {readDownloadCredentials} from '../subtitle-source-credentials.js';
 import {SubtitleAliasSource} from '../subtitle-sources/subtitle-alias-source.js';
+import {SourceUnavailableError} from '../subtitle-sources/subtitle-source-errors.js';
 import {isPrivateSubtitleSourceUrl} from '../subtitle-sources/subtitle-source-request.js';
 import {
   bindPackEntry,
@@ -29,6 +30,7 @@ import {
 } from './pack-binding.js';
 import {parseStoredSubtitleFile} from './read-subtitle-file.js';
 import {
+  isErrorPageFile,
   isServableSubtitleFile,
   storeSubtitleFile,
 } from './store-subtitle-file.js';
@@ -61,6 +63,7 @@ export async function readStoredSubtitleFile({subtitle, videoContext}) {
         videoId: videoContext.videoId,
         catalogSeason: videoContext.catalogSeason,
         catalogEpisode: videoContext.catalogEpisode,
+        kitsuEpisode: videoContext.kitsuEpisode,
       })
     : subtitle;
   const subtitleFile = storedSubtitle?.subtitleFile;
@@ -360,7 +363,10 @@ function toWiderRefusal(currentRefusal, nextRefusal) {
     : nextRefusal;
 }
 
-function toSubtitleRef(subtitle, {catalogSeason, catalogEpisode}) {
+function toSubtitleRef(
+  subtitle,
+  {catalogSeason, catalogEpisode, kitsuEpisode = null},
+) {
   if (subtitle.siteFileUrl && isUnsafeSiteFileUrl(subtitle.siteFileUrl)) {
     return null;
   }
@@ -370,6 +376,7 @@ function toSubtitleRef(subtitle, {catalogSeason, catalogEpisode}) {
     siteFileUrl: subtitle.siteFileUrl,
     catalogSeason,
     catalogEpisode,
+    kitsuEpisode,
     isSitePack: subtitle.isSitePack,
   };
 }
@@ -413,6 +420,12 @@ async function storeDownload({
     expectedLanguageCode: subtitle.siteLanguageCode,
     fallbackFrameRate: subtitle.siteFps,
   });
+  if (isErrorPageFile(storedFile.fileFacts)) {
+    throw new SourceUnavailableError({
+      subtitleSource: subtitle.subtitleSource,
+      cause: new Error('Error page in place of the file.'),
+    });
+  }
   return isServableSubtitleFile(storedFile.fileFacts)
     ? storedFile
     : DOWNLOAD_FAILED;
@@ -462,6 +475,7 @@ async function readSubtitleEntry({fileBytes, fileNameHint, videoContext}) {
     entryPaths: archiveEntries.map(({entryPath}) => entryPath),
     seasonNumber: videoContext.catalogSeason,
     episodeNumber: videoContext.catalogEpisode,
+    alternateEpisodeNumber: videoContext.kitsuEpisode ?? null,
   });
   const archiveEntry = archiveEntries.find(
     entry => entry.entryPath === entryPath,

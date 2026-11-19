@@ -28,15 +28,20 @@ export const altyazidbClient = {
   canDownloadWithoutCredential: () => false,
   async searchSubtitles(searchQuery, credential, {signal} = {}) {
     const {catalogSeason, catalogEpisode} = searchQuery;
+    const searchRequests = altyazidbMapping.buildSearchRequests(
+      searchQuery,
+      credential,
+    );
+    if (searchRequests.length === 0) {
+      return null;
+    }
     const settledResults = await Promise.allSettled(
-      altyazidbMapping
-        .buildSearchRequests(searchQuery, credential)
-        .map(async ({searchRequest, isPackSearch}) =>
-          altyazidbMapping.toSearchHits(
-            await requestSubtitleSource({...searchRequest, signal}),
-            {isPackSearch, catalogSeason, catalogEpisode},
-          ),
+      searchRequests.map(async ({searchRequest, isPackSearch}) =>
+        altyazidbMapping.toSearchHits(
+          await requestSubtitleSource({...searchRequest, signal}),
+          {isPackSearch, catalogSeason, catalogEpisode},
         ),
+      ),
     );
     return altyazidbMapping.mergeSearchHits(
       readSettledHitLists(settledResults),

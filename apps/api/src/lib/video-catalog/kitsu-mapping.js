@@ -186,20 +186,8 @@ function findKitsuSiteId(kitsuMappings, externalSite) {
   return KITSU_SITE_ID_PATTERN.test(siteId) ? siteId : null;
 }
 
-function toKitsuSiteId(mappingsBody, externalSite) {
-  return findKitsuSiteId(listKitsuMappings(mappingsBody), externalSite);
-}
-
 function toAnilistNumber(anilistId) {
   return anilistId === null ? null : Number(anilistId);
-}
-
-export function toAnilistId(mappingsBody) {
-  return toAnilistNumber(toKitsuSiteId(mappingsBody, ANILIST_SITE));
-}
-
-export function toAnidbId(mappingsBody) {
-  return toKitsuSiteId(mappingsBody, ANIDB_SITE);
 }
 
 export async function loadKitsuSiteId(

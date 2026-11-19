@@ -202,7 +202,7 @@ describe('betaseriesClient.searchSubtitles', () => {
         {...episodeQuery, languageCodes: ['ger']},
         keyCredential,
       ),
-    ).resolves.toEqual([]);
+    ).resolves.toBeNull();
     expect(requestSubtitleSource).not.toHaveBeenCalled();
     await betaseriesClient.searchSubtitles(episodeQuery, keyCredential);
     expect(requestSubtitleSource).toHaveBeenCalledTimes(3);
@@ -228,7 +228,7 @@ describe('betaseriesClient.searchSubtitles', () => {
     await mockLookupChain();
     await expect(
       betaseriesClient.searchSubtitles(searchQuery, credential),
-    ).resolves.toEqual([]);
+    ).resolves.toBeNull();
     expect(requestSubtitleSource).not.toHaveBeenCalled();
   });
 });

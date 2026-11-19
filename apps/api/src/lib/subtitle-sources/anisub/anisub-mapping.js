@@ -10,6 +10,7 @@ import {
   buildImdbVideoId,
   toHitReleaseNames,
   toHitSiteFileId,
+  toSiteCount,
 } from '../subtitle-source-contract.js';
 import {
   SourceCredentialError,
@@ -20,6 +21,7 @@ import {
   isSubtitleSourceJsonResponse,
   readSubtitleSourceFileName,
   readSubtitleSourceJson,
+  requireSubtitleSourceList,
   toSubtitleSourceStatusError,
 } from '../subtitle-source-request.js';
 
@@ -150,11 +152,13 @@ function toSearchHit(siteSubtitle, languageCodes) {
   };
 }
 
-function toSearchHits({body}, {languageCodes}) {
-  const siteSubtitles = body?.subtitles;
-  if (!Array.isArray(siteSubtitles)) {
+function toSearchHits({status, body}, {languageCodes}) {
+  if (status === StatusCodes.NOT_FOUND) {
     return [];
   }
+  const siteSubtitles = requireSubtitleSourceList(body?.subtitles, {
+    subtitleSource: SubtitleSource.ANISUB,
+  });
   const askedLanguageCodes = new Set(languageCodes);
   return siteSubtitles
     .map(siteSubtitle => toSearchHit(siteSubtitle, askedLanguageCodes))
@@ -315,10 +319,6 @@ function buildQuotaRequest(credential) {
   return buildTokenRequest('/api/usage-stats', credential);
 }
 
-function toQuotaCount(siteCount) {
-  return Number.isSafeInteger(siteCount) && siteCount >= 0 ? siteCount : null;
-}
-
 function toQuota(response) {
   if (response.status === StatusCodes.NOT_FOUND) {
     throw toStatusError(response);
@@ -326,8 +326,8 @@ function toQuota(response) {
   const usageStats = response.body?.data;
   return {
     credentialStatus: CredentialStatus.VALID,
-    quotaRemainingCount: toQuotaCount(usageStats?.remaining),
-    quotaAllowedCount: toQuotaCount(usageStats?.limit),
+    quotaRemainingCount: toSiteCount(usageStats?.remaining),
+    quotaAllowedCount: toSiteCount(usageStats?.limit),
     quotaResetAt: resetAtField.safeParse(usageStats?.resets_at).success
       ? usageStats.resets_at
       : null,

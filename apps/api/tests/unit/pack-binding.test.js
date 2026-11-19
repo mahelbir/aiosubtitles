@@ -25,6 +25,17 @@ describe('findPackRejectReason', () => {
     ).toBeNull();
   });
 
+  it('keeps an anime pack that holds the Kitsu episode under its own numbering', () => {
+    expect(
+      findPackRejectReason({
+        innerEntryPaths: ['Show S2 - 04.ass', 'Show S2 - 05.ass'],
+        catalogSeason: 1,
+        catalogEpisode: 17,
+        kitsuEpisode: 5,
+      }),
+    ).toBeNull();
+  });
+
   it('keeps a pack that holds the episode', () => {
     expect(
       findPackRejectReason({

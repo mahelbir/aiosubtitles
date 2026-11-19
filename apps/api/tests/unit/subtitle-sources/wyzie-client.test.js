@@ -383,7 +383,7 @@ describe('wyzieClient without a key (D32)', () => {
   it('searches nothing without a credential', async () => {
     const requestSubtitleSource = await createFakeSite();
     const {client} = createTestClient(requestSubtitleSource);
-    await expect(client.searchSubtitles(movieQuery, null)).resolves.toEqual([]);
+    await expect(client.searchSubtitles(movieQuery, null)).resolves.toBeNull();
     expect(requestSubtitleSource).not.toHaveBeenCalled();
   });
 
@@ -539,7 +539,7 @@ describe('wyzieClient expired file links', () => {
         makeSearchQuery({videoId: 'tmdb:1', imdbId: null}),
         credentialA,
       ),
-    ).resolves.toEqual([]);
+    ).resolves.toBeNull();
     expect(requestSubtitleSource).not.toHaveBeenCalled();
   });
 
@@ -563,7 +563,7 @@ describe('wyzieClient expired file links', () => {
     expect(error.credentialId).toBe(credentialB.credentialId);
   });
 
-  it('searches nothing when the key plan allows none of the asked sources', async () => {
+  it('searches nothing and answers could-not-search when the key plan allows none of the asked sources', async () => {
     const requestSubtitleSource = await createFakeSite({
       sourcesBody: {
         sources: ['charlie', 'xray'],
@@ -575,7 +575,7 @@ describe('wyzieClient expired file links', () => {
     const {client} = createTestClient(requestSubtitleSource);
     await expect(
       client.searchSubtitles(movieQuery, credentialA),
-    ).resolves.toEqual([]);
+    ).resolves.toBeNull();
     expect(
       listRequestUrls(requestSubtitleSource).map(siteUrl => siteUrl.pathname),
     ).toEqual(['/sources']);
@@ -708,6 +708,25 @@ describe('wyzieClient search per source', () => {
     const {client} = createTestClient(requestSubtitleSource);
     await expect(client.searchSubtitles(movieQuery, credentialA)).rejects.toBe(
       firstError,
+    );
+  });
+
+  it('throws the key limit, not an earlier outage, when every codename search fails', async () => {
+    const heldKeyError = new SourceRateLimitError({
+      subtitleSource: SubtitleSource.WYZIE,
+      retryAfterMs: 1000,
+      credentialId: credentialA.credentialId,
+    });
+    const requestSubtitleSource = await createSiteFailingOn({
+      charlie: new SourceUnavailableError({
+        subtitleSource: SubtitleSource.WYZIE,
+        cause: new Error('Status 502.'),
+      }),
+      xray: heldKeyError,
+    });
+    const {client} = createTestClient(requestSubtitleSource);
+    await expect(client.searchSubtitles(movieQuery, credentialA)).rejects.toBe(
+      heldKeyError,
     );
   });
 });

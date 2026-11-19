@@ -66,6 +66,7 @@ export async function bindPackEntry({
   videoId,
   catalogSeason,
   catalogEpisode,
+  kitsuEpisode = null,
 }) {
   if (isNil(catalogEpisode)) {
     return null;
@@ -79,6 +80,7 @@ export async function bindPackEntry({
     entryPaths: innerEntryPaths,
     seasonNumber: catalogSeason,
     episodeNumber: catalogEpisode,
+    alternateEpisodeNumber: kitsuEpisode,
   });
   if (archiveEntryPath === null) {
     return null;
@@ -99,6 +101,7 @@ export function findPackRejectReason({
   innerEntryPaths,
   catalogSeason,
   catalogEpisode,
+  kitsuEpisode = null,
 }) {
   if (innerEntryPaths.length === 0) {
     return null;
@@ -107,6 +110,7 @@ export function findPackRejectReason({
     entryPaths: innerEntryPaths,
     seasonNumber: catalogSeason,
     episodeNumber: catalogEpisode,
+    alternateEpisodeNumber: kitsuEpisode,
   });
   return videoEntryPaths.length === 0
     ? HardRejectReason.PACK_WITHOUT_EPISODE

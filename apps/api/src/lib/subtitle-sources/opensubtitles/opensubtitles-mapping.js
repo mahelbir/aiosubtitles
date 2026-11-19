@@ -17,6 +17,7 @@ import {
   toHitFileExtension,
   toHitReleaseNames,
   toNullableBoolean,
+  toSiteCount,
 } from '../subtitle-source-contract.js';
 import {
   SourceCredentialError,
@@ -28,6 +29,7 @@ import {
   SUBTITLE_SOURCE_RETRY_AFTER_MAX,
   isPrivateSubtitleSourceUrl,
   readSubtitleSourceFileName,
+  requireSubtitleSourceList,
   toSubtitleSourceStatusError,
 } from '../subtitle-source-request.js';
 
@@ -83,10 +85,6 @@ function toTokenRejectedError(credentialId) {
 
 function isSiteFileId(siteFileId) {
   return Number.isSafeInteger(siteFileId) && siteFileId > 0;
-}
-
-function toCount(siteCount) {
-  return Number.isSafeInteger(siteCount) && siteCount >= 0 ? siteCount : null;
 }
 
 function toUnavailableError(reason) {
@@ -252,7 +250,7 @@ function toSearchHit(siteSubtitle, {videoHash}) {
     isMachineTranslated,
     isUploaderTrusted: toNullableBoolean(siteAttributes.from_trusted),
     isQuotaCostly: true,
-    siteDownloadCount: toCount(siteAttributes.download_count),
+    siteDownloadCount: toSiteCount(siteAttributes.download_count),
     siteFps:
       typeof siteAttributes.fps === 'number' && siteAttributes.fps > 0
         ? siteAttributes.fps
@@ -268,13 +266,15 @@ function toSearchHit(siteSubtitle, {videoHash}) {
   };
 }
 
-function toSearchHits({body}, searchQuery) {
-  const siteSubtitles = body?.data;
-  return Array.isArray(siteSubtitles)
-    ? siteSubtitles
-        .map(siteSubtitle => toSearchHit(siteSubtitle, searchQuery))
-        .filter(Boolean)
-    : [];
+function toSearchHits({status, body}, searchQuery) {
+  if (status === StatusCodes.NOT_FOUND) {
+    return [];
+  }
+  return requireSubtitleSourceList(body?.data, {
+    subtitleSource: SubtitleSource.OPENSUBTITLES,
+  })
+    .map(siteSubtitle => toSearchHit(siteSubtitle, searchQuery))
+    .filter(Boolean);
 }
 
 function buildLoginRequest(credential, {apiKey}) {
@@ -377,7 +377,7 @@ function toQuotaReport(response) {
     };
   }
   return {
-    quotaRemainingCount: toCount(response.body?.remaining),
+    quotaRemainingCount: toSiteCount(response.body?.remaining),
     quotaResetAt: toQuotaResetAt(response.body?.reset_time_utc),
   };
 }
@@ -445,8 +445,8 @@ function toQuota(response, cachedQuota, {credentialId = null} = {}) {
   throwUnlessTokenAccepted(response, credentialId);
   const siteUser = response.body?.data;
   return {
-    quotaRemainingCount: toCount(siteUser?.remaining_downloads),
-    quotaAllowedCount: toCount(siteUser?.allowed_downloads),
+    quotaRemainingCount: toSiteCount(siteUser?.remaining_downloads),
+    quotaAllowedCount: toSiteCount(siteUser?.allowed_downloads),
     quotaResetAt: cachedQuota?.quotaResetAt ?? null,
   };
 }

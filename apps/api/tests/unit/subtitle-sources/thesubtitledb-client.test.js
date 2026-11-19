@@ -4,6 +4,10 @@ import {SubtitleSource} from '@repo/shared/constants/subtitle-source.js';
 import {listSubtitleSourceClients} from '../../../src/lib/subtitle-sources/subtitle-source-clients.js';
 import {SubtitleSourceBudgetScope} from '../../../src/lib/subtitle-sources/subtitle-source-contract.js';
 import {thesubtitledbClient} from '../../../src/lib/subtitle-sources/thesubtitledb/thesubtitledb-client.js';
+import {
+  makeSearchQuery,
+  makeSubtitleSourceCredential,
+} from '../../helpers/subtitle-source-factories.js';
 
 describe('thesubtitledbClient', () => {
   it("names its subtitle source and requires the user's own api key", () => {
@@ -39,5 +43,14 @@ describe('thesubtitledbClient', () => {
 
   it('is registered with the subtitle source clients', () => {
     expect(listSubtitleSourceClients()).toContain(thesubtitledbClient);
+  });
+
+  it('answers could-not-search for a query without an imdb id, without a request', async () => {
+    await expect(
+      thesubtitledbClient.searchSubtitles(
+        makeSearchQuery({videoId: 'kitsu:7442:5', imdbId: null}),
+        makeSubtitleSourceCredential(),
+      ),
+    ).resolves.toBeNull();
   });
 });

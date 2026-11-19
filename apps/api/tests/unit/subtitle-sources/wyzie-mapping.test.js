@@ -50,6 +50,7 @@ const kitsuQuery = makeSearchQuery({
   kitsuId: '7442',
   catalogSeason: 2,
   catalogEpisode: 3,
+  kitsuEpisode: 15,
   languageCodes: ['eng'],
 });
 
@@ -201,6 +202,18 @@ describe('wyzieMapping.buildSearchRequest', () => {
     expect(searchQuery).toMatchObject({kitsu: '7442', episode: '15'});
     expect(searchQuery).not.toHaveProperty('id');
     expect(searchQuery).not.toHaveProperty('season');
+  });
+
+  it('reads the Kitsu id and episode the query carries, not the video id', () => {
+    expect(
+      readQuery(
+        wyzieMapping.buildSearchRequest(
+          {...kitsuQuery, videoId: 'kitsu:7442', kitsuEpisode: 7},
+          keyCredential,
+          FREE_CODENAMES,
+        ).url,
+      ),
+    ).toMatchObject({kitsu: '7442', episode: '7'});
   });
 
   it('searches a kitsu movie by kitsu id without an episode', () => {
@@ -416,7 +429,6 @@ describe('wyzieMapping.toSearchHits', () => {
       'a 404 no subtitles found',
       toRefusal(StatusCodes.NOT_FOUND, 'No subtitles found'),
     ],
-    ['an object body', toOkResponse({id: 1})],
     ['an empty list', toOkResponse([])],
   ])('gives no hits for %s', (_, response) => {
     expect(
@@ -426,6 +438,18 @@ describe('wyzieMapping.toSearchHits', () => {
         codenames: FREE_CODENAMES,
       }),
     ).toEqual([]);
+  });
+
+  it('reads an object body in place of the row list as an unavailable source', () => {
+    expect(
+      catchError(() =>
+        wyzieMapping.toSearchHits(toOkResponse({id: 1}), {
+          searchQuery: movieQuery,
+          credential: keyCredential,
+          codenames: FREE_CODENAMES,
+        }),
+      ),
+    ).toBeInstanceOf(SourceUnavailableError);
   });
 });
 
@@ -447,6 +471,20 @@ describe('wyzieMapping.toSearchHits 402 and 403', () => {
           'Provider not available on free plan',
           {upgrade: 'https://sub.wyzie.io/pricing'},
         ),
+      )(),
+    ).toEqual([]);
+  });
+
+  it('reads a free-plan refusal in the charset the site names', () => {
+    const refusalText = JSON.stringify({
+      code: 403,
+      message: 'Provider not available on free plan',
+    });
+    expect(
+      toHitsOf(
+        toResponse(StatusCodes.FORBIDDEN, Buffer.from(refusalText, 'utf16le'), {
+          'content-type': 'application/json; charset=utf-16le',
+        }),
       )(),
     ).toEqual([]);
   });

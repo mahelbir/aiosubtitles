@@ -329,12 +329,35 @@ describe('subdlMapping.toSearchHits', () => {
     expect(hit.isHearingImpaired).toBeNull();
   });
 
+  it('reads an empty list beside the results as no hits', () => {
+    expect(
+      subdlMapping.toSearchHits(
+        toOkResponse({status: true, results: [], subtitles: []}),
+      ),
+    ).toEqual([]);
+  });
+
   it.each([
     ['no list', {status: true, results: [], subtitles: null}],
-    ['an empty list', {status: true, results: [], subtitles: []}],
     ['no body', null],
-  ])('reads %s as no hits', (_, body) => {
-    expect(subdlMapping.toSearchHits(toOkResponse(body))).toEqual([]);
+    ['a renamed list', {status: true, results: []}],
+    ['an object list', {status: true, subtitles: {id: 1}}],
+  ])('reads %s as an unavailable source', (_, body) => {
+    expect(
+      catchError(() =>
+        subdlMapping.toSearchHits({status: StatusCodes.OK, headers: {}, body}),
+      ),
+    ).toBeInstanceOf(SourceUnavailableError);
+  });
+
+  it('reads an empty list as no hits', () => {
+    expect(
+      subdlMapping.toSearchHits({
+        status: StatusCodes.OK,
+        headers: {},
+        body: {status: true, subtitles: []},
+      }),
+    ).toEqual([]);
   });
 
   it('reads a missing route as no hits', () => {

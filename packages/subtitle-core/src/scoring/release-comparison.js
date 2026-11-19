@@ -41,11 +41,22 @@ export const isConflictState = signalState =>
 const readRequestedNumber = (catalogNumber, nameNumbers = []) =>
   catalogNumber ?? (nameNumbers.length === 1 ? nameNumbers[0] : null);
 
-export const findSeasonEpisodeConflict = ({
+const isEpisodeOutsideScope = ({
   candidateRelease,
-  video,
-  isSitePack = false,
+  requestedEpisode,
+  isSitePack,
 }) => {
+  const {episodeNumbers, isSeasonPack} = candidateRelease;
+  const isPack = isSeasonPack || isSitePack;
+  const hasEpisodeScope = episodeNumbers.length > (isPack ? 1 : 0);
+  return (
+    requestedEpisode != null &&
+    hasEpisodeScope &&
+    !episodeNumbers.includes(requestedEpisode)
+  );
+};
+
+const findCatalogConflict = ({candidateRelease, video, isSitePack}) => {
   const videoRelease = readUsableVideoRelease(video);
   const requestedSeason = readRequestedNumber(
     video.catalogSeason,
@@ -55,18 +66,41 @@ export const findSeasonEpisodeConflict = ({
     video.catalogEpisode,
     videoRelease?.episodeNumbers,
   );
-  const {seasonNumbers, episodeNumbers, isSeasonPack} = candidateRelease;
+  const {seasonNumbers} = candidateRelease;
   if (requestedSeason == null || seasonNumbers.length === 0) {
     return null;
   }
   if (!seasonNumbers.includes(requestedSeason)) {
     return HardRejectReason.WRONG_SEASON;
   }
-  const isPack = isSeasonPack || isSitePack;
-  const hasEpisodeScope = episodeNumbers.length > (isPack ? 1 : 0);
-  return requestedEpisode != null &&
-    hasEpisodeScope &&
-    !episodeNumbers.includes(requestedEpisode)
+  return isEpisodeOutsideScope({candidateRelease, requestedEpisode, isSitePack})
     ? HardRejectReason.WRONG_EPISODE
     : null;
+};
+
+const isKitsuEpisodeMatch = ({candidateRelease, video, isSitePack}) =>
+  video.kitsuEpisode != null &&
+  (candidateRelease.episodeNumbers.length > 0 ||
+    candidateRelease.isSeasonPack ||
+    isSitePack) &&
+  !isEpisodeOutsideScope({
+    candidateRelease,
+    requestedEpisode: video.kitsuEpisode,
+    isSitePack,
+  });
+
+export const findSeasonEpisodeConflict = ({
+  candidateRelease,
+  video,
+  isSitePack = false,
+}) => {
+  const catalogConflict = findCatalogConflict({
+    candidateRelease,
+    video,
+    isSitePack,
+  });
+  return catalogConflict == null ||
+    isKitsuEpisodeMatch({candidateRelease, video, isSitePack})
+    ? null
+    : catalogConflict;
 };

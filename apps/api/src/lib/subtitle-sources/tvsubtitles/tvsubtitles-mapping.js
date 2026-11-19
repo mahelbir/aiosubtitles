@@ -5,10 +5,11 @@ import {SubtitleSource} from '@repo/shared/constants/subtitle-source.js';
 import {VideoType} from '@repo/shared/constants/video-type.js';
 import {toSubtitleLanguageCode} from '@repo/shared/lib/subtitle-language.js';
 import {SubtitleFileExtension} from '@repo/subtitle-core/constants/subtitle-core-enums.js';
-import {toHitReleaseNames} from '../subtitle-source-contract.js';
+import {toHitReleaseNames, toSiteCount} from '../subtitle-source-contract.js';
 import {SourceUnavailableError} from '../subtitle-source-errors.js';
 import {
   SUBTITLE_SOURCE_BROWSER_USER_AGENT,
+  parseSiteFileUrl,
   readSubtitleSourceFileName,
   toSubtitleSourceStatusError,
 } from '../subtitle-source-request.js';
@@ -33,7 +34,6 @@ const SCRIPT_LOCATION_PATTERN = /document\.location\s*=\s*([^;]+);/;
 const SCRIPT_PART_NAME_PATTERN = /^s\d+$/;
 const FILE_PATH_PREFIX = '/files/';
 const ZIP_FILE_PATTERN = /\.zip$/i;
-const DOWNLOAD_PAGE_ENCODING = 'latin1';
 const SITE_LANGUAGE_ALIASES = new Map([
   ['br', 'pob'],
   ['ua', 'ukr'],
@@ -302,13 +302,6 @@ function readSubtitleBlock($, blockElement) {
   return {subtitleBlock, siteFileId, siteLanguageCode};
 }
 
-function readDownloadCount(downloadText) {
-  const siteDownloadCount = Number(downloadText.trim());
-  return downloadText.trim() !== '' && Number.isSafeInteger(siteDownloadCount)
-    ? siteDownloadCount
-    : null;
-}
-
 function toSearchHit({subtitleBlock, siteFileId, siteLanguageCode}) {
   const languageCode = toSubtitleLanguageCode(
     SITE_LANGUAGE_ALIASES.get(siteLanguageCode) ?? siteLanguageCode,
@@ -331,7 +324,7 @@ function toSearchHit({subtitleBlock, siteFileId, siteLanguageCode}) {
     isMachineTranslated: null,
     isUploaderTrusted: null,
     isQuotaCostly: false,
-    siteDownloadCount: readDownloadCount(
+    siteDownloadCount: toSiteCount(
       subtitleBlock.find('p[title="downloaded"]').first().text(),
     ),
     siteFps: null,
@@ -376,7 +369,7 @@ function toSearchHits(response, {showId, catalogSeason}) {
 function buildDownloadRequest({siteFileId}) {
   return buildRequest(
     `${TVSUBTITLES_SITE_URL}/download-${encodeURIComponent(siteFileId)}.html`,
-    'bytes',
+    'text',
   );
 }
 
@@ -407,16 +400,12 @@ function toFileUrl(filePath) {
   if (!URL.canParse(filePath, `${TVSUBTITLES_SITE_URL}/`)) {
     throw toUnavailableError('Malformed download link.');
   }
-  const fileUrl = new URL(filePath, `${TVSUBTITLES_SITE_URL}/`);
-  if (
-    fileUrl.protocol !== 'https:' ||
-    fileUrl.hostname !== TVSUBTITLES_HOSTNAME ||
-    fileUrl.port !== '' ||
-    fileUrl.username !== '' ||
-    fileUrl.password !== '' ||
-    !fileUrl.pathname.startsWith(FILE_PATH_PREFIX) ||
-    !ZIP_FILE_PATTERN.test(fileUrl.pathname)
-  ) {
+  const fileUrl = parseSiteFileUrl(filePath, {
+    isSiteHostname: hostname => hostname === TVSUBTITLES_HOSTNAME,
+    pathPrefix: FILE_PATH_PREFIX,
+    baseUrl: `${TVSUBTITLES_SITE_URL}/`,
+  });
+  if (fileUrl === null || !ZIP_FILE_PATTERN.test(fileUrl.pathname)) {
     throw toUnavailableError('Refused download link.');
   }
   return fileUrl;
@@ -432,11 +421,7 @@ function toFileNameHint(fileUrl) {
 
 function toDownloadLink(pageResponse) {
   throwUnlessFound(pageResponse);
-  const fileUrl = toFileUrl(
-    readScriptPath(
-      Buffer.from(pageResponse.body ?? []).toString(DOWNLOAD_PAGE_ENCODING),
-    ),
-  );
+  const fileUrl = toFileUrl(readScriptPath(String(pageResponse.body ?? '')));
   return {fileUrl: fileUrl.href, fileNameHint: toFileNameHint(fileUrl)};
 }
 

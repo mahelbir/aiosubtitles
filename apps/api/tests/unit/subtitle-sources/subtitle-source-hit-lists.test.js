@@ -74,6 +74,25 @@ describe('readSettledHitLists', () => {
     ).toBe(rateLimitError);
   });
 
+  it('keeps the answered lists over a rate limit when a partial result is kept', () => {
+    expect(
+      readSettledHitLists([toFulfilled(hitList), toRejected(rateLimitError)], {
+        isPartialKept: true,
+      }),
+    ).toEqual([hitList]);
+  });
+
+  it('still throws a rate limit first when a kept partial result has no answer', () => {
+    expect(
+      catchError(() =>
+        readSettledHitLists(
+          [toRejected(unavailableError), toRejected(rateLimitError)],
+          {isPartialKept: true},
+        ),
+      ),
+    ).toBe(rateLimitError);
+  });
+
   it('throws a rate limit before a rejected key when every call failed', () => {
     expect(
       catchError(() =>

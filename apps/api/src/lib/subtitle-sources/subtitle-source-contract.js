@@ -7,6 +7,7 @@ import {VideoType} from '@repo/shared/constants/video-type.js';
 import {httpUrlField} from '@repo/shared/schemas/common.js';
 import {
   ARCHIVE_FILE_EXTENSIONS,
+  ASS_FILE_FORMATS,
   SUBTITLE_FORMAT_FILE_EXTENSIONS,
   SubtitleFileExtension,
 } from '@repo/subtitle-core/constants/subtitle-core-enums.js';
@@ -21,6 +22,7 @@ import {SubtitleAliasSource} from './subtitle-alias-source.js';
  * @property {string|null} kitsuId
  * @property {number|null} catalogSeason
  * @property {number|null} catalogEpisode
+ * @property {number|null} kitsuEpisode
  * @property {string|null} tvdbId
  * @property {string|null} catalogTitle
  * @property {number|null} catalogYear
@@ -28,6 +30,8 @@ import {SubtitleAliasSource} from './subtitle-alias-source.js';
  * @property {string|null} videoHash
  * @property {number|null} videoSizeBytes
  * @property {string|null} videoFilename
+ * @property {boolean} [isEpisodeResolved]
+ * @property {boolean} [isCatalogResolved]
  */
 
 /**
@@ -75,6 +79,7 @@ import {SubtitleAliasSource} from './subtitle-alias-source.js';
  * @property {string|null} siteFileUrl
  * @property {number|null} catalogSeason
  * @property {number|null} catalogEpisode
+ * @property {number|null} [kitsuEpisode]
  * @property {boolean} [isSitePack]
  */
 
@@ -114,7 +119,7 @@ import {SubtitleAliasSource} from './subtitle-alias-source.js';
  * @property {DownloadBudget[]} downloadBudgets
  * @property {() => boolean} canSearchWithoutCredential
  * @property {() => boolean} canDownloadWithoutCredential
- * @property {(searchQuery: SubtitleSearchQuery, credential: SubtitleSourceCredential|null, callOptions?: SubtitleSourceCallOptions) => Promise<SubtitleSourceHit[]>} searchSubtitles
+ * @property {(searchQuery: SubtitleSearchQuery, credential: SubtitleSourceCredential|null, callOptions?: SubtitleSourceCallOptions) => Promise<SubtitleSourceHit[]|null>} searchSubtitles
  * @property {(subtitleRef: SubtitleRef, credential: SubtitleSourceCredential|null, callOptions?: SubtitleSourceCallOptions) => Promise<SubtitleSourceDownload>} downloadSubtitle
  * @property {(credential: SubtitleSourceCredential, callOptions?: SubtitleSourceCallOptions) => Promise<CredentialCheck>} [checkCredential]
  * @property {(credential: SubtitleSourceCredential, callOptions?: SubtitleSourceCallOptions) => Promise<CredentialCheck>} [readQuota]
@@ -127,7 +132,6 @@ export const INTEGER_COLUMN_MAX = 2147483647;
 const HASH_MATCH_VIDEO_HASHES_MAX = 20;
 export const VIDEO_HASH_PATTERN = /^[\da-f]{16}$/i;
 const LEADING_DOT_PATTERN = /^\./;
-const ASS_FILE_NAME_PATTERN = /(?:^|\.)(?:ass|ssa)$/i;
 const IMDB_VIDEO_ID_SEPARATOR = ':';
 
 const supportedFileExtensions = new Set([
@@ -229,8 +233,27 @@ export function toNullableBoolean(siteValue) {
   return isBoolean(siteValue) ? siteValue : null;
 }
 
+export function toSiteCount(siteValue) {
+  const siteCount =
+    typeof siteValue === 'string' && siteValue.trim() !== ''
+      ? Number(siteValue)
+      : siteValue;
+  return Number.isSafeInteger(siteCount) &&
+    siteCount >= 0 &&
+    siteCount <= INTEGER_COLUMN_MAX
+    ? siteCount
+    : null;
+}
+
+function readFormatName(fileNameOrFormat) {
+  return String(fileNameOrFormat ?? '')
+    .split('.')
+    .at(-1)
+    .toLowerCase();
+}
+
 export function toHitFileExtension(fileName) {
-  return ASS_FILE_NAME_PATTERN.test(fileName)
+  return ASS_FILE_FORMATS.has(readFormatName(fileName))
     ? SubtitleFileExtension.ASS
     : SubtitleFileExtension.SRT;
 }

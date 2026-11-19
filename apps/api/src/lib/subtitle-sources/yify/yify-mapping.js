@@ -8,6 +8,7 @@ import {toHitReleaseNames} from '../subtitle-source-contract.js';
 import {SourceUnavailableError} from '../subtitle-source-errors.js';
 import {
   SUBTITLE_SOURCE_BROWSER_USER_AGENT,
+  parseSiteFileUrl,
   readSubtitleSourceFileName,
   toSubtitleSourceStatusError,
 } from '../subtitle-source-request.js';
@@ -150,14 +151,10 @@ function toFileUrl(dataLink) {
   if (!URL.canParse(fileUrlText)) {
     throw toUnavailableError('Malformed download link.');
   }
-  const fileUrl = new URL(fileUrlText);
-  if (
-    fileUrl.protocol !== 'https:' ||
-    fileUrl.port !== '' ||
-    fileUrl.username !== '' ||
-    fileUrl.password !== '' ||
-    !isYifyHostname(fileUrl.hostname)
-  ) {
+  const fileUrl = parseSiteFileUrl(fileUrlText, {
+    isSiteHostname: isYifyHostname,
+  });
+  if (fileUrl === null) {
     throw toUnavailableError('Refused download link.');
   }
   return fileUrl.href;

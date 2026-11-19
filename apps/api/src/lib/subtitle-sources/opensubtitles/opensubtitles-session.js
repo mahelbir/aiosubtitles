@@ -1,5 +1,6 @@
 import {isNil, omitBy} from 'es-toolkit';
 import {redis} from '../../../redis/index.js';
+import {deriveSecretKey, fingerprintSecret} from '../../crypto.js';
 
 export const OPENSUBTITLES_TOKEN_TTL = 82800;
 
@@ -7,6 +8,16 @@ export const OPENSUBTITLES_QUOTA_TTL = 300;
 
 const TOKEN_KEY_PREFIX = 'opensubtitles-token:v1:';
 const QUOTA_KEY_PREFIX = 'opensubtitles-quota:v1:';
+
+const accountFingerprintKey = deriveSecretKey('opensubtitles-account');
+
+export function toOpensubtitlesSessionKey({credentialId, username, password}) {
+  const accountFingerprint = fingerprintSecret(
+    JSON.stringify([username, password]),
+    accountFingerprintKey,
+  );
+  return `${credentialId}:${accountFingerprint}`;
+}
 
 redis.defineCommand('mergeOpensubtitlesQuota', {
   numberOfKeys: 1,
@@ -39,38 +50,35 @@ function isSession(storedSession) {
   );
 }
 
-export async function readOpensubtitlesSession(credentialId) {
+export async function readOpensubtitlesSession(sessionKey) {
   const storedSession = await readStoredJson(
-    `${TOKEN_KEY_PREFIX}${credentialId}`,
+    `${TOKEN_KEY_PREFIX}${sessionKey}`,
   );
   return isSession(storedSession)
     ? {token: storedSession.token, baseUrl: storedSession.baseUrl}
     : null;
 }
 
-export async function storeOpensubtitlesSession(
-  credentialId,
-  {token, baseUrl},
-) {
+export async function storeOpensubtitlesSession(sessionKey, {token, baseUrl}) {
   await redis.set(
-    `${TOKEN_KEY_PREFIX}${credentialId}`,
+    `${TOKEN_KEY_PREFIX}${sessionKey}`,
     JSON.stringify({token, baseUrl}),
     'EX',
     OPENSUBTITLES_TOKEN_TTL,
   );
 }
 
-export async function dropOpensubtitlesSession(credentialId) {
-  await redis.del(`${TOKEN_KEY_PREFIX}${credentialId}`);
+export async function dropOpensubtitlesSession(sessionKey) {
+  await redis.del(`${TOKEN_KEY_PREFIX}${sessionKey}`);
 }
 
-export async function readOpensubtitlesQuota(credentialId) {
-  return readStoredJson(`${QUOTA_KEY_PREFIX}${credentialId}`);
+export async function readOpensubtitlesQuota(sessionKey) {
+  return readStoredJson(`${QUOTA_KEY_PREFIX}${sessionKey}`);
 }
 
-export async function storeOpensubtitlesQuota(credentialId, quota) {
+export async function storeOpensubtitlesQuota(sessionKey, quota) {
   await redis.mergeOpensubtitlesQuota(
-    `${QUOTA_KEY_PREFIX}${credentialId}`,
+    `${QUOTA_KEY_PREFIX}${sessionKey}`,
     JSON.stringify(omitBy(quota, isNil)),
     OPENSUBTITLES_QUOTA_TTL,
   );

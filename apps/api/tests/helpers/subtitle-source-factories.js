@@ -38,6 +38,7 @@ export function makeSearchQuery(overrides = {}) {
     kitsuId: null,
     catalogSeason: null,
     catalogEpisode: null,
+    kitsuEpisode: null,
     tvdbId: null,
     catalogTitle: null,
     catalogYear: null,

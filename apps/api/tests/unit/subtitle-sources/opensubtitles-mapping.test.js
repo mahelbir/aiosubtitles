@@ -409,10 +409,24 @@ describe('opensubtitlesMapping.toSearchHits', () => {
     ['an object', {data: {id: '1'}}],
     ['no list', {data: null}],
     ['a text body', 'Not found.'],
-  ])('reads %s in place of the item list as no hits', (_, body) => {
+  ])(
+    'reads %s in place of the item list as an unavailable source',
+    (_, body) => {
+      expect(
+        catchError(() =>
+          opensubtitlesMapping.toSearchHits(
+            {status: StatusCodes.OK, headers: {}, body},
+            episodeQuery,
+          ),
+        ),
+      ).toBeInstanceOf(SourceUnavailableError);
+    },
+  );
+
+  it('reads an empty item list as no hits', () => {
     expect(
       opensubtitlesMapping.toSearchHits(
-        {status: StatusCodes.OK, headers: {}, body},
+        {status: StatusCodes.OK, headers: {}, body: {data: []}},
         episodeQuery,
       ),
     ).toEqual([]);

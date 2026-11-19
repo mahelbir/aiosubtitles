@@ -26,7 +26,7 @@ export const subdlClient = {
       credential,
     );
     if (searchRequest === null) {
-      return [];
+      return null;
     }
     return subdlMapping.toSearchHits(
       await requestSubtitleSource({...searchRequest, signal}),

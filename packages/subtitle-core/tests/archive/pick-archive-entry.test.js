@@ -194,3 +194,55 @@ describe('pickArchiveEntryForVideo', () => {
     ).toBeNull();
   });
 });
+
+describe('pickArchiveEntryForVideo with an alternate episode', () => {
+  const animeVideo = {
+    seasonNumber: 1,
+    episodeNumber: 17,
+    alternateEpisodeNumber: 5,
+  };
+
+  it.each([
+    [['Show - 04.ass', 'Show - 05.ass'], 'Show - 05.ass'],
+    [
+      ['Show S2 - 04.ass', 'Show S2 - 05.ass', 'Show S2 - 06.ass'],
+      'Show S2 - 05.ass',
+    ],
+  ])('picks the anime episode from %j', (entryPaths, entryPath) => {
+    expect(pickArchiveEntryForVideo({entryPaths, ...animeVideo})).toBe(
+      entryPath,
+    );
+    expect(listArchiveEntriesForVideo({entryPaths, ...animeVideo})).toEqual([
+      entryPath,
+    ]);
+  });
+
+  it('prefers the IMDb pair over the anime episode', () => {
+    expect(
+      pickArchiveEntryForVideo({
+        entryPaths: ['Show - 05.ass', 'Show S01E17.ass'],
+        ...animeVideo,
+      }),
+    ).toBe('Show S01E17.ass');
+  });
+
+  it('lists every entry when the IMDb pair is unknown, as it does for a movie', () => {
+    expect(
+      listArchiveEntriesForVideo({
+        entryPaths: ['Show S2 - 04.ass', 'Show S2 - 05.ass'],
+        seasonNumber: null,
+        episodeNumber: null,
+        alternateEpisodeNumber: 5,
+      }),
+    ).toEqual(['Show S2 - 04.ass', 'Show S2 - 05.ass']);
+  });
+
+  it('gives null when neither episode is in the archive', () => {
+    expect(
+      pickArchiveEntryForVideo({
+        entryPaths: ['Show - 04.ass', 'Show - 06.ass'],
+        ...animeVideo,
+      }),
+    ).toBeNull();
+  });
+});

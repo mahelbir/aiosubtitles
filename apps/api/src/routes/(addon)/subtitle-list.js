@@ -15,6 +15,7 @@ import {
   readDownloadCredentials,
   readSearchCredentials,
 } from '../../lib/subtitle-source-credentials.js';
+import {toSubtitleRowValues} from '../../lib/subtitle-sources/subtitle-source-contract.js';
 import {
   readCandidateCues,
   readVideoCandidates,
@@ -131,6 +132,7 @@ export default async function (fastify, opts) {
           raceDeadline: requestDeadline.raceDeadline,
         });
         const searchSignal = requestDeadline.toSignal();
+        const scopedUrlCodes = [];
         await requestDeadline.raceDeadline(
           Promise.all(
             subtitleSourceRegistry
@@ -141,20 +143,28 @@ export default async function (fastify, opts) {
                     subtitleSource
                   ] !== false,
               )
-              .map(client =>
-                searchSubtitleSource({
+              .map(async client => {
+                const searchHits = await searchSubtitleSource({
                   client,
                   searchQuery: {...searchQuery, languageCodes},
                   ...readSearchCredentials({cachedUserConfig, client}),
                   signal: searchSignal,
-                }),
-              ),
+                });
+                if (client.isSearchCredentialScoped) {
+                  scopedUrlCodes.push(
+                    ...searchHits.map(
+                      searchHit => toSubtitleRowValues(searchHit).urlCode,
+                    ),
+                  );
+                }
+              }),
           ),
           null,
         );
         const videoCandidates = await readVideoCandidates({
           videoId,
           videoContext,
+          scopedUrlCodes,
         });
         const candidates = collectVideoCandidates({
           cachedUserConfig,

@@ -1,7 +1,4 @@
-import {createLogger} from '../logger.js';
 import {RedisCache} from '../../redis/cache.js';
-
-const logger = createLogger('video-catalog');
 
 export function createCatalogLookup({
   prefix,
@@ -18,17 +15,8 @@ export function createCatalogLookup({
       return toCatalogValue(body);
     },
   });
-  const answerOrNull = async catalogRead => {
-    try {
-      return await catalogRead;
-    } catch (error) {
-      logger.warn({errorName: error.name, prefix}, 'Catalog lookup failed.');
-      return null;
-    }
-  };
   return {
-    readCatalogValue: catalogKey => answerOrNull(catalogCache.get(catalogKey)),
-    reloadCatalogValue: catalogKey =>
-      answerOrNull(catalogCache.reload(catalogKey)),
+    readCatalogValue: catalogKey => catalogCache.get(catalogKey),
+    reloadCatalogValue: catalogKey => catalogCache.reload(catalogKey),
   };
 }

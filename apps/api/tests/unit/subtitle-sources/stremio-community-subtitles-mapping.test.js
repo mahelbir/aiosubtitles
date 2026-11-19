@@ -67,11 +67,11 @@ function readSearchPath(searchUrl) {
   return new URL(searchUrl).pathname.split('/').slice(0, -1).join('/');
 }
 
-function toSubtitlesResponse(body) {
+function toSubtitlesResponse(body, status = StatusCodes.OK) {
   return {
-    status: StatusCodes.OK,
+    status,
     headers: {'content-type': 'application/json'},
-    body,
+    body: new TextEncoder().encode(JSON.stringify(body)),
   };
 }
 
@@ -144,8 +144,8 @@ describe('stremioCommunitySubtitlesMapping.buildSearchRequest', () => {
       url: expect.any(String),
       method: 'GET',
       headers: {},
-      responseType: 'json',
-      acceptedStatuses: [],
+      responseType: 'bytes',
+      acceptedStatuses: [StatusCodes.FORBIDDEN],
       credentialId: tokenCredential.credentialId,
     });
     expect(readSearchPath(searchRequest.url)).toBe(
@@ -386,6 +386,69 @@ describe('stremioCommunitySubtitlesMapping.toSearchHits', () => {
     ).toEqual([]);
   });
 
+  it("reads the site's own token refusal on a search as a rejected credential", () => {
+    const error = catchError(() =>
+      stremioCommunitySubtitlesMapping.toSearchHits(
+        {
+          status: StatusCodes.FORBIDDEN,
+          headers: {'content-type': 'text/plain'},
+          body: new TextEncoder().encode('Invalid Access Token'),
+        },
+        movieQuery,
+        tokenCredential,
+      ),
+    );
+    expect(error).toBeInstanceOf(SourceCredentialError);
+    expect(error.credentialId).toBe(tokenCredential.credentialId);
+  });
+
+  it('reads a search answer that is not JSON as an unavailable source', () => {
+    expect(
+      catchError(() =>
+        stremioCommunitySubtitlesMapping.toSearchHits(
+          {
+            status: StatusCodes.OK,
+            headers: {'content-type': 'application/json'},
+            body: new TextEncoder().encode('{"subtitles": ['),
+          },
+          movieQuery,
+          tokenCredential,
+        ),
+      ),
+    ).toBeInstanceOf(SourceUnavailableError);
+  });
+
+  it('reads the token refusal in the charset the site names', () => {
+    const error = catchError(() =>
+      stremioCommunitySubtitlesMapping.toSearchHits(
+        {
+          status: StatusCodes.FORBIDDEN,
+          headers: {'content-type': 'text/plain; charset=utf-16le'},
+          body: Buffer.from('Invalid Access Token', 'utf16le'),
+        },
+        movieQuery,
+        tokenCredential,
+      ),
+    );
+    expect(error).toBeInstanceOf(SourceCredentialError);
+  });
+
+  it('reads another 403 on a search as an unavailable source, not a rejected token', () => {
+    const error = catchError(() =>
+      stremioCommunitySubtitlesMapping.toSearchHits(
+        {
+          status: StatusCodes.FORBIDDEN,
+          headers: {'content-type': 'text/html'},
+          body: new TextEncoder().encode('<html>Forbidden</html>'),
+        },
+        movieQuery,
+        tokenCredential,
+      ),
+    );
+    expect(error).toBeInstanceOf(SourceUnavailableError);
+    expect(error).not.toBeInstanceOf(SourceCredentialError);
+  });
+
   it('reads an empty subtitle list as no hits', () => {
     expect(
       stremioCommunitySubtitlesMapping.toSearchHits(
@@ -395,16 +458,23 @@ describe('stremioCommunitySubtitlesMapping.toSearchHits', () => {
     ).toEqual([]);
   });
 
-  it('reads a body without a subtitle list as no hits', () => {
-    for (const body of [null, {}, {subtitles: 'none'}]) {
+  it.each([
+    ['no body', null],
+    ['an empty object', {}],
+    ['a text list', {subtitles: 'none'}],
+  ])(
+    'reads %s in place of the subtitle list as an unavailable source',
+    (_, body) => {
       expect(
-        stremioCommunitySubtitlesMapping.toSearchHits(
-          toSubtitlesResponse(body),
-          movieQuery,
+        catchError(() =>
+          stremioCommunitySubtitlesMapping.toSearchHits(
+            toSubtitlesResponse(body),
+            movieQuery,
+          ),
         ),
-      ).toEqual([]);
-    }
-  });
+      ).toBeInstanceOf(SourceUnavailableError);
+    },
+  );
 });
 
 describe('stremioCommunitySubtitlesMapping.buildDownloadRequest', () => {

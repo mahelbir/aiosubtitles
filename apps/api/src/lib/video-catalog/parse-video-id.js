@@ -25,18 +25,21 @@ export function parseStremioVideoId(videoId) {
       kitsuId: null,
       catalogSeason: toCatalogNumber(catalogParts[0]),
       catalogEpisode: toCatalogNumber(catalogParts[1]),
+      kitsuEpisode: null,
     };
   }
   if (
     catalogId === KITSU_PREFIX &&
     CATALOG_ID_PATTERN.test(catalogParts[0] ?? '')
   ) {
+    const kitsuEpisode = toCatalogNumber(catalogParts[1]);
     return {
       videoIdKind: VideoIdKind.KITSU,
       imdbId: null,
       kitsuId: catalogParts[0],
       catalogSeason: null,
-      catalogEpisode: toCatalogNumber(catalogParts[1]),
+      catalogEpisode: kitsuEpisode,
+      kitsuEpisode,
     };
   }
   return {
@@ -45,5 +48,6 @@ export function parseStremioVideoId(videoId) {
     kitsuId: null,
     catalogSeason: null,
     catalogEpisode: null,
+    kitsuEpisode: null,
   };
 }

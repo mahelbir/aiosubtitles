@@ -22,7 +22,7 @@ export const tvsubtitlesClient = {
   async searchSubtitles(searchQuery, credential, {signal} = {}) {
     const searchRequest = tvsubtitlesMapping.buildSearchRequest(searchQuery);
     if (searchRequest === null) {
-      return [];
+      return null;
     }
     const showId = tvsubtitlesMapping.findShowId(
       await requestSubtitleSource({...searchRequest, signal}),

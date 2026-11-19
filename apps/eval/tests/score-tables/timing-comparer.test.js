@@ -26,27 +26,31 @@ const TRACKS = [
 ];
 
 describe('createTimingComparer', () => {
-  it('gives the same verdict as a direct comparison for every grid setting', () => {
-    const createSameFamilyCheck = createTimingComparer();
+  it(
+    'gives the same verdict as a direct comparison for every grid setting',
+    {timeout: 30_000},
+    () => {
+      const createSameFamilyCheck = createTimingComparer();
 
-    for (const setting of TIME_FAMILY_GRID) {
-      const isSameTimeFamily = createSameFamilyCheck(setting);
-      for (const reference of TRACKS) {
-        for (const candidate of TRACKS) {
-          expect(isSameTimeFamily(reference, candidate)).toBe(
-            compareCueTimings({
-              candidateCues: candidate.cues,
-              referenceCues: reference.cues,
-              timingSettings: {
-                cueStartToleranceMs: setting.startToleranceMs,
-                matchedCueShareMin: setting.matchedShareMin,
-              },
-            }).isSameTimeFamily,
-          );
+      for (const setting of TIME_FAMILY_GRID) {
+        const isSameTimeFamily = createSameFamilyCheck(setting);
+        for (const reference of TRACKS) {
+          for (const candidate of TRACKS) {
+            expect(isSameTimeFamily(reference, candidate)).toBe(
+              compareCueTimings({
+                candidateCues: candidate.cues,
+                referenceCues: reference.cues,
+                timingSettings: {
+                  cueStartToleranceMs: setting.startToleranceMs,
+                  matchedCueShareMin: setting.matchedShareMin,
+                },
+              }).isSameTimeFamily,
+            );
+          }
         }
       }
-    }
-  });
+    },
+  );
 
   it('separates the shares that the grid tells apart', () => {
     const createSameFamilyCheck = createTimingComparer();

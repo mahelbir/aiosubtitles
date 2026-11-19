@@ -53,6 +53,8 @@ const CREDENTIAL_REJECTED_STATUSES = new Set([
   StatusCodes.FORBIDDEN,
 ]);
 const REDIRECT_PROTOCOLS = new Set(['http:', 'https:']);
+const SITE_FILE_PROTOCOL = 'https:';
+const PLAIN_SITE_FILE_PROTOCOL = 'http:';
 const JSON_CONTENT_TYPE_PATTERN = /^application\/(?:[\w.-]+\+)?json\b/i;
 const HTML_CONTENT_TYPE_PATTERN = /^text\/html\b/i;
 const BODY_KEEPING_REDIRECT_STATUSES = new Set([
@@ -137,6 +139,25 @@ export function isSubtitleSourceFileUrl(siteFileUrl) {
   );
 }
 
+export function parseSiteFileUrl(
+  siteUrl,
+  {isSiteHostname, pathPrefix = '/', baseUrl, isHttpAllowed = false},
+) {
+  const fileUrl =
+    typeof siteUrl === 'string' ? URL.parse(siteUrl, baseUrl) : null;
+  const isAllowedProtocol =
+    fileUrl?.protocol === SITE_FILE_PROTOCOL ||
+    (isHttpAllowed && fileUrl?.protocol === PLAIN_SITE_FILE_PROTOCOL);
+  return isAllowedProtocol &&
+    fileUrl.port === '' &&
+    fileUrl.username === '' &&
+    fileUrl.password === '' &&
+    isSiteHostname(fileUrl.hostname) &&
+    fileUrl.pathname.startsWith(pathPrefix)
+    ? fileUrl
+    : null;
+}
+
 function findRetryAfterMs(headers) {
   const nowMs = Date.now();
   return (
@@ -175,6 +196,46 @@ export function isSubtitleSourceErrorBodyResponse(headers) {
   );
 }
 
+function readErrorBodyText(body, headers) {
+  if (typeof body === 'string') {
+    return body;
+  }
+  return body instanceof Uint8Array
+    ? decodeText(body, readHeader(headers, 'content-type'))
+    : null;
+}
+
+export function readSubtitleSourceErrorBody({body, headers}) {
+  const bodyText = readErrorBodyText(body, headers);
+  if (bodyText === null) {
+    return {bodyText: '', bodyJson: body ?? null};
+  }
+  try {
+    return {bodyText, bodyJson: JSON.parse(bodyText)};
+  } catch {
+    return {bodyText, bodyJson: null};
+  }
+}
+
+export function requireSubtitleSourceList(siteList, {subtitleSource}) {
+  if (!Array.isArray(siteList)) {
+    throw new SourceUnavailableError({
+      subtitleSource,
+      cause: new Error('Answer is not in the expected shape.'),
+    });
+  }
+  return siteList;
+}
+
+export function throwIfErrorBodyResponse({headers}, {subtitleSource}) {
+  if (isSubtitleSourceErrorBodyResponse(headers)) {
+    throw new SourceUnavailableError({
+      subtitleSource,
+      cause: new Error('Error body in place of the file.'),
+    });
+  }
+}
+
 export function readSubtitleSourceJson(bodyBytes, headers) {
   return parseBody(bodyBytes, headers, {
     responseType: 'json',
@@ -187,14 +248,18 @@ export function toSubtitleSourceStatusError(
   {subtitleSource, credentialId = null},
 ) {
   const retryAfterMs = findRetryAfterMs(headers);
-  if (
-    status === StatusCodes.TOO_MANY_REQUESTS ||
-    (status === StatusCodes.SERVICE_UNAVAILABLE && retryAfterMs !== null)
-  ) {
+  if (status === StatusCodes.TOO_MANY_REQUESTS) {
     return new SourceRateLimitError({
       subtitleSource,
       retryAfterMs: retryAfterMs ?? SUBTITLE_SOURCE_RETRY_AFTER_DEFAULT,
       credentialId,
+    });
+  }
+  if (status === StatusCodes.SERVICE_UNAVAILABLE && retryAfterMs !== null) {
+    return new SourceRateLimitError({
+      subtitleSource,
+      retryAfterMs,
+      credentialId: null,
     });
   }
   if (CREDENTIAL_REJECTED_STATUSES.has(status) && credentialId !== null) {
@@ -361,6 +426,16 @@ export function readSubtitleSourceResponse(
     if (shouldReadSubtitleSourceBody(status, acceptedStatuses)) {
       if (bodyBytes.byteLength > SUBTITLE_SOURCE_RESPONSE_BYTES_MAX) {
         throw new RangeError('Response body over the byte cap.');
+      }
+      if (
+        responseType === 'bytes' &&
+        !acceptedStatuses.includes(status) &&
+        isSubtitleSourceHtmlResponse(headers)
+      ) {
+        throw new SourceUnavailableError({
+          subtitleSource,
+          cause: new Error('Error page in place of the file.'),
+        });
       }
       return {
         status,

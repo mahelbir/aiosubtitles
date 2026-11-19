@@ -65,9 +65,15 @@ export async function insertSubtitleFileRows(subtitleFileRows, transaction) {
   });
 }
 
+export function isErrorPageFile({fileInvalidReasons}) {
+  return fileInvalidReasons.includes(SubtitleFileInvalidReason.ERROR_PAGE);
+}
+
 export async function storeSubtitleFile(storeOptions) {
   const {parsedSubtitle, fileFacts, subtitleFileRow} =
     await buildSubtitleFileRow(storeOptions);
-  await insertSubtitleFileRows([subtitleFileRow]);
+  if (!isErrorPageFile(fileFacts)) {
+    await insertSubtitleFileRows([subtitleFileRow]);
+  }
   return {parsedSubtitle, fileFacts};
 }

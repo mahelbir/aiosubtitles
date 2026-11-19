@@ -27,7 +27,7 @@ export const subsourceClient = {
       credential,
     );
     if (movieSearchRequest === null) {
-      return [];
+      return null;
     }
     const movieId = subsourceMapping.findMovieId(
       await requestSubtitleSource({...movieSearchRequest, signal}),

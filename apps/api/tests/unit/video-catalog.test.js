@@ -14,11 +14,10 @@ import {
   buildKitsuMetaRequest,
   loadKitsuSiteId,
   pickKitsuVideo,
-  toAnidbId,
-  toAnilistId,
   toKitsuMapping,
 } from '../../src/lib/video-catalog/kitsu-mapping.js';
 import {parseStremioVideoId} from '../../src/lib/video-catalog/parse-video-id.js';
+import {resolveVideoEpisode} from '../../src/lib/video-catalog/resolve-video-episode.js';
 
 const kitsuMetaBody = {
   meta: {
@@ -41,6 +40,7 @@ describe('parseStremioVideoId', () => {
       kitsuId: null,
       catalogSeason: 1,
       catalogEpisode: 2,
+      kitsuEpisode: null,
     });
   });
 
@@ -51,6 +51,7 @@ describe('parseStremioVideoId', () => {
       kitsuId: null,
       catalogSeason: null,
       catalogEpisode: null,
+      kitsuEpisode: null,
     });
   });
 
@@ -61,6 +62,7 @@ describe('parseStremioVideoId', () => {
       kitsuId: '7442',
       catalogSeason: null,
       catalogEpisode: 5,
+      kitsuEpisode: 5,
     });
   });
 
@@ -71,6 +73,7 @@ describe('parseStremioVideoId', () => {
       kitsuId: '7442',
       catalogSeason: null,
       catalogEpisode: null,
+      kitsuEpisode: null,
     });
   });
 
@@ -81,7 +84,70 @@ describe('parseStremioVideoId', () => {
       kitsuId: null,
       catalogSeason: null,
       catalogEpisode: null,
+      kitsuEpisode: null,
     });
+  });
+});
+
+describe('resolveVideoEpisode', () => {
+  it('carries the anime episode beside the IMDb pair of a Kitsu video', async () => {
+    expect(
+      await resolveVideoEpisode({
+        videoId: 'kitsu:7442:5',
+        resolveKitsuVideo: async () => ({
+          imdbId: 'tt2560140',
+          catalogSeason: 1,
+          catalogEpisode: 17,
+        }),
+      }),
+    ).toEqual({
+      imdbId: 'tt2560140',
+      catalogSeason: 1,
+      catalogEpisode: 17,
+      kitsuEpisode: 5,
+      isEpisodeResolved: true,
+    });
+  });
+
+  it('resolves a Kitsu video with no IMDb mapping to its anime episode alone', async () => {
+    expect(
+      await resolveVideoEpisode({
+        videoId: 'kitsu:7442:5',
+        resolveKitsuVideo: async () => null,
+      }),
+    ).toEqual({
+      imdbId: null,
+      catalogSeason: null,
+      catalogEpisode: null,
+      kitsuEpisode: 5,
+      isEpisodeResolved: true,
+    });
+  });
+
+  it('leaves the episode unresolved when the Kitsu lookup fails', async () => {
+    expect(
+      await resolveVideoEpisode({
+        videoId: 'kitsu:7442:5',
+        resolveKitsuVideo: async () => {
+          throw new Error('The Kitsu lookup broke.');
+        },
+      }),
+    ).toEqual({
+      imdbId: null,
+      catalogSeason: null,
+      catalogEpisode: null,
+      kitsuEpisode: 5,
+      isEpisodeResolved: false,
+    });
+  });
+
+  it('gives an IMDb video no anime episode', async () => {
+    expect(
+      await resolveVideoEpisode({
+        videoId: 'tt0944947:1:2',
+        resolveKitsuVideo: vi.fn(),
+      }),
+    ).toMatchObject({catalogSeason: 1, catalogEpisode: 2, kitsuEpisode: null});
   });
 });
 
@@ -238,28 +304,44 @@ describe('the Kitsu mappings', () => {
     expect(mappingsUrl.searchParams.get('page[offset]')).toBe('0');
   });
 
-  it('reads the AniList anime id from the mappings', () => {
-    expect(toAnilistId(kitsuMappingsBody)).toBe(154587);
+  function loadSiteIdOf(body, externalSite) {
+    return loadKitsuSiteId('46474', {
+      externalSite,
+      requestRemoteResource: async () => ({status: 200, headers: {}, body}),
+    });
+  }
+
+  it('reads the AniList anime id from the mappings', async () => {
+    await expect(
+      loadSiteIdOf(kitsuMappingsBody, 'anilist/anime'),
+    ).resolves.toBe('154587');
   });
 
-  it('answers null when no mapping names AniList', () => {
-    expect(toAnilistId({data: [kitsuMappingsBody.data[0]]})).toBeNull();
-    expect(toAnilistId({data: []})).toBeNull();
-    expect(toAnilistId(null)).toBeNull();
+  it('answers null when no mapping names AniList', async () => {
+    for (const body of [
+      {data: [kitsuMappingsBody.data[0]]},
+      {data: []},
+      null,
+    ]) {
+      await expect(loadSiteIdOf(body, 'anilist/anime')).resolves.toBeNull();
+    }
   });
 
-  it('answers null for an AniList mapping that is no number', () => {
-    expect(
-      toAnilistId({
-        data: [
-          {
-            id: '5002',
-            type: 'mappings',
-            attributes: {externalSite: 'anilist/anime', externalId: 'abc'},
-          },
-        ],
-      }),
-    ).toBeNull();
+  it('answers null for an AniList mapping that is no number', async () => {
+    await expect(
+      loadSiteIdOf(
+        {
+          data: [
+            {
+              id: '5002',
+              type: 'mappings',
+              attributes: {externalSite: 'anilist/anime', externalId: 'abc'},
+            },
+          ],
+        },
+        'anilist/anime',
+      ),
+    ).resolves.toBeNull();
   });
 
   it('follows the mapping pages until the AniList mapping turns up', async () => {
@@ -302,30 +384,33 @@ describe('the Kitsu mappings', () => {
     expect(requestRemoteResource).toHaveBeenCalledTimes(3);
   });
 
-  it('reads the AniDB anime id from the mappings', () => {
-    expect(
-      toAnidbId({
-        data: [
-          kitsuMappingsBody.data[0],
-          {
-            id: '5003',
-            type: 'mappings',
-            attributes: {externalSite: 'anidb', externalId: '9541'},
-          },
-        ],
-      }),
-    ).toBe('9541');
-    expect(toAnidbId(kitsuMappingsBody)).toBeNull();
-    expect(toAnidbId(null)).toBeNull();
+  it('reads the AniDB anime id from the mappings', async () => {
+    await expect(
+      loadSiteIdOf(
+        {
+          data: [
+            kitsuMappingsBody.data[0],
+            {
+              id: '5003',
+              type: 'mappings',
+              attributes: {externalSite: 'anidb', externalId: '9541'},
+            },
+          ],
+        },
+        'anidb',
+      ),
+    ).resolves.toBe('9541');
+    await expect(loadSiteIdOf(kitsuMappingsBody, 'anidb')).resolves.toBeNull();
+    await expect(loadSiteIdOf(null, 'anidb')).resolves.toBeNull();
   });
 
-  it('treats a body that is not a mapping list as an unavailable Kitsu', () => {
-    expect(() => toAnilistId({errors: [{title: 'Changed'}]})).toThrow(
-      SourceUnavailableError,
-    );
-    expect(() => toAnidbId({data: {id: '5002'}})).toThrow(
-      SourceUnavailableError,
-    );
+  it('treats a body that is not a mapping list as an unavailable Kitsu', async () => {
+    await expect(
+      loadSiteIdOf({errors: [{title: 'Changed'}]}, 'anilist/anime'),
+    ).rejects.toBeInstanceOf(SourceUnavailableError);
+    await expect(
+      loadSiteIdOf({data: {id: '5002'}}, 'anidb'),
+    ).rejects.toBeInstanceOf(SourceUnavailableError);
   });
 
   it('fails the lookup on a Kitsu body of another shape', async () => {

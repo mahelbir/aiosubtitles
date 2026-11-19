@@ -76,7 +76,7 @@ async function readPage(fixturePath) {
 
 async function readDownloadPage(replacePage = pageText => pageText) {
   const pageBytes = await readFixture(DOWNLOAD_PAGE_FIXTURE);
-  return Buffer.from(replacePage(pageBytes.toString('latin1')), 'latin1');
+  return replacePage(pageBytes.toString('utf8'));
 }
 
 function toPageResponse(pageBody, status = StatusCodes.OK) {
@@ -753,7 +753,7 @@ describe('tvsubtitlesMapping.toSearchHits', () => {
 });
 
 describe('tvsubtitlesMapping.buildDownloadRequest', () => {
-  it('asks the download page of a hit as bytes with a browser user agent', async () => {
+  it('asks the download page of a hit as text with a browser user agent', async () => {
     const [firstHit] = (await readCaptureHits()) ?? [];
     const downloadRequest = tvsubtitlesMapping.buildDownloadRequest(
       toSubtitleRef(firstHit?.siteFileId),
@@ -763,7 +763,7 @@ describe('tvsubtitlesMapping.buildDownloadRequest', () => {
       subtitleSource: SubtitleSource.TVSUBTITLES,
       url: `${SITE_URL}/download-309819.html`,
       method: 'GET',
-      responseType: 'bytes',
+      responseType: 'text',
       acceptedStatuses: [],
       credentialId: null,
     });
@@ -807,7 +807,7 @@ describe('tvsubtitlesMapping.toDownloadLink', () => {
     );
   });
 
-  it('reads the page as latin1', async () => {
+  it('keeps a non-ASCII file name of the page text', async () => {
     const pageBody = await readDownloadPage(pageText =>
       pageText.replace("'anger Things_", "'anger Théings_"),
     );

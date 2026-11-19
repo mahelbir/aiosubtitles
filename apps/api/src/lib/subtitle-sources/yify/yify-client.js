@@ -22,7 +22,7 @@ export const yifyClient = {
   async searchSubtitles(searchQuery, credential, {signal} = {}) {
     const searchRequest = yifyMapping.buildSearchRequest(searchQuery);
     if (searchRequest === null) {
-      return [];
+      return null;
     }
     return yifyMapping.toSearchHits(
       await requestSubtitleSource({...searchRequest, signal}),

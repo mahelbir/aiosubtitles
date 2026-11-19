@@ -41,6 +41,7 @@ const kitsuEpisodeQuery = makeSearchQuery({
   kitsuId: '46474',
   catalogSeason: 2,
   catalogEpisode: 1,
+  kitsuEpisode: 5,
   languageCodes: ['tur', 'jpn'],
 });
 const jsonHeaders = {'content-type': 'application/json'};
@@ -114,7 +115,7 @@ describe('jimakuClient.searchSubtitles', () => {
     const {client, readAnilistId} = makeClient();
     await expect(
       client.searchSubtitles(kitsuEpisodeQuery, null),
-    ).resolves.toEqual([]);
+    ).resolves.toBeNull();
     expect(readAnilistId).not.toHaveBeenCalled();
     expect(requestSubtitleSource).not.toHaveBeenCalled();
   });
@@ -126,7 +127,7 @@ describe('jimakuClient.searchSubtitles', () => {
         {...kitsuEpisodeQuery, languageCodes: ['tur']},
         keyCredential,
       ),
-    ).resolves.toEqual([]);
+    ).resolves.toBeNull();
     expect(readAnilistId).not.toHaveBeenCalled();
     expect(requestSubtitleSource).not.toHaveBeenCalled();
   });
@@ -138,7 +139,7 @@ describe('jimakuClient.searchSubtitles', () => {
         makeSearchQuery({languageCodes: ['jpn']}),
         keyCredential,
       ),
-    ).resolves.toEqual([]);
+    ).resolves.toBeNull();
     expect(readAnilistId).not.toHaveBeenCalled();
     expect(requestSubtitleSource).not.toHaveBeenCalled();
   });
@@ -152,20 +153,20 @@ describe('jimakuClient.searchSubtitles', () => {
     expect(requestSubtitleSource).not.toHaveBeenCalled();
   });
 
-  it('fails the search, rather than answering empty, when the Kitsu lookup fails', async () => {
+  it('fails the search with the Kitsu error, rather than answering empty, when the Kitsu lookup fails', async () => {
+    const kitsuError = new SourceUnavailableError({
+      subtitleSource: CatalogService.KITSU,
+      cause: new Error('ECONNRESET'),
+    });
     const client = createJimakuClient({
       readAnilistId: vi.fn(async () => {
-        throw new SourceUnavailableError({
-          subtitleSource: CatalogService.KITSU,
-          cause: new Error('ECONNRESET'),
-        });
+        throw kitsuError;
       }),
     });
     const searchError = await client
       .searchSubtitles(kitsuEpisodeQuery, keyCredential)
       .catch(error => error);
-    expect(searchError).toBeInstanceOf(SourceUnavailableError);
-    expect(searchError.subtitleSource).toBe(SubtitleSource.JIMAKU);
+    expect(searchError).toBe(kitsuError);
     expect(requestSubtitleSource).not.toHaveBeenCalled();
   });
 

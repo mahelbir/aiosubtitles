@@ -8,11 +8,12 @@ import {
   fromSiteLanguageCode,
   toSiteLanguageCodes,
 } from '../site-language-codes.js';
-import {toHitReleaseNames} from '../subtitle-source-contract.js';
+import {toHitReleaseNames, toSiteCount} from '../subtitle-source-contract.js';
 import {SourceUnavailableError} from '../subtitle-source-errors.js';
 import {
   isSubtitleSourceJsonResponse,
   readSubtitleSourceFileName,
+  requireSubtitleSourceList,
   toSubtitleSourceStatusError,
 } from '../subtitle-source-request.js';
 
@@ -37,11 +38,6 @@ function toList(siteValue) {
 
 function toSiteFlag(siteValue) {
   return isNil(siteValue) ? null : Number(siteValue) === 1;
-}
-
-function toSiteCount(siteValue) {
-  const siteCount = isNil(siteValue) ? Number.NaN : Number(siteValue);
-  return Number.isSafeInteger(siteCount) && siteCount >= 0 ? siteCount : null;
 }
 
 function toDurationMs(siteDuration) {
@@ -198,9 +194,12 @@ function toSearchHit(siteSubtitle, searchContext) {
 }
 
 function toSearchHits(
-  {body},
+  {status, body},
   {isPackSearch, catalogSeason = null, catalogEpisode = null},
 ) {
+  if (status === StatusCodes.NOT_FOUND) {
+    return [];
+  }
   if (body?.success === false) {
     throw new SourceUnavailableError({
       subtitleSource: SubtitleSource.ALTYAZIDB,
@@ -208,7 +207,9 @@ function toSearchHits(
     });
   }
   const searchContext = {isPackSearch, catalogSeason, catalogEpisode};
-  return toList(body?.data)
+  return requireSubtitleSourceList(body?.data, {
+    subtitleSource: SubtitleSource.ALTYAZIDB,
+  })
     .map(siteSubtitle => toSearchHit(siteSubtitle, searchContext))
     .filter(Boolean);
 }

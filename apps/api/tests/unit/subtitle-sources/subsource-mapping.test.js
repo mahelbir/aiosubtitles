@@ -216,9 +216,6 @@ describe('subsourceMapping.findMovieId', () => {
 
   it.each([
     ['an empty list', {success: true, data: []}],
-    ['an object', {success: true, data: {movieId: 5002}}],
-    ['no body', null],
-    ['a text body', 'Not found.'],
     [
       'an item without a movie id',
       {success: true, data: [{imdbId: 'tt0111161', season: null}]},
@@ -228,6 +225,21 @@ describe('subsourceMapping.findMovieId', () => {
       subsourceMapping.findMovieId(toOkResponse(body), movieQuery),
     ).toBeNull();
   });
+
+  it.each([
+    ['an object', {success: true, data: {movieId: 5002}}],
+    ['no body', null],
+    ['a text body', 'Not found.'],
+  ])(
+    'reads %s in place of the movie list as an unavailable source',
+    (_, body) => {
+      expect(
+        catchError(() =>
+          subsourceMapping.findMovieId(toOkResponse(body), movieQuery),
+        ),
+      ).toBeInstanceOf(SourceUnavailableError);
+    },
+  );
 });
 
 describe('subsourceMapping.buildSubtitlesRequests', () => {
@@ -483,8 +495,29 @@ describe('subsourceMapping.toSearchHits', () => {
     ['no list', {success: true, data: null}],
     ['a text body', 'Not found.'],
     ['no body', null],
-  ])('reads %s in place of the item list as no hits', (_, body) => {
-    expect(subsourceMapping.toSearchHits(toOkResponse(body))).toEqual([]);
+  ])(
+    'reads %s in place of the item list as an unavailable source',
+    (_, body) => {
+      expect(
+        catchError(() => subsourceMapping.toSearchHits(toOkResponse(body))),
+      ).toBeInstanceOf(SourceUnavailableError);
+    },
+  );
+
+  it('reads an empty item list as no hits', () => {
+    expect(
+      subsourceMapping.toSearchHits(toOkResponse({success: true, data: []})),
+    ).toEqual([]);
+  });
+
+  it('reads a movie the site does not know (404) as no hits', () => {
+    expect(
+      subsourceMapping.toSearchHits({
+        status: StatusCodes.NOT_FOUND,
+        headers: {},
+        body: null,
+      }),
+    ).toEqual([]);
   });
 });
 

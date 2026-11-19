@@ -87,14 +87,14 @@ describe('gestdownClient', () => {
         makeSearchQuery({videoId: 'tt0133093', tvdbId: '169'}),
         null,
       ),
-    ).resolves.toEqual([]);
+    ).resolves.toBeNull();
     expect(requestSubtitleSource).not.toHaveBeenCalled();
   });
 
   it('answers a series without a tvdb id with no hits and no request', async () => {
     await expect(
       gestdownClient.searchSubtitles({...episodeQuery, tvdbId: null}, null),
-    ).resolves.toEqual([]);
+    ).resolves.toBeNull();
     expect(requestSubtitleSource).not.toHaveBeenCalled();
   });
 

@@ -20,6 +20,8 @@ import {
   readSubtitleSourceBreaker,
 } from '../../src/lib/subtitle-search/subtitle-source-breaker.js';
 import {spendSubtitleSourceBudget} from '../../src/lib/subtitle-search/subtitle-source-budget.js';
+import {jimakuClient} from '../../src/lib/subtitle-sources/jimaku/jimaku-client.js';
+import {opensubtitlesClient} from '../../src/lib/subtitle-sources/opensubtitles/opensubtitles-client.js';
 import {SubtitleSourceBudgetScope} from '../../src/lib/subtitle-sources/subtitle-source-contract.js';
 import {
   SourceCredentialError,
@@ -108,9 +110,16 @@ describe('searchSubtitleSource', () => {
     await drainPendingSearches();
 
     expect(liveHits).toEqual([turkishHit]);
-    expect(cachedHits).toEqual([turkishHit]);
+    expect(cachedHits).toEqual([]);
     expect(client.searchSubtitles).toHaveBeenCalledTimes(1);
     expect(await Subtitle.count()).toBe(1);
+    expect(
+      JSON.parse(
+        await redis.get(
+          `subtitle-search-cache:v1:${SUBTITLE_SOURCE}:tt0111161:eng`,
+        ),
+      ),
+    ).toEqual({searchFetchedAt: NOW_MS});
   });
 
   it('answers stale hits and refreshes once in the background', async () => {
@@ -146,16 +155,24 @@ describe('searchSubtitleSource', () => {
     ]);
     await drainPendingSearches();
 
-    expect(staleAnswers).toEqual([[staleHit], [staleHit]]);
+    expect(staleAnswers).toEqual([[], []]);
     expect(client.searchSubtitles).toHaveBeenCalledTimes(2);
-    await expect(
-      searchSubtitleSource({
-        client,
-        searchQuery,
-        ...WITHOUT_CREDENTIALS,
-        nowMs: STALE_MS,
-      }),
-    ).resolves.toEqual([refreshedHit]);
+    expect(
+      await Subtitle.count({where: {siteFileId: refreshedHit.siteFileId}}),
+    ).toBe(1);
+    expect(
+      JSON.parse(
+        await redis.get(
+          `subtitle-search-cache:v1:${SUBTITLE_SOURCE}:tt0111161:tur`,
+        ),
+      ),
+    ).toEqual({searchFetchedAt: STALE_MS});
+    await searchSubtitleSource({
+      client,
+      searchQuery,
+      ...WITHOUT_CREDENTIALS,
+      nowMs: STALE_MS,
+    });
     expect(client.searchSubtitles).toHaveBeenCalledTimes(2);
   });
 
@@ -188,7 +205,7 @@ describe('searchSubtitleSource', () => {
     });
     await drainPendingSearches();
 
-    expect(staleHits).toEqual([cachedHit]);
+    expect(staleHits).toEqual([]);
     expect(missingHits).toEqual([]);
     expect(client.searchSubtitles).toHaveBeenCalledTimes(1);
   });
@@ -219,18 +236,19 @@ describe('searchSubtitleSource', () => {
       expect(client.searchSubtitles).toHaveBeenCalledTimes(1);
     });
     sourceAnswer.resolve([searchHit]);
-    await Promise.all(searches);
+    const answers = await Promise.all(searches);
     await drainPendingSearches();
 
+    expect(
+      answers.toSorted((left, right) => right.length - left.length),
+    ).toEqual([[searchHit], []]);
     expect(client.searchSubtitles).toHaveBeenCalledTimes(1);
-    await expect(
-      searchSubtitleSource({
-        client,
-        searchQuery,
-        ...WITHOUT_CREDENTIALS,
-        nowMs: NOW_MS,
-      }),
-    ).resolves.toEqual([searchHit]);
+    await searchSubtitleSource({
+      client,
+      searchQuery,
+      ...WITHOUT_CREDENTIALS,
+      nowMs: NOW_MS,
+    });
     expect(client.searchSubtitles).toHaveBeenCalledTimes(1);
   });
 
@@ -641,18 +659,21 @@ describe('the search lock', () => {
     return {waitingSearch};
   }
 
-  it('waits for the holder and answers the hits it caches', async () => {
-    const heldHit = makeSubtitleSourceHit();
+  it('waits for the holder to finish and searches nothing itself', async () => {
     const client = createFixtureSubtitleSourceClient();
+    let isWaitOver = false;
 
     const {waitingSearch} = await startWaitingSearch(client);
-    await redis.set(
-      cacheKey,
-      JSON.stringify({searchFetchedAt: NOW_MS, searchResults: [heldHit]}),
-    );
+    waitingSearch.then(() => {
+      isWaitOver = true;
+    });
+    await readLockCheckCount();
+    const isOverWhileHeld = isWaitOver;
+    await redis.set(cacheKey, JSON.stringify({searchFetchedAt: NOW_MS}));
     await redis.del(lockKey);
 
-    await expect(waitingSearch).resolves.toEqual([heldHit]);
+    await expect(waitingSearch).resolves.toEqual([]);
+    expect(isOverWhileHeld).toBe(false);
     expect(client.searchSubtitles).not.toHaveBeenCalled();
   });
 
@@ -737,14 +758,18 @@ describe('spendSubtitleSourceBudget', () => {
       downloadBudgets: [subtitleSourceBudget, credentialBudget],
     });
 
-    const isSpent = await spendSubtitleSourceBudget({
-      client,
-      credentialId: credential.id,
-      isBackground: false,
-      nowMs: NOW_MS,
-    });
+    const spends = await Promise.all(
+      [credential.id, null].map(credentialId =>
+        spendSubtitleSourceBudget({
+          client,
+          credentialId,
+          isBackground: false,
+          nowMs: NOW_MS,
+        }),
+      ),
+    );
 
-    expect(isSpent).toBe(true);
+    expect(spends).toEqual([true, true]);
     const budgetKeys = await redis.keys('subtitle-source-budget:*');
     expect(budgetKeys.toSorted()).toEqual(
       [
@@ -758,32 +783,80 @@ describe('spendSubtitleSourceBudget', () => {
     }
   });
 
-  it('spends only the source budget for a client that declares no key budget', async () => {
-    const credentialId = crypto.randomUUID();
-    const client = createFixtureSubtitleSourceClient({
-      downloadBudgets: [subtitleSourceBudget],
-    });
+  it('shares one Jimaku server window between the keys of two users', async () => {
+    const client = {
+      subtitleSource: SubtitleSource.JIMAKU,
+      downloadBudgets: jimakuClient.downloadBudgets,
+    };
+    const [serverBudget] = client.downloadBudgets;
+    const credentialIds = [crypto.randomUUID(), crypto.randomUUID()];
 
-    const isSpent = await spendSubtitleSourceBudget({
-      client,
-      credentialId,
-      isBackground: false,
-      nowMs: NOW_MS,
-    });
+    const spends = [];
+    for (
+      let spendIndex = 0;
+      spendIndex <= serverBudget.requestMax;
+      spendIndex++
+    ) {
+      spends.push(
+        await spendSubtitleSourceBudget({
+          client,
+          credentialId: credentialIds[spendIndex % 2],
+          isBackground: false,
+          nowMs: NOW_MS,
+        }),
+      );
+    }
 
-    expect(isSpent).toBe(true);
-    await expect(redis.keys('subtitle-source-budget:*')).resolves.toEqual([
-      `subtitle-source-budget:v1:${SUBTITLE_SOURCE}:${BUDGET_WINDOW}`,
+    expect(serverBudget).toMatchObject({
+      budgetScope: SubtitleSourceBudgetScope.SUBTITLE_SOURCE,
+      windowMs: 60000,
+      requestMax: 25,
+    });
+    expect(spends).toEqual([...Array(25).fill(true), false]);
+    await expect(
+      redis.keys(`subtitle-source-budget:v1:${SubtitleSource.JIMAKU}:*`),
+    ).resolves.toEqual([
+      `subtitle-source-budget:v1:${SubtitleSource.JIMAKU}:${BUDGET_WINDOW}`,
     ]);
+  });
+
+  it('never refuses an OpenSubtitles account download on the shared app-key budget', async () => {
+    const client = {
+      subtitleSource: SubtitleSource.OPENSUBTITLES,
+      downloadBudgets: opensubtitlesClient.downloadBudgets,
+    };
+    const appKeyBudget = client.downloadBudgets.find(
+      ({budgetScope}) =>
+        budgetScope === SubtitleSourceBudgetScope.SUBTITLE_SOURCE,
+    );
+
+    const spends = await Promise.all(
+      Array.from({length: appKeyBudget.requestMax + 1}, () =>
+        spendSubtitleSourceBudget({
+          client,
+          credentialId: crypto.randomUUID(),
+          isBackground: false,
+          nowMs: NOW_MS,
+        }),
+      ),
+    );
+
+    expect(spends).toEqual(Array(appKeyBudget.requestMax + 1).fill(true));
+    await expect(
+      spendTimes(appKeyBudget.requestMax + 1, {
+        client,
+        credentialId: null,
+        isBackground: false,
+        nowMs: NOW_MS,
+      }),
+    ).resolves.toEqual([...Array(appKeyBudget.requestMax).fill(true), false]);
   });
 
   it('consumes nothing from either budget when one refuses', async () => {
     const credentialId = crypto.randomUUID();
+    const dayBudget = {...credentialBudget, windowMs: 86400000, requestMax: 2};
     const client = createFixtureSubtitleSourceClient({
-      downloadBudgets: [
-        subtitleSourceBudget,
-        {...credentialBudget, requestMax: 2},
-      ],
+      downloadBudgets: [credentialBudget, dayBudget],
     });
 
     const spends = await spendTimes(3, {
@@ -796,8 +869,8 @@ describe('spendSubtitleSourceBudget', () => {
     expect(spends).toEqual([true, true, false]);
     await expect(
       redis.mget(
-        `subtitle-source-budget:v1:${SUBTITLE_SOURCE}:${BUDGET_WINDOW}`,
         `subtitle-source-budget:v1:${SUBTITLE_SOURCE}:credential:${credentialId}:${BUDGET_WINDOW}`,
+        `subtitle-source-budget:v1:${SUBTITLE_SOURCE}:credential:${credentialId}:${Math.floor(NOW_MS / dayBudget.windowMs)}`,
       ),
     ).resolves.toEqual(['2', '2']);
   });
@@ -837,6 +910,35 @@ describe('spendSubtitleSourceBudget', () => {
     });
 
     expect(spends).toEqual([...Array(10).fill(true), false]);
+  });
+
+  it('spends only the key budgets of a key-only source for downloads with the user own keys', async () => {
+    const client = createFixtureSubtitleSourceClient({
+      downloadBudgets: [credentialBudget],
+    });
+    const credentialIds = [crypto.randomUUID(), crypto.randomUUID()];
+
+    const spends = [
+      ...(await spendTimes(6, {
+        client,
+        credentialId: credentialIds[0],
+        isBackground: false,
+        nowMs: NOW_MS,
+      })),
+      ...(await spendTimes(5, {
+        client,
+        credentialId: credentialIds[1],
+        isBackground: false,
+        nowMs: NOW_MS,
+      })),
+    ];
+
+    expect(spends).toEqual(Array(11).fill(true));
+    await expect(
+      redis.exists(
+        `subtitle-source-budget:v1:${SUBTITLE_SOURCE}:${BUDGET_WINDOW}`,
+      ),
+    ).resolves.toBe(0);
   });
 
   it('spends the default budget for a keyless download of a key-budgeted source', async () => {
@@ -1000,6 +1102,133 @@ describe('a live search and its stored hits', () => {
 
     expect(searchHits).toEqual([]);
     await expect(redis.get(cacheKey)).resolves.toBeNull();
+  });
+
+  it('caches only when the search ran, never the hits themselves', async () => {
+    const client = createFixtureSubtitleSourceClient({
+      searchSubtitles: vi.fn(async () => [makeSubtitleSourceHit()]),
+    });
+
+    await searchSubtitleSource({
+      client,
+      searchQuery: makeTurkishQuery(),
+      ...WITHOUT_CREDENTIALS,
+      nowMs: NOW_MS,
+    });
+
+    expect(JSON.parse(await redis.get(cacheKey))).toEqual({
+      searchFetchedAt: NOW_MS,
+    });
+  });
+
+  it('caches nothing when the source could not search', async () => {
+    const client = createFixtureSubtitleSourceClient({
+      searchSubtitles: vi.fn(async () => null),
+    });
+
+    await searchSubtitleSource({
+      client,
+      searchQuery: makeTurkishQuery(),
+      ...WITHOUT_CREDENTIALS,
+      nowMs: NOW_MS,
+    });
+    await drainPendingSearches();
+
+    await expect(redis.get(cacheKey)).resolves.toBeNull();
+  });
+
+  it.each([
+    ['the episode', {isEpisodeResolved: false}],
+    ['the catalog', {isCatalogResolved: false}],
+  ])(
+    'searches live but caches and locks nothing when %s was not resolved',
+    async (_, resolution) => {
+      const searchHit = makeSubtitleSourceHit({languageCode: 'tur'});
+      const client = createFixtureSubtitleSourceClient({
+        searchSubtitles: vi.fn(async () => [searchHit]),
+      });
+      const searchQuery = makeTurkishQuery(resolution);
+      const lockSpy = vi.spyOn(redis, 'set');
+
+      for (const nowMs of [NOW_MS, NOW_MS + 1000]) {
+        await searchSubtitleSource({
+          client,
+          searchQuery,
+          ...WITHOUT_CREDENTIALS,
+          nowMs,
+        });
+      }
+      await drainPendingSearches();
+
+      expect(client.searchSubtitles).toHaveBeenCalledTimes(2);
+      await expect(redis.get(cacheKey)).resolves.toBeNull();
+      expect(
+        lockSpy.mock.calls.filter(([redisKey]) =>
+          String(redisKey).startsWith('subtitle-search-lock:'),
+        ),
+      ).toEqual([]);
+      expect(
+        await Subtitle.count({where: {siteFileId: searchHit.siteFileId}}),
+      ).toBe(1);
+      lockSpy.mockRestore();
+    },
+  );
+
+  it.each([
+    [
+      'a movie request for an episode id',
+      {
+        videoId: 'tt0111161:1:2',
+        videoType: 'movie',
+        catalogSeason: 1,
+        catalogEpisode: 2,
+      },
+    ],
+    [
+      'a series request for a bare id',
+      {videoId: 'tt0111161', videoType: 'series'},
+    ],
+  ])('searches and caches nothing for %s', async (_, queryOverrides) => {
+    const client = createFixtureSubtitleSourceClient({
+      searchSubtitles: vi.fn(async () => [makeSubtitleSourceHit()]),
+    });
+    const searchQuery = makeTurkishQuery(queryOverrides);
+
+    const searchHits = await searchSubtitleSource({
+      client,
+      searchQuery,
+      ...WITHOUT_CREDENTIALS,
+      nowMs: NOW_MS,
+    });
+    await drainPendingSearches();
+
+    expect(searchHits).toEqual([]);
+    expect(client.searchSubtitles).not.toHaveBeenCalled();
+    await expect(
+      redis.keys(`subtitle-search-cache:v1:${SUBTITLE_SOURCE}:*`),
+    ).resolves.toEqual([]);
+  });
+
+  it('answers an unresolved query from a fresh entry without a search', async () => {
+    const client = createFixtureSubtitleSourceClient({
+      searchSubtitles: vi.fn(async () => [makeSubtitleSourceHit()]),
+    });
+
+    await searchSubtitleSource({
+      client,
+      searchQuery: makeTurkishQuery(),
+      ...WITHOUT_CREDENTIALS,
+      nowMs: NOW_MS,
+    });
+    await searchSubtitleSource({
+      client,
+      searchQuery: makeTurkishQuery({isCatalogResolved: false}),
+      ...WITHOUT_CREDENTIALS,
+      nowMs: NOW_MS + 1000,
+    });
+    await drainPendingSearches();
+
+    expect(client.searchSubtitles).toHaveBeenCalledTimes(1);
   });
 });
 

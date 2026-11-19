@@ -4,16 +4,10 @@ import {StatusCodes} from 'http-status-codes';
 import {CredentialStatus} from '@repo/shared/constants/credential.js';
 import {SubtitleLanguage} from '@repo/shared/constants/subtitle-language.js';
 import {SubtitleSource} from '@repo/shared/constants/subtitle-source.js';
-import {
-  ARCHIVE_FILE_EXTENSIONS,
-  SUBTITLE_FORMAT_FILE_EXTENSIONS,
-} from '@repo/subtitle-core/constants/subtitle-core-enums.js';
+import {ARCHIVE_FILE_EXTENSIONS} from '@repo/subtitle-core/constants/subtitle-core-enums.js';
 import {parseReleaseName} from '@repo/subtitle-core/release-name/parse-release-name.js';
 import {
-  VideoIdKind,
-  parseStremioVideoId,
-} from '../../video-catalog/parse-video-id.js';
-import {
+  isSupportedSubtitleSourceFormat,
   toHitFileExtension,
   toHitReleaseNames,
   toHitSiteFileId,
@@ -24,11 +18,13 @@ import {
 } from '../subtitle-source-errors.js';
 import {
   SUBTITLE_SOURCE_RETRY_AFTER_MAX,
-  isSubtitleSourceErrorBodyResponse,
+  parseSiteFileUrl,
+  throwIfErrorBodyResponse,
   toSubtitleSourceStatusError,
 } from '../subtitle-source-request.js';
 
 const JIMAKU_URL = 'https://jimaku.cc';
+const JIMAKU_HOSTNAME = new URL(JIMAKU_URL).hostname;
 const ENTRIES_MAX = 3;
 const CREDENTIAL_CHECK_ANILIST_ID = 1;
 const FILE_PATH_PATTERN = /^\/entry\/(\d+)\/download\/([^/]+)$/;
@@ -54,7 +50,7 @@ function readRetryAfterMs(headers) {
   const resetAfterSeconds = Number.parseFloat(
     headers?.[RESET_AFTER_HEADER_NAME],
   );
-  return Number.isFinite(resetAfterSeconds) && resetAfterSeconds >= 0
+  return Number.isFinite(resetAfterSeconds) && resetAfterSeconds > 0
     ? Math.min(
         Math.ceil(resetAfterSeconds * 1000),
         SUBTITLE_SOURCE_RETRY_AFTER_MAX,
@@ -96,19 +92,15 @@ function readListBody(response, causeText) {
   return body;
 }
 
-function toSearchTarget(searchQuery, credential) {
+function toSearchTarget({kitsuId, kitsuEpisode, languageCodes}, credential) {
   if (
     !credential ||
-    !searchQuery.languageCodes.includes(SubtitleLanguage.JPN)
+    isNil(kitsuId) ||
+    !languageCodes.includes(SubtitleLanguage.JPN)
   ) {
     return null;
   }
-  const {videoIdKind, kitsuId, catalogEpisode} = parseStremioVideoId(
-    searchQuery.videoId,
-  );
-  return videoIdKind === VideoIdKind.KITSU
-    ? {kitsuId, kitsuEpisode: catalogEpisode}
-    : null;
+  return {kitsuId, kitsuEpisode: kitsuEpisode ?? null};
 }
 
 function buildEntrySearchRequest(anilistId, credential) {
@@ -142,11 +134,10 @@ function toFileUrl(entryId, fileName) {
 }
 
 function readFileLink(siteUrl) {
-  const fileUrl = isString(siteUrl) ? URL.parse(siteUrl, JIMAKU_URL) : null;
-  const pathMatch =
-    fileUrl?.origin === JIMAKU_URL
-      ? fileUrl.pathname.match(FILE_PATH_PATTERN)
-      : null;
+  const pathMatch = parseSiteFileUrl(siteUrl, {
+    isSiteHostname: hostname => hostname === JIMAKU_HOSTNAME,
+    baseUrl: JIMAKU_URL,
+  })?.pathname.match(FILE_PATH_PATTERN);
   if (!pathMatch) {
     return null;
   }
@@ -162,10 +153,7 @@ function readFileExtension(fileName) {
 }
 
 function isSupportedFileExtension(fileExtension) {
-  return (
-    SUBTITLE_FORMAT_FILE_EXTENSIONS.has(fileExtension) ||
-    ARCHIVE_FILE_EXTENSIONS.has(fileExtension)
-  );
+  return fileExtension !== '' && isSupportedSubtitleSourceFormat(fileExtension);
 }
 
 function isEpisodePack(fileName, kitsuEpisode) {
@@ -249,9 +237,7 @@ function toDownload(response, {siteFileId}) {
       subtitleSource: SubtitleSource.JIMAKU,
     });
   }
-  if (isSubtitleSourceErrorBodyResponse(response.headers)) {
-    throw toSiteError('Error body in place of the file.');
-  }
+  throwIfErrorBodyResponse(response, {subtitleSource: SubtitleSource.JIMAKU});
   return {
     fileBytes: response.body,
     fileNameHint: readSiteFileId(siteFileId).fileName,

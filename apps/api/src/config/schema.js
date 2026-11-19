@@ -156,7 +156,7 @@ export function getEnvSchema({appPath}) {
       .max(SUBTITLE_SEARCH_DEADLINE_MAX)
       .default(7000),
     SUBTITLE_SEARCH_CACHE_FRESH_TTL: ttlField.default(21600),
-    SUBTITLE_SEARCH_CACHE_STALE_TTL: ttlField.default(2592000),
+    SUBTITLE_SEARCH_CACHE_STALE_TTL: positiveIntField.default(2592000),
     USER_CONFIG_CACHE_TTL: ttlField.default(60),
     USER_CONFIG_SESSION_TTL: positiveIntField.default(1800),
     SUBTITLE_SOURCE_BACKGROUND_SHARE: shareField.default(0.5),

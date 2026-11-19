@@ -55,12 +55,12 @@ export async function readSearchCacheEntries(searchCachePartsList, nowMs) {
   });
 }
 
-export async function writeSearchCacheEntries(searchCacheWrites, nowMs) {
+export async function writeSearchCacheEntries(searchCachePartsList, nowMs) {
   const pipeline = redis.pipeline();
-  for (const {searchCacheParts, searchResults} of searchCacheWrites) {
+  for (const searchCacheParts of searchCachePartsList) {
     pipeline.set(
       `${SEARCH_CACHE_PREFIX}${searchCacheParts}`,
-      JSON.stringify({searchFetchedAt: nowMs, searchResults}),
+      JSON.stringify({searchFetchedAt: nowMs}),
       'EX',
       config.subtitleSearchCacheStaleTtl,
     );

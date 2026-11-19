@@ -16,9 +16,11 @@ import {
 } from '../subtitle-source-contract.js';
 import {SourceUnavailableError} from '../subtitle-source-errors.js';
 import {
-  isSubtitleSourceErrorBodyResponse,
   isSubtitleSourceHtmlResponse,
+  readSubtitleSourceErrorBody,
   readSubtitleSourceFileName,
+  requireSubtitleSourceList,
+  throwIfErrorBodyResponse,
   toSubtitleSourceStatusError,
 } from '../subtitle-source-request.js';
 
@@ -150,10 +152,10 @@ function toSearchHit(siteSubtitle) {
 }
 
 function toSearchHits({status, body}) {
-  if (status === StatusCodes.NOT_FOUND || !body) {
+  if (status === StatusCodes.NOT_FOUND) {
     return [];
   }
-  if (body.status === false) {
+  if (body?.status === false) {
     if (NO_RESULT_ERROR_PATTERN.test(String(body.error ?? ''))) {
       return [];
     }
@@ -162,9 +164,11 @@ function toSearchHits({status, body}) {
       cause: new Error('The site refused the search.'),
     });
   }
-  return Array.isArray(body.subtitles)
-    ? body.subtitles.map(toSearchHit).filter(Boolean)
-    : [];
+  return requireSubtitleSourceList(body?.subtitles, {
+    subtitleSource: SubtitleSource.SUBDL,
+  })
+    .map(toSearchHit)
+    .filter(Boolean);
 }
 
 function buildDownloadRequest({siteFileId}, credential) {
@@ -191,12 +195,7 @@ function toDownload(response) {
       subtitleSource: SubtitleSource.SUBDL,
     });
   }
-  if (isSubtitleSourceErrorBodyResponse(response.headers)) {
-    throw new SourceUnavailableError({
-      subtitleSource: SubtitleSource.SUBDL,
-      cause: new Error('Error body in place of the archive.'),
-    });
-  }
+  throwIfErrorBodyResponse(response, {subtitleSource: SubtitleSource.SUBDL});
   return {
     fileBytes: response.body,
     fileNameHint: readSubtitleSourceFileName(response.headers),
@@ -216,22 +215,11 @@ function buildCredentialCheckRequest(credential) {
   );
 }
 
-function readAccountAnswer(body) {
-  if (!isString(body)) {
-    return body;
-  }
-  try {
-    return JSON.parse(body);
-  } catch {
-    return null;
-  }
-}
-
-function isRefusedAccountAnswer({status, headers, body}) {
+function isRefusedAccountAnswer(response) {
   return (
-    status < StatusCodes.MULTIPLE_CHOICES &&
-    (isSubtitleSourceHtmlResponse(headers) ||
-      readAccountAnswer(body)?.status === false)
+    response.status < StatusCodes.MULTIPLE_CHOICES &&
+    (isSubtitleSourceHtmlResponse(response.headers) ||
+      readSubtitleSourceErrorBody(response).bodyJson?.status === false)
   );
 }
 

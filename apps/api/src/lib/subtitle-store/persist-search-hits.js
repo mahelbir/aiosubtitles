@@ -33,6 +33,7 @@ export async function persistSearchHits({
   videoId,
   searchHits,
   seenAt = new Date(),
+  isCandidateLinked = true,
 }) {
   const hitRows = sortBy(
     uniqBy(
@@ -75,23 +76,25 @@ export async function persistSearchHits({
       searchHit,
       subtitleId: subtitleIdByUrlCode.get(subtitleRow.urlCode),
     }));
-    await SubtitleVideoCandidate.bulkCreate(
-      sortBy(
-        storedHits.map(({subtitleId}) => ({
-          videoId,
-          subtitleId,
-          candidateFirstSeenAt: seenAt,
-          candidateLastSeenAt: seenAt,
-        })),
-        ['subtitleId'],
-      ),
-      {
-        updateOnDuplicate: ['candidateLastSeenAt'],
-        returning: false,
-        validate: true,
-        transaction,
-      },
-    );
+    if (isCandidateLinked) {
+      await SubtitleVideoCandidate.bulkCreate(
+        sortBy(
+          storedHits.map(({subtitleId}) => ({
+            videoId,
+            subtitleId,
+            candidateFirstSeenAt: seenAt,
+            candidateLastSeenAt: seenAt,
+          })),
+          ['subtitleId'],
+        ),
+        {
+          updateOnDuplicate: ['candidateLastSeenAt'],
+          returning: false,
+          validate: true,
+          transaction,
+        },
+      );
+    }
     const hashMatchRows = sortBy(
       uniqBy(
         storedHits.flatMap(({searchHit, subtitleId}) =>

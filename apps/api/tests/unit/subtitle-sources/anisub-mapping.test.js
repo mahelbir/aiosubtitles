@@ -346,10 +346,24 @@ describe('anisubMapping.toSearchHits', () => {
     ['an object', {subtitles: {id: '1'}}],
     ['no list', {subtitles: null}],
     ['a text body', 'Not found.'],
-  ])('reads %s in place of the row list as no hits', (_, body) => {
+  ])(
+    'reads %s in place of the row list as an unavailable source',
+    (_, body) => {
+      expect(
+        catchError(() =>
+          anisubMapping.toSearchHits(
+            {status: StatusCodes.OK, headers: {}, body},
+            episodeQuery,
+          ),
+        ),
+      ).toBeInstanceOf(SourceUnavailableError);
+    },
+  );
+
+  it('reads an empty row list as no hits', () => {
     expect(
       anisubMapping.toSearchHits(
-        {status: StatusCodes.OK, headers: {}, body},
+        {status: StatusCodes.OK, headers: {}, body: {subtitles: []}},
         episodeQuery,
       ),
     ).toEqual([]);

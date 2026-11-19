@@ -50,7 +50,7 @@ describe('yifyClient', () => {
         }),
         null,
       ),
-    ).resolves.toEqual([]);
+    ).resolves.toBeNull();
   });
 
   it('answers a query without an imdb id with no hits and no request', async () => {
@@ -63,6 +63,6 @@ describe('yifyClient', () => {
         }),
         null,
       ),
-    ).resolves.toEqual([]);
+    ).resolves.toBeNull();
   });
 });

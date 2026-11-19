@@ -13,6 +13,7 @@ import {
   SubtitleFileOrigin,
 } from '../../src/db/models/subtitle-file.js';
 import {SubtitleReferenceComparison} from '../../src/db/models/subtitle-reference-comparison.js';
+import {UserConfig} from '../../src/db/models/user-config.js';
 import {markCredentialStatus} from '../../src/lib/credential-secret.js';
 import {SHUTDOWN_DRAIN_WINDOW_MS} from '../../src/lib/shutdown-deadline.js';
 import {
@@ -693,16 +694,18 @@ describe('free background downloads', () => {
     const communityHits = stremioCommunitySubtitlesMapping.toSearchHits(
       {
         status: StatusCodes.OK,
-        headers: {},
-        body: {
-          subtitles: [
-            {
-              id: STRONG_NAME,
-              url: `https://stremio-community-subtitles.top/${accessToken}/download/eyJhIjoxfQ.vtt`,
-              lang: 'eng',
-            },
-          ],
-        },
+        headers: {'content-type': 'application/json'},
+        body: strToU8(
+          JSON.stringify({
+            subtitles: [
+              {
+                id: STRONG_NAME,
+                url: `https://stremio-community-subtitles.top/${accessToken}/download/eyJhIjoxfQ.vtt`,
+                lang: 'eng',
+              },
+            ],
+          }),
+        ),
       },
       {languageCodes: ['eng']},
     );
@@ -723,6 +726,60 @@ describe('free background downloads', () => {
     ).toHaveLength(1);
     expect(downloadedIds).toEqual([]);
     expect(communityClient.downloadSubtitle).not.toHaveBeenCalled();
+  });
+});
+
+describe('a queued background job', () => {
+  async function scheduleBehindGate({cachedUserConfig, candidates}) {
+    const {gate, openGate} = createGate();
+    enqueueBackgroundJob({
+      subtitleSource: SubtitleSource.YIFY,
+      runJob: () => gate,
+    });
+    scheduleListBackgroundWork({
+      cachedUserConfig,
+      videoContext: makeVideoContext(),
+      candidates,
+      credentialsBySource: Object.fromEntries(
+        fixtureClients.map(client => [
+          client.subtitleSource,
+          readDownloadCredentials({cachedUserConfig, client}),
+        ]),
+      ),
+      subtitleSourceRegistry,
+    });
+    return openGate;
+  }
+
+  it('downloads nothing once its configuration is deleted', async () => {
+    const {userConfig, cachedUserConfig} = await readJobUser();
+    const candidates = await storeCandidates(
+      makeHits(2, {releaseNames: [STRONG_NAME]}),
+    );
+    const openGate = await scheduleBehindGate({cachedUserConfig, candidates});
+
+    await UserConfig.destroy({where: {id: userConfig.id}});
+    openGate();
+    await drainBackgroundQueues();
+
+    expect(yifyClient.downloadSubtitle).not.toHaveBeenCalled();
+  });
+
+  it('downloads nothing once its source is switched off', async () => {
+    const {userConfig, cachedUserConfig} = await readJobUser();
+    const candidates = await storeCandidates(
+      makeHits(2, {releaseNames: [STRONG_NAME]}),
+    );
+    const openGate = await scheduleBehindGate({cachedUserConfig, candidates});
+
+    await UserConfig.update(
+      {subtitleSourceSwitchStates: {[SubtitleSource.YIFY]: false}},
+      {where: {id: userConfig.id}, individualHooks: true},
+    );
+    openGate();
+    await drainBackgroundQueues();
+
+    expect(yifyClient.downloadSubtitle).not.toHaveBeenCalled();
   });
 });
 

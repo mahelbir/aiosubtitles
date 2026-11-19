@@ -29,6 +29,7 @@ export const makeVideo = (overrides = {}) => ({
   videoId: 'tt0000001',
   catalogSeason: null,
   catalogEpisode: null,
+  kitsuEpisode: null,
   videoHash: null,
   videoRelease: null,
   catalogDurationMs: null,

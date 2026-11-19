@@ -298,18 +298,29 @@ describe('betaseriesMapping.findEpisodeId', () => {
     ).toBeNull();
   });
 
-  it.each([
-    ['no episodes', {episodes: [], errors: []}],
-    ['no list', {errors: []}],
-    ['no body', null],
-  ])('reads %s as no episode', (_, body) => {
+  it('reads no episodes as no episode', () => {
     expect(
       betaseriesMapping.findEpisodeId(
-        toOkResponse(body),
+        toOkResponse({episodes: [], errors: []}),
         episodeQuery,
         keyCredential,
       ),
     ).toBeNull();
+  });
+
+  it.each([
+    ['no list', {errors: []}],
+    ['no body', null],
+  ])('reads %s as an unavailable source', (_, body) => {
+    expect(
+      catchError(() =>
+        betaseriesMapping.findEpisodeId(
+          toOkResponse(body),
+          episodeQuery,
+          keyCredential,
+        ),
+      ),
+    ).toBeInstanceOf(SourceUnavailableError);
   });
 });
 
@@ -432,14 +443,24 @@ describe('betaseriesMapping.toSearchHits', () => {
     }
   });
 
+  it('reads an empty list as no hits', () => {
+    expect(
+      betaseriesMapping.toSearchHits(
+        toOkResponse({subtitles: [], errors: []}),
+        keyCredential,
+      ),
+    ).toEqual([]);
+  });
+
   it.each([
     ['no list', {errors: []}],
-    ['an empty list', {subtitles: [], errors: []}],
     ['no body', null],
-  ])('reads %s as no hits', (_, body) => {
+  ])('reads %s as an unavailable source', (_, body) => {
     expect(
-      betaseriesMapping.toSearchHits(toOkResponse(body), keyCredential),
-    ).toEqual([]);
+      catchError(() =>
+        betaseriesMapping.toSearchHits(toOkResponse(body), keyCredential),
+      ),
+    ).toBeInstanceOf(SourceUnavailableError);
   });
 });
 

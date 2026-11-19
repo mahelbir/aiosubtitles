@@ -26,7 +26,7 @@ export const thesubtitledbClient = {
       credential,
     );
     if (searchRequest === null) {
-      return [];
+      return null;
     }
     return thesubtitledbMapping.toSearchHits(
       await requestSubtitleSource({...searchRequest, signal}),

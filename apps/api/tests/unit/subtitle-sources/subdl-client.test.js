@@ -82,7 +82,7 @@ describe('subdlClient', () => {
   it('answers a search without a credential with no hits and no request', async () => {
     await expect(
       subdlClient.searchSubtitles(episodeQuery, null),
-    ).resolves.toEqual([]);
+    ).resolves.toBeNull();
     expect(requestSubtitleSource).not.toHaveBeenCalled();
   });
 
@@ -99,7 +99,7 @@ describe('subdlClient', () => {
         }),
         keyCredential,
       ),
-    ).resolves.toEqual([]);
+    ).resolves.toBeNull();
     expect(requestSubtitleSource).not.toHaveBeenCalled();
   });
 

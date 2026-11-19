@@ -129,7 +129,7 @@ describe('the Kitsu mapping', () => {
     expect(requestRemoteResource).toHaveBeenCalledTimes(1);
   });
 
-  it('answers null when the Kitsu addon fails', async () => {
+  it('fails the lookup, rather than answering no mapping, when the Kitsu addon fails', async () => {
     const requestRemoteResource = vi.fn(async () => {
       throw new SourceUnavailableError({
         subtitleSource: SubtitleSource.OPENSUBTITLES_V3,
@@ -140,7 +140,7 @@ describe('the Kitsu mapping', () => {
 
     await expect(
       resolveKitsuVideo({kitsuId: '7442', kitsuEpisode: 5}),
-    ).resolves.toBeNull();
+    ).rejects.toBeInstanceOf(SourceUnavailableError);
     expect(requestRemoteResource).toHaveBeenCalledTimes(1);
   });
 });

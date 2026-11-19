@@ -9,6 +9,7 @@ import {
   createOpensubtitlesClient,
   opensubtitlesClient,
 } from '../../../src/lib/subtitle-sources/opensubtitles/opensubtitles-client.js';
+import {toOpensubtitlesSessionKey} from '../../../src/lib/subtitle-sources/opensubtitles/opensubtitles-session.js';
 import {listSubtitleSourceClients} from '../../../src/lib/subtitle-sources/subtitle-source-clients.js';
 import {SubtitleSourceBudgetScope} from '../../../src/lib/subtitle-sources/subtitle-source-contract.js';
 import {
@@ -201,7 +202,7 @@ describe('createOpensubtitlesClient search', () => {
   it('searches nothing without a server or user key', async () => {
     const {client, fakeSite} = await createSiteClient({apiKey: ''});
 
-    expect(await client.searchSubtitles(makeSearchQuery(), null)).toEqual([]);
+    expect(await client.searchSubtitles(makeSearchQuery(), null)).toBeNull();
     expect(fakeSite.sentRequests).toHaveLength(0);
   });
 
@@ -315,7 +316,7 @@ describe('createOpensubtitlesClient download', () => {
 
     expect(
       await sessionStore.readOpensubtitlesSession(
-        accountCredential.credentialId,
+        toOpensubtitlesSessionKey(accountCredential),
       ),
     ).toEqual({token: 'token-2', baseUrl: VIP_API_URL});
     expect(fakeSite.listSent('/api/v1/login')).toHaveLength(2);
@@ -423,7 +424,7 @@ describe('createOpensubtitlesClient download', () => {
     const {client, fakeSite, sessionStore} = siteClient;
     const cachedSession = {token: 'token-cached', baseUrl: VIP_API_URL};
     await sessionStore.storeOpensubtitlesSession(
-      accountCredential.credentialId,
+      toOpensubtitlesSessionKey(accountCredential),
       cachedSession,
     );
     fakeSite.answer('/api/v1/download', {
@@ -441,7 +442,7 @@ describe('createOpensubtitlesClient download', () => {
     expect(fakeSite.listSent('/api/v1/download')).toHaveLength(1);
     expect(
       await sessionStore.readOpensubtitlesSession(
-        accountCredential.credentialId,
+        toOpensubtitlesSessionKey(accountCredential),
       ),
     ).toEqual(cachedSession);
   });
@@ -595,7 +596,9 @@ describe('createOpensubtitlesClient download', () => {
     expect(error.credentialId).toBe(accountCredential.credentialId);
     expect(fakeSite.listSent('/api/v1/login')).toHaveLength(1);
     expect(
-      await sessionStore.readOpensubtitlesQuota(accountCredential.credentialId),
+      await sessionStore.readOpensubtitlesQuota(
+        toOpensubtitlesSessionKey(accountCredential),
+      ),
     ).toMatchObject({quotaRemainingCount: 0});
   });
 
@@ -605,7 +608,9 @@ describe('createOpensubtitlesClient download', () => {
     await client.downloadSubtitle(subtitleRef, accountCredential);
 
     expect(
-      await sessionStore.readOpensubtitlesQuota(accountCredential.credentialId),
+      await sessionStore.readOpensubtitlesQuota(
+        toOpensubtitlesSessionKey(accountCredential),
+      ),
     ).toEqual({
       quotaRemainingCount: 17,
       quotaResetAt: downloadBody.reset_time_utc,
@@ -641,14 +646,55 @@ describe('createOpensubtitlesClient download', () => {
   });
 });
 
+describe('an OpenSubtitles account replaced on the same credential', () => {
+  it('logs in again and never uses the old token', async () => {
+    const {client, fakeSite} = await createSiteClient();
+    const oldAccount = makeAccountCredential();
+    const newAccount = {...oldAccount, password: 'fixture-new-password'};
+
+    await client.downloadSubtitle(subtitleRef, oldAccount);
+    await client.downloadSubtitle(subtitleRef, newAccount);
+
+    const downloadTokens = fakeSite
+      .listSent('/api/v1/download')
+      .map(({headers}) => headers.Authorization);
+    expect(fakeSite.listSent('/api/v1/login')).toHaveLength(2);
+    expect(downloadTokens).toEqual(['Bearer token-1', 'Bearer token-2']);
+  });
+
+  it('keys the session by the credential id and a keyed account fingerprint', () => {
+    const account = makeAccountCredential();
+    const sessionKey = toOpensubtitlesSessionKey(account);
+
+    expect(sessionKey.startsWith(`${account.credentialId}:`)).toBe(true);
+    expect(sessionKey).not.toContain(account.username);
+    expect(sessionKey).not.toContain(ACCOUNT_PASSWORD);
+    expect(toOpensubtitlesSessionKey({...account})).toBe(sessionKey);
+  });
+
+  it('reads the new account quota, not the old cached one', async () => {
+    const {client, fakeSite} = await createSiteClient();
+    const oldAccount = makeAccountCredential();
+    const newAccount = {...oldAccount, username: 'fixture-other-user'};
+
+    await client.readQuota(oldAccount);
+    await client.readQuota(newAccount);
+
+    expect(fakeSite.listSent('/api/v1/infos/user')).toHaveLength(2);
+  });
+});
+
 describe('createOpensubtitlesClient quota and checks', () => {
   it('reads the quota once and serves it from the cache after', async () => {
     const {client, fakeSite, sessionStore} = await createSiteClient();
     const accountCredential = makeAccountCredential();
-    await sessionStore.storeOpensubtitlesQuota(accountCredential.credentialId, {
-      quotaRemainingCount: 18,
-      quotaResetAt: '2026-11-19T00:00:00.000Z',
-    });
+    await sessionStore.storeOpensubtitlesQuota(
+      toOpensubtitlesSessionKey(accountCredential),
+      {
+        quotaRemainingCount: 18,
+        quotaResetAt: '2026-11-19T00:00:00.000Z',
+      },
+    );
 
     const quota = await client.readQuota(accountCredential);
     const cachedQuota = await client.readQuota(accountCredential);
@@ -787,12 +833,17 @@ describe('opensubtitlesClient', () => {
     expect(opensubtitlesClient.isSearchHashSensitive).toBe(true);
   });
 
-  it('declares one download per five seconds per account', () => {
+  it('declares one download per five seconds per account and a server budget for the app key', () => {
     expect(opensubtitlesClient.downloadBudgets).toEqual([
       {
         budgetScope: SubtitleSourceBudgetScope.CREDENTIAL,
         windowMs: 5000,
         requestMax: 1,
+      },
+      {
+        budgetScope: SubtitleSourceBudgetScope.SUBTITLE_SOURCE,
+        windowMs: 60000,
+        requestMax: 10,
       },
     ]);
   });

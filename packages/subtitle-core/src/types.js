@@ -28,6 +28,7 @@
  *   videoId: string,
  *   catalogSeason: number|null,
  *   catalogEpisode: number|null,
+ *   kitsuEpisode: number|null,
  *   videoHash: string|null,
  *   videoRelease: ReleaseInfo|null,
  *   catalogDurationMs: number|null,

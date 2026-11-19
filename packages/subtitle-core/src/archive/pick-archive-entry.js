@@ -42,22 +42,51 @@ const isEntryForVideo = (entryPath, {seasonNumber, episodeNumber}) => {
   );
 };
 
+const isEntryForAlternateEpisode = (entryPath, alternateEpisodeNumber) => {
+  const {episodeNumbers, partNumber} = parseEntryName(
+    readEntryFileName(entryPath),
+  );
+  return partNumber == null && episodeNumbers.includes(alternateEpisodeNumber);
+};
+
+const listCatalogEntries = ({entryPaths, seasonNumber, episodeNumber}) =>
+  entryPaths.filter(entryPath =>
+    isEntryForVideo(entryPath, {seasonNumber, episodeNumber}),
+  );
+
 export const listArchiveEntriesForVideo = ({
   entryPaths,
   seasonNumber,
   episodeNumber,
-}) =>
-  entryPaths.filter(entryPath =>
-    isEntryForVideo(entryPath, {seasonNumber, episodeNumber}),
-  );
+  alternateEpisodeNumber = null,
+}) => {
+  const catalogEntries = listCatalogEntries({
+    entryPaths,
+    seasonNumber,
+    episodeNumber,
+  });
+  return catalogEntries.length > 0 ||
+    episodeNumber == null ||
+    alternateEpisodeNumber == null
+    ? catalogEntries
+    : entryPaths.filter(entryPath =>
+        isEntryForAlternateEpisode(entryPath, alternateEpisodeNumber),
+      );
+};
 
 export const pickArchiveEntryForVideo = ({
   entryPaths,
   seasonNumber,
   episodeNumber,
+  alternateEpisodeNumber = null,
 }) =>
   sortBy(
-    listArchiveEntriesForVideo({entryPaths, seasonNumber, episodeNumber}),
+    listArchiveEntriesForVideo({
+      entryPaths,
+      seasonNumber,
+      episodeNumber,
+      alternateEpisodeNumber,
+    }),
     [
       hasPartialSubtitleMarker,
       entryPath => entryPath.length,

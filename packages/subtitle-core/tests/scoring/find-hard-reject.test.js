@@ -1,5 +1,6 @@
 import {describe, expect, it} from 'vitest';
 import {HardRejectReason} from '../../src/constants/subtitle-core-enums.js';
+import {parseReleaseName} from '../../src/release-name/parse-release-name.js';
 import {findHardRejectReason} from '../../src/scoring/find-hard-reject.js';
 import {makeFileFacts} from '../helpers/deduplication-fixtures.js';
 import {
@@ -351,5 +352,50 @@ describe('findHardRejectReason', () => {
         }),
       ).toBe(HardRejectReason.WRONG_EPISODE);
     });
+  });
+});
+
+describe('findHardRejectReason for an anime video', () => {
+  const kitsuVideo = makeVideo({
+    videoId: 'kitsu:2:5',
+    catalogSeason: 1,
+    catalogEpisode: 17,
+    kitsuEpisode: 5,
+    videoRelease: parseReleaseName('[SubsPlease] Show S2 - 05 (1080p).mkv'),
+  });
+  const rejectReasonFor = (releaseName, video = kitsuVideo) =>
+    findHardRejectReason({
+      candidate: makeCandidate(),
+      candidateReleases: [parseReleaseName(releaseName)],
+      video,
+    });
+
+  it.each([
+    '[SubsPlease] Show S2 - 05 (1080p)',
+    'Show.S02E05.1080p.WEB',
+    '[Group] Show - 05',
+    'Show.S01E17.1080p.WEB',
+    'Show S2 [Batch]',
+    '[Group] Show S2 (01-12) [1080p]',
+  ])('keeps %s', releaseName => {
+    expect(rejectReasonFor(releaseName)).toBeNull();
+  });
+
+  it('rejects a release that matches neither the IMDb pair nor the anime episode', () => {
+    expect(rejectReasonFor('[SubsPlease] Show S2 - 06 (1080p)')).toBe(
+      HardRejectReason.WRONG_SEASON,
+    );
+    expect(rejectReasonFor('Show.S01E18.1080p.WEB')).toBe(
+      HardRejectReason.WRONG_EPISODE,
+    );
+  });
+
+  it('judges a video without an anime episode by the IMDb pair alone', () => {
+    expect(
+      rejectReasonFor(
+        'Show.S02E05.1080p.WEB',
+        makeVideo({catalogSeason: 1, catalogEpisode: 17}),
+      ),
+    ).toBe(HardRejectReason.WRONG_SEASON);
   });
 });

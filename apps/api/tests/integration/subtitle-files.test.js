@@ -26,7 +26,10 @@ import {SubtitleVideoBinding} from '../../src/db/models/subtitle-video-binding.j
 import {Subtitle} from '../../src/db/models/subtitle.js';
 import {uuidV4} from '../../src/lib/common.js';
 import {markCredentialStatus} from '../../src/lib/credential-secret.js';
-import {openSubtitleSourceBreaker} from '../../src/lib/subtitle-search/subtitle-source-breaker.js';
+import {
+  openSubtitleSourceBreaker,
+  readSubtitleSourceBreaker,
+} from '../../src/lib/subtitle-search/subtitle-source-breaker.js';
 import {spendSubtitleSourceBudget} from '../../src/lib/subtitle-search/subtitle-source-budget.js';
 import {SubtitleAliasSource} from '../../src/lib/subtitle-sources/subtitle-alias-source.js';
 import {createSubtitleSourceRegistry} from '../../src/lib/subtitle-sources/subtitle-source-clients.js';
@@ -1050,20 +1053,49 @@ describe('a download for another source', () => {
     ]);
   });
 
-  it('answers download-failed for an error page and keeps its row', async () => {
+  it('answers download-failed for an error page, stores no row and downloads again later', async () => {
     const {userConfig} = await createUserConfig();
     const {urlCode} = await storeHit(MOVIE_ID);
-    yifyClient.downloadSubtitle.mockResolvedValue(
-      toDownload('<!DOCTYPE html><html><body>Server error</body></html>'),
-    );
+    yifyClient.downloadSubtitle
+      .mockResolvedValueOnce(
+        toDownload('<!DOCTYPE html><html><body>Server error</body></html>'),
+      )
+      .mockResolvedValueOnce(toDownload(TURKISH_SRT));
     const request = {userConfigId: userConfig.id, videoId: MOVIE_ID, urlCode};
 
     const firstResponse = await getSubtitleFile(request);
+    const subtitle = await findSubtitleByUrlCode(urlCode);
+    const rowAfterErrorPage = await SubtitleFile.findByPk(subtitle.id, {
+      attributes: ['subtitleId'],
+    });
+    const breakerAfterErrorPage = await readSubtitleSourceBreaker(
+      SubtitleSource.YIFY,
+      Date.now(),
+    );
     const secondResponse = await getSubtitleFile(request);
 
     expectMessage(firstResponse, SubtitleMessage.SUBTITLE_DOWNLOAD_FAILED);
-    expectMessage(secondResponse, SubtitleMessage.SUBTITLE_DOWNLOAD_FAILED);
-    expect(yifyClient.downloadSubtitle).toHaveBeenCalledTimes(1);
+    expect(rowAfterErrorPage).toBeNull();
+    expect(breakerAfterErrorPage.isOpen).toBe(false);
+    expect(secondResponse.statusCode).toBe(StatusCodes.OK);
+    expect(secondResponse.headers['cache-control']).toBe(FILE_CACHE_CONTROL);
+    expect(yifyClient.downloadSubtitle).toHaveBeenCalledTimes(2);
+    expect(await readStoredFile(subtitle.id)).not.toBeNull();
+  });
+
+  it('stores a real file that fails a content check', async () => {
+    const {userConfig} = await createUserConfig();
+    const {urlCode} = await storeHit(MOVIE_ID);
+    yifyClient.downloadSubtitle.mockResolvedValue(
+      toDownload('1\n00:00:01,000 --> 00:00:03,000\nMerhaba dünya.\n'),
+    );
+
+    await getSubtitleFile({
+      userConfigId: userConfig.id,
+      videoId: MOVIE_ID,
+      urlCode,
+    });
+
     const subtitle = await findSubtitleByUrlCode(urlCode);
     const storedFile = await SubtitleFile.findByPk(subtitle.id, {
       attributes: ['subtitleId', 'isFileValid'],

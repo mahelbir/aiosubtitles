@@ -8,12 +8,14 @@ import {SubtitleFileExtension} from '@repo/subtitle-core/constants/subtitle-core
 import {
   toHitReleaseNames,
   toNullableBoolean,
+  toSiteCount,
 } from '../subtitle-source-contract.js';
 import {SourceUnavailableError} from '../subtitle-source-errors.js';
 import {
-  isSubtitleSourceErrorBodyResponse,
   readSubtitleSourceFileName,
   SUBTITLE_SOURCE_BROWSER_USER_AGENT,
+  requireSubtitleSourceList,
+  throwIfErrorBodyResponse,
   toSubtitleSourceStatusError,
 } from '../subtitle-source-request.js';
 
@@ -206,12 +208,13 @@ function buildMovieSearchRequest(searchQuery, credential) {
   );
 }
 
-function findMovieId({body}, searchQuery) {
-  const siteMovies = body?.data;
-  if (!Array.isArray(siteMovies)) {
+function findMovieId({status, body}, searchQuery) {
+  if (status === StatusCodes.NOT_FOUND) {
     return null;
   }
-  const siteMovie = siteMovies.find(
+  const siteMovie = requireSubtitleSourceList(body?.data, {
+    subtitleSource: SubtitleSource.SUBSOURCE,
+  }).find(
     candidate =>
       isSiteId(candidate?.movieId) &&
       candidate.imdbId === searchQuery.imdbId &&
@@ -241,10 +244,6 @@ function toSiteFps(framerate) {
   return Number.isFinite(siteFps) && siteFps > 0 ? siteFps : null;
 }
 
-function toSiteDownloadCount(downloads) {
-  return Number.isSafeInteger(downloads) && downloads >= 0 ? downloads : null;
-}
-
 function toSearchHit(siteSubtitle) {
   const languageCode = toLanguageCode(siteSubtitle?.language);
   if (languageCode === null || !isSiteId(siteSubtitle.subtitleId)) {
@@ -272,7 +271,7 @@ function toSearchHit(siteSubtitle) {
         : null,
     isUploaderTrusted: null,
     isQuotaCostly: false,
-    siteDownloadCount: toSiteDownloadCount(siteSubtitle.downloads),
+    siteDownloadCount: toSiteCount(siteSubtitle.downloads),
     siteFps: toSiteFps(siteSubtitle.framerate),
     siteFileUrl: null,
     siteCueCount: null,
@@ -282,11 +281,15 @@ function toSearchHit(siteSubtitle) {
   };
 }
 
-function toSearchHits({body}) {
-  const siteSubtitles = body?.data;
-  return Array.isArray(siteSubtitles)
-    ? siteSubtitles.map(toSearchHit).filter(Boolean)
-    : [];
+function toSearchHits({status, body}) {
+  if (status === StatusCodes.NOT_FOUND) {
+    return [];
+  }
+  return requireSubtitleSourceList(body?.data, {
+    subtitleSource: SubtitleSource.SUBSOURCE,
+  })
+    .map(toSearchHit)
+    .filter(Boolean);
 }
 
 function buildDownloadRequest({siteFileId}, credential) {
@@ -309,12 +312,9 @@ function toDownload(response) {
       subtitleSource: SubtitleSource.SUBSOURCE,
     });
   }
-  if (isSubtitleSourceErrorBodyResponse(response.headers)) {
-    throw new SourceUnavailableError({
-      subtitleSource: SubtitleSource.SUBSOURCE,
-      cause: new Error('Error body in place of the archive.'),
-    });
-  }
+  throwIfErrorBodyResponse(response, {
+    subtitleSource: SubtitleSource.SUBSOURCE,
+  });
   return {
     fileBytes: response.body,
     fileNameHint: readSubtitleSourceFileName(response.headers),

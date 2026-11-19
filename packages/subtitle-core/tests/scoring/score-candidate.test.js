@@ -193,6 +193,23 @@ describe('scoreSubtitleCandidate', () => {
         totalScore: 0,
       });
     });
+
+    it('scores a match by the anime episode the same as a release without numbers', () => {
+      const video = makeVideo({
+        catalogSeason: 1,
+        catalogEpisode: 17,
+        kitsuEpisode: 5,
+      });
+      const animeMatch = score({
+        candidateReleases: [
+          makeReleaseInfo({seasonNumbers: [2], episodeNumbers: [5]}),
+        ],
+        video,
+      });
+      const numberless = score({candidateReleases: [makeReleaseInfo()], video});
+      expect(animeMatch.hardRejectReason).toBeNull();
+      expect(animeMatch.totalScore).toBe(numberless.totalScore);
+    });
   });
 
   describe('hard rejects', () => {

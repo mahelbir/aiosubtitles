@@ -26,7 +26,7 @@ export const betaseriesClient = {
       credential,
     );
     if (showRequest === null) {
-      return [];
+      return null;
     }
     const showId = betaseriesMapping.findShowId(
       await requestSubtitleSource({...showRequest, signal}),

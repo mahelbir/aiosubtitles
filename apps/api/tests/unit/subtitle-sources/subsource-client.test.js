@@ -62,7 +62,7 @@ describe('subsourceClient', () => {
   it('answers a search without a credential with no hits and no request', async () => {
     await expect(
       subsourceClient.searchSubtitles(makeSearchQuery(), null),
-    ).resolves.toEqual([]);
+    ).resolves.toBeNull();
   });
 
   it('answers a kitsu-only query with no hits and no request', async () => {
@@ -78,7 +78,7 @@ describe('subsourceClient', () => {
         }),
         makeSubtitleSourceCredential(),
       ),
-    ).resolves.toEqual([]);
+    ).resolves.toBeNull();
     expect(requestSubtitleSource).not.toHaveBeenCalled();
   });
 

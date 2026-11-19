@@ -23,7 +23,7 @@ export const gestdownClient = {
   async searchSubtitles(searchQuery, credential, {signal} = {}) {
     const showRequest = gestdownMapping.buildShowRequest(searchQuery);
     if (showRequest === null) {
-      return [];
+      return null;
     }
     const showId = gestdownMapping.findShowId(
       await requestSubtitleSource({...showRequest, signal}),

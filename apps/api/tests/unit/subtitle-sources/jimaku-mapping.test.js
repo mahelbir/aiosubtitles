@@ -31,6 +31,7 @@ const kitsuEpisodeQuery = makeSearchQuery({
   kitsuId: '46474',
   catalogSeason: 2,
   catalogEpisode: 1,
+  kitsuEpisode: 5,
   languageCodes: ['tur', 'jpn'],
 });
 const jsonHeaders = {'content-type': 'application/json'};
@@ -75,6 +76,15 @@ describe('jimakuMapping.toSearchTarget', () => {
         keyCredential,
       ),
     ).toEqual({kitsuId: '46474', kitsuEpisode: null});
+  });
+
+  it('reads the Kitsu id and episode the query carries, not the video id', () => {
+    expect(
+      jimakuMapping.toSearchTarget(
+        {...kitsuEpisodeQuery, videoId: 'kitsu:46474', kitsuEpisode: 7},
+        keyCredential,
+      ),
+    ).toEqual({kitsuId: '46474', kitsuEpisode: 7});
   });
 
   it('has no target without a key', () => {
@@ -527,6 +537,23 @@ describe('jimaku shared-address rate limit', () => {
       SUBTITLE_SOURCE_RETRY_AFTER_DEFAULT,
     );
   });
+
+  it.each(['0', '0.0'])(
+    'falls back to the shared wait for a reset time of %s',
+    resetAfter => {
+      expect(
+        catchError(() =>
+          jimakuMapping.toEntryIds({
+            ...rateLimitedResponse,
+            headers: {
+              ...rateLimitedResponse.headers,
+              'x-ratelimit-reset-after': resetAfter,
+            },
+          }),
+        ).retryAfterMs,
+      ).toBe(SUBTITLE_SOURCE_RETRY_AFTER_DEFAULT);
+    },
+  );
 
   it('caps a reset time longer than the shared maximum', () => {
     expect(

@@ -3,23 +3,11 @@ import {CredentialKind} from '@repo/shared/constants/credential.js';
 import {SubtitleSource} from '@repo/shared/constants/subtitle-source.js';
 import {readKitsuAnilistId} from '../../video-catalog/kitsu-mapping.js';
 import {SubtitleSourceBudgetScope} from '../subtitle-source-contract.js';
-import {SourceUnavailableError} from '../subtitle-source-errors.js';
 import {requestSubtitleSource} from '../subtitle-source-request.js';
 import {jimakuMapping} from './jimaku-mapping.js';
 
 const DOWNLOAD_WINDOW = 60000;
 const DOWNLOAD_MAX = 25;
-
-async function readEntryAnilistId(readAnilistId, kitsuId) {
-  try {
-    return await readAnilistId(kitsuId);
-  } catch {
-    throw new SourceUnavailableError({
-      subtitleSource: SubtitleSource.JIMAKU,
-      cause: new Error('Kitsu lookup failed.'),
-    });
-  }
-}
 
 async function listEntryHits({entryId, searchTarget, credential, signal}) {
   return jimakuMapping.toSearchHits(
@@ -55,12 +43,9 @@ export function createJimakuClient({readAnilistId = readKitsuAnilistId} = {}) {
         credential,
       );
       if (searchTarget === null) {
-        return [];
+        return null;
       }
-      const anilistId = await readEntryAnilistId(
-        readAnilistId,
-        searchTarget.kitsuId,
-      );
+      const anilistId = await readAnilistId(searchTarget.kitsuId);
       if (anilistId === null) {
         return [];
       }

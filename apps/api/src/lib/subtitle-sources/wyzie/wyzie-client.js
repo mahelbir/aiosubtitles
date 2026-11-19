@@ -8,6 +8,7 @@ import {
   SourceCredentialError,
   SourceUnavailableError,
 } from '../subtitle-source-errors.js';
+import {readSettledHitLists} from '../subtitle-source-hit-lists.js';
 import {requestSubtitleSource as requestSite} from '../subtitle-source-request.js';
 import {wyzieMapping} from './wyzie-mapping.js';
 
@@ -119,24 +120,21 @@ export function createWyzieClient({
           defaultCodenames,
         ) === null
       ) {
-        return [];
+        return null;
       }
       const codenames = wyzieMapping.listSearchCodenames(
         searchQuery,
         await readAvailableCodenames(credential, signal),
       );
+      if (codenames.length === 0) {
+        return null;
+      }
       const settledResults = await Promise.allSettled(
         codenames.map(codename =>
           searchCodename({searchQuery, credential, codename, signal}),
         ),
       );
-      const fulfilledResults = settledResults.filter(
-        ({status}) => status === 'fulfilled',
-      );
-      if (settledResults.length > 0 && fulfilledResults.length === 0) {
-        throw settledResults[0].reason;
-      }
-      return fulfilledResults.flatMap(({value}) => value);
+      return readSettledHitLists(settledResults, {isPartialKept: true}).flat();
     },
     async downloadSubtitle(subtitleRef, credential, {signal} = {}) {
       const downloadUrl = wyzieMapping.findDownloadUrl(

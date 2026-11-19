@@ -408,6 +408,57 @@ describe('altyazidbMapping.toSearchHits', () => {
     ).toEqual([]);
   });
 
+  it('reads an unknown title with its documented error envelope as no hits', () => {
+    expect(
+      altyazidbMapping.toSearchHits(
+        {
+          status: StatusCodes.NOT_FOUND,
+          headers: {'content-type': 'application/json'},
+          body: {success: false, error: 'Aradığınız içerik bulunamadı.'},
+        },
+        {isPackSearch: false},
+      ),
+    ).toEqual([]);
+  });
+
+  it('reads a known title with no subtitle in the asked language as no hits', async () => {
+    const episodeBody = await readFixture(EPISODE_FIXTURE);
+    expect(
+      altyazidbMapping.toSearchHits(
+        {
+          status: StatusCodes.OK,
+          headers: {},
+          body: {
+            ...episodeBody,
+            filters: {version_groups: []},
+            pagination: {
+              ...episodeBody.pagination,
+              total_pages: 0,
+              total_records: 0,
+            },
+            data: [],
+          },
+        },
+        {isPackSearch: false},
+      ),
+    ).toEqual([]);
+  });
+
+  it('reads a success envelope without a row list as an unavailable source', () => {
+    expect(
+      catchError(() =>
+        altyazidbMapping.toSearchHits(
+          {
+            status: StatusCodes.OK,
+            headers: {},
+            body: {success: true, data: {}},
+          },
+          {isPackSearch: false},
+        ),
+      ),
+    ).toBeInstanceOf(SourceUnavailableError);
+  });
+
   it('reads an error envelope as an unavailable source', () => {
     const error = catchError(() =>
       altyazidbMapping.toSearchHits(

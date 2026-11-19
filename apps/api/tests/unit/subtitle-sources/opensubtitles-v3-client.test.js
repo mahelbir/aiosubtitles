@@ -54,7 +54,7 @@ describe('opensubtitlesV3Client', () => {
         }),
         null,
       ),
-    ).resolves.toEqual([]);
+    ).resolves.toBeNull();
   });
 
   it('rejects a download without a file url as an unavailable source', async () => {

@@ -285,12 +285,62 @@ describe('thesubtitledbMapping.toSearchHits', () => {
     ['an object', {subtitles: {items: {id: 1}}}],
     ['no list', {subtitles: null}],
     ['a text body', 'Not found.'],
-  ])('reads %s in place of the item list as no hits', (_, body) => {
+  ])(
+    'reads %s in place of the item list as an unavailable source',
+    (_, body) => {
+      expect(
+        catchError(() =>
+          thesubtitledbMapping.toSearchHits({
+            status: StatusCodes.OK,
+            headers: {},
+            body,
+          }),
+        ),
+      ).toBeInstanceOf(SourceUnavailableError);
+    },
+  );
+
+  it('reads an empty item list as no hits', () => {
     expect(
       thesubtitledbMapping.toSearchHits({
         status: StatusCodes.OK,
         headers: {},
+        body: {subtitles: {items: []}},
+      }),
+    ).toEqual([]);
+  });
+
+  it.each([
+    [
+      'a title with no subtitle at all',
+      {
+        title: {imdb: 'tt0111161', media_type: 'movie', subtitle_count: 0},
+        subtitles: {total: 0, limit: 20, offset: 0, items: []},
+      },
+    ],
+    [
+      'a page the language filter emptied',
+      {
+        title: {imdb: 'tt0111161', media_type: 'movie', subtitle_count: 146},
+        subtitles: {total: 146, limit: 20, offset: 0, items: []},
+      },
+    ],
+  ])('reads the documented lookup page of %s as no hits', (_, body) => {
+    expect(
+      thesubtitledbMapping.toSearchHits({
+        status: StatusCodes.OK,
+        headers: {'content-type': 'application/json'},
         body,
+      }),
+    ).toEqual([]);
+  });
+
+  it('reads an unknown title with its not_found body as no hits', () => {
+    expect(
+      thesubtitledbMapping.toSearchHits({
+        status: StatusCodes.NOT_FOUND,
+        headers: {'content-type': 'application/json'},
+        body: {error: 'not_found', message: 'no title for tt0000000'},
       }),
     ).toEqual([]);
   });

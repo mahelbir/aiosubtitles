@@ -1,4 +1,4 @@
-import {clamp} from 'es-toolkit';
+import {clamp, partition} from 'es-toolkit';
 import {config} from '../../config/index.js';
 import {redis} from '../../redis/index.js';
 import {SubtitleSourceBudgetScope} from '../subtitle-sources/subtitle-source-contract.js';
@@ -67,6 +67,17 @@ export function toBudgetRequestMax({requestMax, budgetFactor, isBackground}) {
   );
 }
 
+function listSpentBudgets(downloadBudgets, credentialId) {
+  const [credentialBudgets, sourceBudgets] = partition(
+    downloadBudgets,
+    ({budgetScope}) => budgetScope === SubtitleSourceBudgetScope.CREDENTIAL,
+  );
+  if (credentialId && credentialBudgets.length > 0) {
+    return credentialBudgets;
+  }
+  return sourceBudgets.length > 0 ? sourceBudgets : [DEFAULT_DOWNLOAD_BUDGET];
+}
+
 export async function spendSubtitleSourceBudget(spendOptions) {
   const {isSpent} = await trySpendSubtitleSourceBudget(spendOptions);
   return isSpent;
@@ -78,17 +89,7 @@ export async function trySpendSubtitleSourceBudget({
   isBackground,
   nowMs = Date.now(),
 }) {
-  const declaredBudgets = client.downloadBudgets.filter(
-    ({budgetScope}) =>
-      budgetScope !== SubtitleSourceBudgetScope.CREDENTIAL || credentialId,
-  );
-  const hasSubtitleSourceBudget = declaredBudgets.some(
-    ({budgetScope}) =>
-      budgetScope === SubtitleSourceBudgetScope.SUBTITLE_SOURCE,
-  );
-  const spentBudgets = hasSubtitleSourceBudget
-    ? declaredBudgets
-    : [DEFAULT_DOWNLOAD_BUDGET, ...declaredBudgets];
+  const spentBudgets = listSpentBudgets(client.downloadBudgets, credentialId);
   const {budgetFactor} = await readSubtitleSourceBreaker(
     client.subtitleSource,
     nowMs,

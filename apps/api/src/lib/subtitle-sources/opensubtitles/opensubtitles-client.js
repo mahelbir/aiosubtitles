@@ -18,9 +18,12 @@ import {
 } from '../subtitle-source-request.js';
 import {opensubtitlesMapping} from './opensubtitles-mapping.js';
 import * as opensubtitlesSession from './opensubtitles-session.js';
+import {toOpensubtitlesSessionKey} from './opensubtitles-session.js';
 
 const CREDENTIAL_DOWNLOAD_WINDOW = 5000;
 const CREDENTIAL_DOWNLOAD_MAX = 1;
+const APP_KEY_DOWNLOAD_WINDOW = 60000;
+const APP_KEY_DOWNLOAD_MAX = 10;
 
 const opensubtitlesLogger = createLogger('opensubtitles');
 
@@ -61,7 +64,7 @@ export function createOpensubtitlesClient({
   sessionStore = opensubtitlesSession,
   logger = opensubtitlesLogger,
 }) {
-  const sessionByCredentialId = new Map();
+  const sessionBySessionKey = new Map();
 
   async function runStoreCall(storeCall) {
     try {
@@ -75,9 +78,12 @@ export function createOpensubtitlesClient({
     }
   }
 
-  function storeQuotaReport(credentialId, quotaReport) {
+  function storeQuotaReport(credential, quotaReport) {
     runStoreCall(() =>
-      sessionStore.storeOpensubtitlesQuota(credentialId, quotaReport),
+      sessionStore.storeOpensubtitlesQuota(
+        toOpensubtitlesSessionKey(credential),
+        quotaReport,
+      ),
     );
   }
 
@@ -89,7 +95,10 @@ export function createOpensubtitlesClient({
       {credentialId: credential.credentialId},
     );
     await runStoreCall(() =>
-      sessionStore.storeOpensubtitlesSession(credential.credentialId, session),
+      sessionStore.storeOpensubtitlesSession(
+        toOpensubtitlesSessionKey(credential),
+        session,
+      ),
     );
     return session;
   }
@@ -97,33 +106,34 @@ export function createOpensubtitlesClient({
   async function loadSession(credential) {
     return (
       (await runStoreCall(() =>
-        sessionStore.readOpensubtitlesSession(credential.credentialId),
+        sessionStore.readOpensubtitlesSession(
+          toOpensubtitlesSessionKey(credential),
+        ),
       )) ?? logIn(credential)
     );
   }
 
   function getSession(credential, signal) {
-    const {credentialId} = credential;
-    let sessionPromise = sessionByCredentialId.get(credentialId);
+    const sessionKey = toOpensubtitlesSessionKey(credential);
+    let sessionPromise = sessionBySessionKey.get(sessionKey);
     if (!sessionPromise) {
       sessionPromise = loadSession(credential).finally(() => {
-        sessionByCredentialId.delete(credentialId);
+        sessionBySessionKey.delete(sessionKey);
       });
-      sessionByCredentialId.set(credentialId, sessionPromise);
+      sessionBySessionKey.set(sessionKey, sessionPromise);
     }
     return awaitUnlessAborted(sessionPromise, signal);
   }
 
   async function refreshSession(credential, staleSession, signal) {
+    const sessionKey = toOpensubtitlesSessionKey(credential);
     const storedSession = await runStoreCall(() =>
-      sessionStore.readOpensubtitlesSession(credential.credentialId),
+      sessionStore.readOpensubtitlesSession(sessionKey),
     );
     if (storedSession && storedSession.token !== staleSession.token) {
       return storedSession;
     }
-    await runStoreCall(() =>
-      sessionStore.dropOpensubtitlesSession(credential.credentialId),
-    );
+    await runStoreCall(() => sessionStore.dropOpensubtitlesSession(sessionKey));
     return getSession(credential, signal);
   }
 
@@ -166,7 +176,7 @@ export function createOpensubtitlesClient({
       } catch (error) {
         if (error instanceof SourceRateLimitError) {
           storeQuotaReport(
-            credentialId,
+            credential,
             opensubtitlesMapping.toQuotaReport(response),
           );
         }
@@ -187,13 +197,17 @@ export function createOpensubtitlesClient({
           }),
           signal,
         }),
-        runStoreCall(() => sessionStore.readOpensubtitlesQuota(credentialId)),
+        runStoreCall(() =>
+          sessionStore.readOpensubtitlesQuota(
+            toOpensubtitlesSessionKey(credential),
+          ),
+        ),
       ]);
       return opensubtitlesMapping.toQuota(response, cachedQuota, {
         credentialId,
       });
     });
-    storeQuotaReport(credentialId, quota);
+    storeQuotaReport(credential, quota);
     return opensubtitlesMapping.toAccountCheck(quota);
   }
 
@@ -216,6 +230,11 @@ export function createOpensubtitlesClient({
         windowMs: CREDENTIAL_DOWNLOAD_WINDOW,
         requestMax: CREDENTIAL_DOWNLOAD_MAX,
       },
+      {
+        budgetScope: SubtitleSourceBudgetScope.SUBTITLE_SOURCE,
+        windowMs: APP_KEY_DOWNLOAD_WINDOW,
+        requestMax: APP_KEY_DOWNLOAD_MAX,
+      },
     ],
     canSearchWithoutCredential: () => Boolean(apiKey),
     canDownloadWithoutCredential: () => false,
@@ -225,7 +244,7 @@ export function createOpensubtitlesClient({
         {credential, apiKey},
       );
       if (searchRequest === null) {
-        return [];
+        return null;
       }
       return opensubtitlesMapping.toSearchHits(
         await requestSubtitleSource({...searchRequest, signal}),
@@ -248,7 +267,7 @@ export function createOpensubtitlesClient({
         }),
         downloadLink,
       );
-      storeQuotaReport(accountCredential.credentialId, {
+      storeQuotaReport(accountCredential, {
         quotaRemainingCount: downloadLink.quotaRemainingCount,
         quotaResetAt: downloadLink.quotaResetAt,
       });
@@ -276,7 +295,9 @@ export function createOpensubtitlesClient({
       }
       opensubtitlesMapping.requireApiKey(apiKey);
       const cachedQuota = await runStoreCall(() =>
-        sessionStore.readOpensubtitlesQuota(credential.credentialId),
+        sessionStore.readOpensubtitlesQuota(
+          toOpensubtitlesSessionKey(credential),
+        ),
       );
       return isQuotaComplete(cachedQuota)
         ? opensubtitlesMapping.toAccountCheck(cachedQuota)

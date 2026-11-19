@@ -88,7 +88,7 @@ describe('stremioCommunitySubtitlesClient', () => {
   it('resolves no hits without a token, without a request', async () => {
     await expect(
       stremioCommunitySubtitlesClient.searchSubtitles(makeSearchQuery(), null),
-    ).resolves.toEqual([]);
+    ).resolves.toBeNull();
   });
 
   it('resolves no hits for a credential with a blank token, without a request', async () => {
@@ -97,7 +97,7 @@ describe('stremioCommunitySubtitlesClient', () => {
         ...tokenCredential,
         accessToken: '',
       }),
-    ).resolves.toEqual([]);
+    ).resolves.toBeNull();
   });
 
   it('refuses a download without a token, without a request', async () => {

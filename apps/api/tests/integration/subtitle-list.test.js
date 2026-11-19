@@ -99,6 +99,12 @@ const CATALOG_BODIES = {
       videos: [
         {id: `kitsu:${KITSU_ID}:4`, episode: 4, imdbSeason: 1, imdbEpisode: 4},
         {id: `kitsu:${KITSU_ID}:5`, episode: 5, imdbSeason: 1, imdbEpisode: 5},
+        {
+          id: `kitsu:${KITSU_ID}:6`,
+          episode: 6,
+          imdbSeason: 1,
+          imdbEpisode: 18,
+        },
       ],
     },
   },
@@ -755,9 +761,12 @@ describe('the subtitle list route', () => {
         kitsuId: KITSU_ID,
         catalogSeason: 1,
         catalogEpisode: 5,
+        kitsuEpisode: 5,
         tvdbId: '267440',
         catalogTitle: 'Attack on Titan',
         catalogYear: 2013,
+        isEpisodeResolved: true,
+        isCatalogResolved: true,
       }),
     ]);
     expect(catalogRequest).toHaveBeenCalledWith(
@@ -1081,6 +1090,50 @@ describe('the subtitle list pack entries', () => {
     );
   });
 
+  it('lists a Kitsu pack numbered by the anime episode and binds its entry', async () => {
+    const {userConfig} = await createListUserConfig();
+    const kitsuVideoId = `kitsu:${KITSU_ID}:6`;
+    const [packUrlCode] = await storeHits(kitsuVideoId, [
+      makeHit({
+        siteFileId: 'pack-anime',
+        isSitePack: true,
+        releaseNames: ['[Group] Show (Batch)'],
+      }),
+    ]);
+    const packSubtitle = await findSubtitle(packUrlCode);
+    await expandArchive({
+      packSubtitle,
+      fileBytes: zipSync({
+        'Show S2 - 05.srt': strToU8(TURKISH_SRT),
+        'Show S2 - 06.srt': strToU8(OTHER_TURKISH_SRT),
+      }),
+      fileOrigin: SubtitleFileOrigin.DIRECT,
+    });
+
+    const subtitles = await getSubtitleList({
+      userConfigId: userConfig.id,
+      videoType: 'anime',
+      videoId: kitsuVideoId,
+    });
+    const app = await getTestApp();
+    const fileResponse = await app.inject({
+      method: 'GET',
+      url: `${getTestAppBasePath()}/${userConfig.id}/subtitle-files/${kitsuVideoId}/${packUrlCode}.srt`,
+    });
+
+    expect(listUrlCodes(subtitles)).toEqual([packUrlCode]);
+    expect(fileResponse.statusCode).toBe(StatusCodes.OK);
+    expect(
+      await SubtitleVideoBinding.findAll({
+        attributes: ['videoId', 'boundArchiveEntryPath'],
+        where: {subtitleId: packSubtitle.id},
+        raw: true,
+      }),
+    ).toEqual([
+      {videoId: kitsuVideoId, boundArchiveEntryPath: 'Show S2 - 06.srt'},
+    ]);
+  });
+
   it('lets the pack row stand for its bound entry', async () => {
     const {userConfig} = await createListUserConfig();
     const {episodeId, packSubtitle, packUrlCode, plainUrlCode} =
@@ -1293,6 +1346,90 @@ describe('a failing dependency of the subtitle list', () => {
 
     expect(catalogRequest).toHaveBeenCalled();
     expect(listUrlCodes(subtitles)).toEqual([toUrlCode(searchHit)]);
+    expect(searchQueries(thesubtitledbClient)).toEqual([
+      expect.objectContaining({
+        isEpisodeResolved: true,
+        isCatalogResolved: false,
+      }),
+    ]);
+  });
+
+  it('searches an unmapped kitsu episode as resolved, without an IMDb id', async () => {
+    const {userConfig} = await createListUserConfig();
+
+    await getSubtitleList({
+      userConfigId: userConfig.id,
+      videoType: 'anime',
+      videoId: `kitsu:${KITSU_ID}:99`,
+    });
+
+    expect(searchQueries(thesubtitledbClient)).toEqual([
+      expect.objectContaining({
+        imdbId: null,
+        kitsuEpisode: 99,
+        isEpisodeResolved: true,
+      }),
+    ]);
+  });
+
+  describe('the search cache of a kitsu episode', () => {
+    function answerLikeAnAnimeSource(client) {
+      client.searchSubtitles.mockImplementation(async searchQuery =>
+        searchQuery.kitsuId
+          ? [makeSubtitleSourceHit({subtitleSource: client.subtitleSource})]
+          : null,
+      );
+    }
+
+    function answerLikeAnImdbSource(client) {
+      client.searchSubtitles.mockImplementation(async searchQuery =>
+        searchQuery.imdbId ? [] : null,
+      );
+    }
+
+    function readCacheKeys(subtitleSource) {
+      return redis.keys(`subtitle-search-cache:v1:${subtitleSource}:*`);
+    }
+
+    it("caches the anime source's answer but not the IMDb source's for an unmapped episode", async () => {
+      const {userConfig} = await createListUserConfig();
+      answerLikeAnAnimeSource(opensubtitlesV3Client);
+      answerLikeAnImdbSource(thesubtitledbClient);
+
+      await getSubtitleList({
+        userConfigId: userConfig.id,
+        videoType: 'anime',
+        videoId: `kitsu:${KITSU_ID}:99`,
+      });
+      await drainPendingSearches();
+
+      await expect(
+        readCacheKeys(SubtitleSource.OPENSUBTITLES_V3),
+      ).resolves.not.toEqual([]);
+      await expect(
+        readCacheKeys(SubtitleSource.THESUBTITLEDB),
+      ).resolves.toEqual([]);
+    });
+
+    it('caches nothing when the Kitsu lookup fails', async () => {
+      const {userConfig} = await createListUserConfig();
+      answerLikeAnAnimeSource(opensubtitlesV3Client);
+      answerLikeAnImdbSource(thesubtitledbClient);
+
+      await getSubtitleList({
+        userConfigId: userConfig.id,
+        videoType: 'anime',
+        videoId: 'kitsu:9999:5',
+      });
+      await drainPendingSearches();
+
+      expect(searchQueries(opensubtitlesV3Client)).toEqual([
+        expect.objectContaining({isEpisodeResolved: false}),
+      ]);
+      await expect(redis.keys('subtitle-search-cache:v1:*')).resolves.toEqual(
+        [],
+      );
+    });
   });
 
   it('answers an empty list when the configuration cannot be read', async () => {

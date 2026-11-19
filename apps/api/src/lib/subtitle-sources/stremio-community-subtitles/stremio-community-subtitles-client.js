@@ -27,11 +27,12 @@ export const stremioCommunitySubtitlesClient = {
       credential,
     );
     if (searchRequest === null) {
-      return [];
+      return null;
     }
     return stremioCommunitySubtitlesMapping.toSearchHits(
       await requestSubtitleSource({...searchRequest, signal}),
       searchQuery,
+      credential,
     );
   },
   async downloadSubtitle(subtitleRef, credential, {signal} = {}) {

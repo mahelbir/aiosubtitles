@@ -33,7 +33,7 @@ export const anisubClient = {
   async searchSubtitles(searchQuery, credential, {signal} = {}) {
     const searchRequest = anisubMapping.buildSearchRequest(searchQuery);
     if (searchRequest === null) {
-      return [];
+      return null;
     }
     return anisubMapping.toSearchHits(
       await requestSubtitleSource({...searchRequest, signal}),

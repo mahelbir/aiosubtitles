@@ -11,9 +11,11 @@ import {
 import {
   toHitReleaseNames,
   toHitSiteFileId,
+  toSiteCount,
 } from '../subtitle-source-contract.js';
 import {
   readSubtitleSourceFileName,
+  requireSubtitleSourceList,
   toSubtitleSourceStatusError,
 } from '../subtitle-source-request.js';
 
@@ -63,14 +65,13 @@ function buildShowRequest({videoType, tvdbId, catalogSeason, catalogEpisode}) {
   );
 }
 
-function findShowId({body}, {tvdbId}) {
-  const shows = body?.shows;
-  if (!Array.isArray(shows)) {
+function findShowId({status, body}, {tvdbId}) {
+  if (status === StatusCodes.NOT_FOUND) {
     return null;
   }
-  const matchingShow = shows.find(
-    show => !isNil(show?.tvDbId) && String(show.tvDbId) === tvdbId,
-  );
+  const matchingShow = requireSubtitleSourceList(body?.shows, {
+    subtitleSource: SubtitleSource.GESTDOWN,
+  }).find(show => !isNil(show?.tvDbId) && String(show.tvDbId) === tvdbId);
   return toSiteId(matchingShow?.id);
 }
 
@@ -93,12 +94,6 @@ function buildSubtitlesRequest(
     `${GESTDOWN_URL}/subtitles/get/${pathSegments.join('/')}`,
     {acceptedStatuses: [StatusCodes.LOCKED]},
   );
-}
-
-function toSiteDownloadCount(downloadCount) {
-  return Number.isSafeInteger(downloadCount) && downloadCount >= 0
-    ? downloadCount
-    : null;
 }
 
 function toSearchHit(siteSubtitle, languageCode) {
@@ -124,7 +119,7 @@ function toSearchHit(siteSubtitle, languageCode) {
     isMachineTranslated: null,
     isUploaderTrusted: null,
     isQuotaCostly: false,
-    siteDownloadCount: toSiteDownloadCount(siteSubtitle.downloadCount),
+    siteDownloadCount: toSiteCount(siteSubtitle.downloadCount),
     siteFps: null,
     siteFileUrl: null,
     siteCueCount: null,
@@ -134,12 +129,13 @@ function toSearchHit(siteSubtitle, languageCode) {
   };
 }
 
-function toSearchHits({body}, languageCode) {
-  const siteSubtitles = body?.matchingSubtitles;
-  if (!Array.isArray(siteSubtitles)) {
+function toSearchHits({status, body}, languageCode) {
+  if (status === StatusCodes.NOT_FOUND || status === StatusCodes.LOCKED) {
     return [];
   }
-  return siteSubtitles
+  return requireSubtitleSourceList(body?.matchingSubtitles, {
+    subtitleSource: SubtitleSource.GESTDOWN,
+  })
     .map(siteSubtitle => toSearchHit(siteSubtitle, languageCode))
     .filter(Boolean);
 }

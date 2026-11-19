@@ -11,6 +11,7 @@ import {SourceUnavailableError} from '../subtitle-source-errors.js';
 import {
   isSubtitleSourceFileUrl,
   readSubtitleSourceFileName,
+  requireSubtitleSourceList,
   toSubtitleSourceStatusError,
 } from '../subtitle-source-request.js';
 
@@ -82,11 +83,13 @@ function toSearchHit(siteSubtitle, languageCodes) {
   };
 }
 
-function toSearchHits({body}, {languageCodes}) {
-  const siteSubtitles = body?.subtitles;
-  if (!Array.isArray(siteSubtitles)) {
+function toSearchHits({status, body}, {languageCodes}) {
+  if (status === StatusCodes.NOT_FOUND) {
     return [];
   }
+  const siteSubtitles = requireSubtitleSourceList(body?.subtitles, {
+    subtitleSource: SubtitleSource.OPENSUBTITLES_V3,
+  });
   const askedLanguageCodes = new Set(languageCodes);
   return siteSubtitles
     .map(siteSubtitle => toSearchHit(siteSubtitle, askedLanguageCodes))

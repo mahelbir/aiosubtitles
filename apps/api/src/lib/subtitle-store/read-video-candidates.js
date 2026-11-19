@@ -26,16 +26,25 @@ const SUBTITLE_SOURCE_ALIAS_SOURCES = SubtitleAliasSource.values.filter(
   aliasSource => SubtitleSource.has(aliasSource),
 );
 
-export async function readVideoCandidates({videoId, videoContext}) {
+export async function readVideoCandidates({
+  videoId,
+  videoContext,
+  scopedUrlCodes = [],
+}) {
   const candidateRows = await SubtitleVideoCandidate.withScope('link').findAll({
     where: {videoId},
     raw: true,
   });
-  if (candidateRows.length === 0) {
+  if (candidateRows.length === 0 && scopedUrlCodes.length === 0) {
     return [];
   }
   const subtitles = await Subtitle.withScope('withFileFacts').findAll({
-    where: {id: candidateRows.map(({subtitleId}) => subtitleId)},
+    where: {
+      [Op.or]: [
+        {id: candidateRows.map(({subtitleId}) => subtitleId)},
+        {urlCode: scopedUrlCodes},
+      ],
+    },
   });
   const packSubtitles = subtitles.filter(({isSitePack}) => isSitePack);
   const [
@@ -181,6 +190,7 @@ function toPackCandidates({
           entryPaths: packInnerEntryPaths,
           seasonNumber: videoContext.catalogSeason,
           episodeNumber: videoContext.catalogEpisode,
+          alternateEpisodeNumber: videoContext.kitsuEpisode ?? null,
         }));
   const boundSubtitle = packInnerSubtitles.find(
     ({archiveEntryPath}) => archiveEntryPath === boundArchiveEntryPath,

@@ -13,9 +13,10 @@ import {
   SourceUnavailableError,
 } from '../subtitle-source-errors.js';
 import {
-  isSubtitleSourceErrorBodyResponse,
   isSubtitleSourceFileUrl,
   readSubtitleSourceFileName,
+  requireSubtitleSourceList,
+  throwIfErrorBodyResponse,
   toSubtitleSourceStatusError,
 } from '../subtitle-source-request.js';
 
@@ -112,6 +113,15 @@ function readFoundBody(response, credential) {
   return isNothingFound(response) ? null : response.body;
 }
 
+function readFoundList(response, credential, listName) {
+  assertKnownErrorAnswer(response, credential);
+  return response.status === StatusCodes.NOT_FOUND || isNothingFound(response)
+    ? []
+    : requireSubtitleSourceList(response.body?.[listName], {
+        subtitleSource: SubtitleSource.BETASERIES,
+      });
+}
+
 function buildShowRequest(searchQuery, credential) {
   if (
     !credential ||
@@ -151,11 +161,7 @@ function buildEpisodeRequest(
 }
 
 function findEpisodeId(response, {catalogSeason, catalogEpisode}, credential) {
-  const siteEpisodes = readFoundBody(response, credential)?.episodes;
-  if (!Array.isArray(siteEpisodes)) {
-    return null;
-  }
-  const siteEpisode = siteEpisodes.find(
+  const siteEpisode = readFoundList(response, credential, 'episodes').find(
     candidate =>
       toSiteId(candidate?.id) !== null &&
       toSiteNumber(candidate.season) === catalogSeason &&
@@ -227,12 +233,9 @@ function toSearchHit(siteSubtitle, {apiKey}) {
 }
 
 function toSearchHits(response, credential) {
-  const siteSubtitles = readFoundBody(response, credential)?.subtitles;
-  return Array.isArray(siteSubtitles)
-    ? siteSubtitles
-        .map(siteSubtitle => toSearchHit(siteSubtitle, credential))
-        .filter(Boolean)
-    : [];
+  return readFoundList(response, credential, 'subtitles')
+    .map(siteSubtitle => toSearchHit(siteSubtitle, credential))
+    .filter(Boolean);
 }
 
 function buildDownloadRequest({siteFileUrl}) {
@@ -259,12 +262,9 @@ function toDownload(response) {
       subtitleSource: SubtitleSource.BETASERIES,
     });
   }
-  if (isSubtitleSourceErrorBodyResponse(response.headers)) {
-    throw new SourceUnavailableError({
-      subtitleSource: SubtitleSource.BETASERIES,
-      cause: new Error('Error body in place of the file.'),
-    });
-  }
+  throwIfErrorBodyResponse(response, {
+    subtitleSource: SubtitleSource.BETASERIES,
+  });
   return {
     fileBytes: response.body,
     fileNameHint: readSubtitleSourceFileName(response.headers),

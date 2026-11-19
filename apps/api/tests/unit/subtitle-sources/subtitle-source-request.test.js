@@ -22,17 +22,19 @@ import {
   isSubtitleSourceHtmlResponse,
   isSubtitleSourceJsonResponse,
   parseRetryAfterMs,
+  parseSiteFileUrl,
   readCappedBody,
   readSubtitleSourceResponse,
   readSubtitleSourceBodyBytes,
   readSubtitleSourceContentType,
   readSubtitleSourceFileName,
   readSubtitleSourceJson,
+  requireSubtitleSourceList,
   shouldReadSubtitleSourceBody,
   toSubtitleSourceError,
   toSubtitleSourceStatusError,
 } from '../../../src/lib/subtitle-sources/subtitle-source-request.js';
-import {toErrorText} from '../../helpers/caught-error.js';
+import {catchError, toErrorText} from '../../helpers/caught-error.js';
 
 const RESPONSE_BYTES_MAX = 20971520;
 const RETRY_AFTER_DEFAULT_MS = 60000;
@@ -344,6 +346,35 @@ describe('readSubtitleSourceResponse', () => {
         subtitleSource: 'thesubtitledb',
       }),
     ).toMatchObject({status: 200, body: {hits: []}});
+  });
+
+  it('refuses an HTML page where file bytes were asked', () => {
+    const error = catchReadError(
+      makeMaxiosResponse({
+        headers: {'content-type': 'text/html; charset=utf-8'},
+        body: '<html>Maintenance</html>',
+      }),
+      {responseType: 'bytes'},
+    );
+    expect(error).toBeInstanceOf(SourceUnavailableError);
+    expect(error.cause.message).toBe('Error page in place of the file.');
+  });
+
+  it('hands an accepted refusal its HTML bytes for the mapper to read', () => {
+    expect(
+      readSubtitleSourceResponse(
+        makeMaxiosResponse({
+          status: 403,
+          headers: {'content-type': 'text/html'},
+          body: '<html>Forbidden</html>',
+        }),
+        {
+          subtitleSource: 'thesubtitledb',
+          responseType: 'bytes',
+          acceptedStatuses: [403],
+        },
+      ),
+    ).toMatchObject({status: 403});
   });
 
   it('reads a text answer as a string', () => {
@@ -1345,6 +1376,15 @@ describe('toSubtitleSourceStatusError', () => {
     expect(error).toMatchObject({retryAfterMs: 30000, credentialId: 'c1'});
   });
 
+  it('reads a 503 with a wait header as a source-wide rate limit, never the credential', () => {
+    const error = toSubtitleSourceStatusError(
+      {status: 503, headers: {'retry-after': '600'}},
+      {subtitleSource: 'thesubtitledb', credentialId: 'c1'},
+    );
+    expect(error).toBeInstanceOf(SourceRateLimitError);
+    expect(error).toMatchObject({retryAfterMs: 600000, credentialId: null});
+  });
+
   it('blames a 401 on the credential only when one was sent', () => {
     expect(
       toSubtitleSourceStatusError(
@@ -1358,6 +1398,65 @@ describe('toSubtitleSourceStatusError', () => {
         {subtitleSource: 'thesubtitledb', credentialId: null},
       ),
     ).toBeInstanceOf(SourceUnavailableError);
+  });
+});
+
+describe('parseSiteFileUrl', () => {
+  const siteRule = {
+    isSiteHostname: hostname => hostname === 'files.example.com',
+    pathPrefix: '/files/',
+  };
+
+  it('reads a secure url on the site host under the file path', () => {
+    expect(
+      parseSiteFileUrl('https://files.example.com/files/1.zip', siteRule)?.href,
+    ).toBe('https://files.example.com/files/1.zip');
+  });
+
+  it('reads a path against the base url it is given', () => {
+    expect(
+      parseSiteFileUrl('/files/1.zip', {
+        ...siteRule,
+        baseUrl: 'https://files.example.com/',
+      })?.href,
+    ).toBe('https://files.example.com/files/1.zip');
+  });
+
+  it.each([
+    ['no url', 'not a url'],
+    ['no text', null],
+    ['plain http', 'http://files.example.com/files/1.zip'],
+    ['another host', 'https://other.example.com/files/1.zip'],
+    ['a user and password', 'https://u:p@files.example.com/files/1.zip'],
+    ['a port', 'https://files.example.com:8443/files/1.zip'],
+    ['another path', 'https://files.example.com/pages/1.html'],
+  ])('refuses %s', (_, siteUrl) => {
+    expect(parseSiteFileUrl(siteUrl, siteRule)).toBeNull();
+  });
+});
+
+describe('requireSubtitleSourceList', () => {
+  it('passes a list through, an empty one included', () => {
+    const siteList = [{id: 1}];
+    expect(requireSubtitleSourceList(siteList, {subtitleSource: 'subdl'})).toBe(
+      siteList,
+    );
+    expect(requireSubtitleSourceList([], {subtitleSource: 'subdl'})).toEqual(
+      [],
+    );
+  });
+
+  it.each([
+    ['an object', {id: 1}],
+    ['null', null],
+    ['a missing field', undefined],
+    ['text', 'Not found.'],
+  ])('reads %s as an unavailable source', (_, siteValue) => {
+    const error = catchError(() =>
+      requireSubtitleSourceList(siteValue, {subtitleSource: 'subdl'}),
+    );
+    expect(error).toBeInstanceOf(SourceUnavailableError);
+    expect(error.cause.message).toBe('Answer is not in the expected shape.');
   });
 });
 

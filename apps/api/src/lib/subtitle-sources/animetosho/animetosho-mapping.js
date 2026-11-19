@@ -1,14 +1,14 @@
 import {createDecompressStream} from '@napi-rs/lzma/xz';
-import {isPlainObject, sortBy, uniq} from 'es-toolkit';
+import {isNil, isPlainObject, sortBy, uniq} from 'es-toolkit';
 import {StatusCodes} from 'http-status-codes';
 import {SubtitleLanguage} from '@repo/shared/constants/subtitle-language.js';
 import {SubtitleSource} from '@repo/shared/constants/subtitle-source.js';
 import {ARCHIVE_INFLATED_BYTES_MAX} from '@repo/subtitle-core/archive/extract-subtitle-entries.js';
-import {parseReleaseName} from '@repo/subtitle-core/release-name/parse-release-name.js';
 import {
-  VideoIdKind,
-  parseStremioVideoId,
-} from '../../video-catalog/parse-video-id.js';
+  ASS_FILE_FORMATS,
+  SubtitleFileFormat,
+} from '@repo/subtitle-core/constants/subtitle-core-enums.js';
+import {parseReleaseName} from '@repo/subtitle-core/release-name/parse-release-name.js';
 import {fromSiteLanguageCode} from '../site-language-codes.js';
 import {
   toHitFileExtension,
@@ -18,6 +18,7 @@ import {
 } from '../subtitle-source-contract.js';
 import {SourceUnavailableError} from '../subtitle-source-errors.js';
 import {
+  parseSiteFileUrl,
   readCappedBody,
   toSubtitleSourceError,
   toSubtitleSourceStatusError,
@@ -27,11 +28,15 @@ export const ANIMETOSHO_TORRENT_OPEN_MAX = 5;
 
 const ANIMETOSHO_FEED_URL = 'https://feed.animetosho.net/json';
 const ANIMETOSHO_STORAGE_HOSTNAME = 'storage.animetosho.net';
-const SECURE_PROTOCOL = 'https:';
 const SUBTITLE_ATTACHMENT_TYPE = 'subtitle';
 const XZ_SUFFIX_PATTERN = /\.xz$/i;
 const BRAZILIAN_NAME_PATTERN = /brazil|\bbr\b/i;
-const ATTACHMENT_FORMATS = new Set(['ass', 'ssa', 'srt', 'subrip']);
+const SUBRIP_CODEC_NAME = 'subrip';
+const ATTACHMENT_FORMATS = new Set([
+  ...ASS_FILE_FORMATS,
+  SubtitleFileFormat.SRT,
+  SUBRIP_CODEC_NAME,
+]);
 
 function toUnavailableError(reason) {
   return new SourceUnavailableError({
@@ -65,14 +70,9 @@ function buildFeedUrl(searchParams) {
 }
 
 function parseAttachmentUrl(siteFileUrl) {
-  if (typeof siteFileUrl !== 'string' || !URL.canParse(siteFileUrl)) {
-    return null;
-  }
-  const attachmentUrl = new URL(siteFileUrl);
-  return attachmentUrl.protocol === SECURE_PROTOCOL &&
-    attachmentUrl.hostname === ANIMETOSHO_STORAGE_HOSTNAME
-    ? attachmentUrl
-    : null;
+  return parseSiteFileUrl(siteFileUrl, {
+    isSiteHostname: hostname => hostname === ANIMETOSHO_STORAGE_HOSTNAME,
+  });
 }
 
 function isEpisodeRelease(
@@ -87,11 +87,8 @@ function isEpisodeRelease(
   return episodeNumbers.includes(kitsuEpisode);
 }
 
-function toAnimeLookup({videoId}) {
-  const {videoIdKind, kitsuId, catalogEpisode} = parseStremioVideoId(videoId);
-  return videoIdKind === VideoIdKind.KITSU
-    ? {kitsuId, kitsuEpisode: catalogEpisode}
-    : null;
+function toAnimeLookup({kitsuId, kitsuEpisode}) {
+  return isNil(kitsuId) ? null : {kitsuId, kitsuEpisode: kitsuEpisode ?? null};
 }
 
 function buildFeedRequest(anidbId) {

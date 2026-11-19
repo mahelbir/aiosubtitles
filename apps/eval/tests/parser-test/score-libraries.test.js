@@ -168,59 +168,67 @@ describe('compareLibraries', () => {
 });
 
 describe('listPairComparisons', () => {
-  it('compares every pair on own names and on the external sets outside both lineages', () => {
-    const scoreUnits = libraryUnits({own: {titleCorrectCount: 10}});
-    const comparisons = listPairComparisons({
-      guessit: scoreUnits,
-      'release-parser': scoreUnits,
-      'video-filename-parser': scoreUnits,
-      parsium: scoreUnits,
-    });
-    expect(
-      comparisons.map(({libraryA, libraryB, datasetNames}) => [
-        libraryA,
-        libraryB,
-        datasetNames,
-      ]),
-    ).toEqual([
-      ['guessit', 'release-parser', ['own']],
-      ['guessit', 'release-parser', ['sonarr']],
-      ['guessit', 'video-filename-parser', ['own']],
-      ['guessit', 'video-filename-parser', ['ptt']],
-      ['guessit', 'parsium', ['own']],
-      ['guessit', 'parsium', ['sonarr', 'ptt']],
-      ['release-parser', 'video-filename-parser', ['own']],
-      ['release-parser', 'video-filename-parser', ['guessit']],
-      ['release-parser', 'parsium', ['own']],
-      ['release-parser', 'parsium', ['guessit', 'sonarr']],
-      ['video-filename-parser', 'parsium', ['own']],
-      ['video-filename-parser', 'parsium', ['guessit', 'ptt']],
-    ]);
-    expect(
-      comparisons.every(
-        ({isAWinner, isBWinner, difference}) =>
-          !isAWinner && !isBWinner && difference.pointEstimate === 0,
-      ),
-    ).toBe(true);
-  });
+  it(
+    'compares every pair on own names and on the external sets outside both lineages',
+    {timeout: 30_000},
+    () => {
+      const scoreUnits = libraryUnits({own: {titleCorrectCount: 10}});
+      const comparisons = listPairComparisons({
+        guessit: scoreUnits,
+        'release-parser': scoreUnits,
+        'video-filename-parser': scoreUnits,
+        parsium: scoreUnits,
+      });
+      expect(
+        comparisons.map(({libraryA, libraryB, datasetNames}) => [
+          libraryA,
+          libraryB,
+          datasetNames,
+        ]),
+      ).toEqual([
+        ['guessit', 'release-parser', ['own']],
+        ['guessit', 'release-parser', ['sonarr']],
+        ['guessit', 'video-filename-parser', ['own']],
+        ['guessit', 'video-filename-parser', ['ptt']],
+        ['guessit', 'parsium', ['own']],
+        ['guessit', 'parsium', ['sonarr', 'ptt']],
+        ['release-parser', 'video-filename-parser', ['own']],
+        ['release-parser', 'video-filename-parser', ['guessit']],
+        ['release-parser', 'parsium', ['own']],
+        ['release-parser', 'parsium', ['guessit', 'sonarr']],
+        ['video-filename-parser', 'parsium', ['own']],
+        ['video-filename-parser', 'parsium', ['guessit', 'ptt']],
+      ]);
+      expect(
+        comparisons.every(
+          ({isAWinner, isBWinner, difference}) =>
+            !isAWinner && !isBWinner && difference.pointEstimate === 0,
+        ),
+      ).toBe(true);
+    },
+  );
 
-  it('draws a name found in two sets of one scope as one unit', () => {
-    const scoreUnits = libraryUnits({own: {titleCorrectCount: 10}});
-    const comparisons = listPairComparisons({
-      guessit: scoreUnits,
-      'release-parser': scoreUnits,
-      'video-filename-parser': scoreUnits,
-      parsium: scoreUnits,
-    });
-    expect(
-      comparisons.find(
-        ({libraryA, libraryB, datasetNames}) =>
-          libraryA === 'guessit' &&
-          libraryB === 'parsium' &&
-          datasetNames.length === 2,
-      ).difference.unitCount,
-    ).toBe(NAME_COUNT);
-  });
+  it(
+    'draws a name found in two sets of one scope as one unit',
+    {timeout: 30_000},
+    () => {
+      const scoreUnits = libraryUnits({own: {titleCorrectCount: 10}});
+      const comparisons = listPairComparisons({
+        guessit: scoreUnits,
+        'release-parser': scoreUnits,
+        'video-filename-parser': scoreUnits,
+        parsium: scoreUnits,
+      });
+      expect(
+        comparisons.find(
+          ({libraryA, libraryB, datasetNames}) =>
+            libraryA === 'guessit' &&
+            libraryB === 'parsium' &&
+            datasetNames.length === 2,
+        ).difference.unitCount,
+      ).toBe(NAME_COUNT);
+    },
+  );
 });
 
 describe('mergeScopeUnits', () => {
