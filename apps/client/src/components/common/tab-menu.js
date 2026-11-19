@@ -54,6 +54,19 @@ function itemVariant(item, active, invalidValues) {
   return item.value === active?.value ? 'secondary' : 'ghost';
 }
 
+function TabMenuItemLabel({item}) {
+  return (
+    <span>
+      {item.label}
+      {item.marker && (
+        <span aria-hidden="true" className="ms-0.5 text-muted-foreground">
+          {item.marker}
+        </span>
+      )}
+    </span>
+  );
+}
+
 export function TabMenuBar({className}) {
   const {items, active, onValueChange, title, invalidValues} =
     use(TabMenuContext);
@@ -89,7 +102,7 @@ export function TabMenuBar({className}) {
               }
             >
               {item.Icon && <item.Icon data-icon="inline-start" />}
-              <span>{item.label}</span>
+              <TabMenuItemLabel item={item} />
             </DrawerClose>
           ))}
         </nav>
@@ -126,7 +139,7 @@ export function TabMenuList({description, className}) {
               className="min-h-8 justify-start gap-3 px-3 py-1.5"
             >
               {item.Icon && <item.Icon />}
-              <span>{item.label}</span>
+              <TabMenuItemLabel item={item} />
             </TabsTrigger>
           );
         })}

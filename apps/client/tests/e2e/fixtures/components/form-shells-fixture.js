@@ -31,7 +31,7 @@ const TAB_RESET_KEYS = ['pageNumber', 'search', 'sort', 'status'];
 const TAB_ITEMS = [
   {value: 'genel', label: 'Genel'},
   {value: 'bildirim', label: 'Bildirimler'},
-  {value: 'guvenlik', label: 'Güvenlik'},
+  {value: 'guvenlik', label: 'Güvenlik', marker: '*'},
 ];
 
 const MANY_TAB_ITEMS = [

@@ -34,6 +34,13 @@ const SUBTITLE_SOURCE_ORDER = [
   SubtitleSource.ANIMETOSHO,
 ];
 
+const CREDENTIAL_REQUIREMENT_MARKERS = Object.freeze({
+  [CredentialRequirement.REQUIRED]: '*',
+  [CredentialRequirement.OPTIONAL]: '**',
+});
+
+const SOURCES_DESCRIPTION = `Subtitles come from every source you have not turned off. ${CREDENTIAL_REQUIREMENT_MARKERS[CredentialRequirement.REQUIRED]} needs your own key, ${CREDENTIAL_REQUIREMENT_MARKERS[CredentialRequirement.OPTIONAL]} can use yours.`;
+
 // Sources that require a credential come first, then optional, then none, each group from most to least known.
 function sortSubtitleSourceOptions(subtitleSourceOptions) {
   return sortBy(subtitleSourceOptions, [
@@ -48,10 +55,13 @@ function sortSubtitleSourceOptions(subtitleSourceOptions) {
 
 function SourceTabs({subtitleSourceOptions}) {
   const storedCredentials = useStoredCredentials();
-  const items = subtitleSourceOptions.map(({subtitleSource, label}) => ({
-    value: subtitleSource,
-    label,
-  }));
+  const items = subtitleSourceOptions.map(
+    ({subtitleSource, label, credentialRequirement}) => ({
+      value: subtitleSource,
+      label,
+      marker: CREDENTIAL_REQUIREMENT_MARKERS[credentialRequirement],
+    }),
+  );
   const [subtitleSourceTab, setSubtitleSourceTab] = useTabQuery(items, {
     urlKey: SUBTITLE_SOURCE_TAB_URL_KEY,
   });
@@ -93,10 +103,7 @@ export function SourcesSection() {
   });
 
   return (
-    <PageSection
-      title="Sources"
-      description="Subtitles come from every source you have not turned off."
-    >
+    <PageSection title="Sources" description={SOURCES_DESCRIPTION}>
       <QueryBoundary query={subtitleSourcesQuery}>
         {subtitleSourceOptions => (
           <SourceTabs subtitleSourceOptions={subtitleSourceOptions} />

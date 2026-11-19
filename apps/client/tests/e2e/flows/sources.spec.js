@@ -20,7 +20,7 @@ import {
   getFailedRequestPattern,
   getValidationEnvelope,
 } from '../lib/api.js';
-import {getTabPanel} from '../lib/locators.js';
+import {getMain, getTabPanel} from '../lib/locators.js';
 import {holdRequest} from '../lib/requests.js';
 import {
   closeTabMenuItems,
@@ -68,6 +68,11 @@ const SHARED_CREDENTIAL_SOURCES = [
 ];
 
 const SEE_LIMITS = 'See limits';
+const CREDENTIAL_REQUIREMENT_MARKERS = {
+  [CredentialRequirement.REQUIRED]: '*',
+  [CredentialRequirement.OPTIONAL]: '**',
+};
+const SOURCE_MARKER_LEGEND = '* needs your own key, ** can use yours.';
 const SUBTITLE_SOURCE_TAB_ORDER = [
   SubtitleSource.SUBDL,
   SubtitleSource.SUBSOURCE,
@@ -268,7 +273,7 @@ async function enterCredential(
 }
 
 test.describe('sources', () => {
-  test('lists one tab per registered source, credential required first, then optional, then none, each group from most to least known', async ({
+  test('lists one tab per registered source, credential required first, then optional, then none, each group from most to least known and marked by its need', async ({
     page,
     request,
   }) => {
@@ -277,16 +282,23 @@ test.describe('sources', () => {
       'GET',
       SUBTITLE_SOURCES_PATH,
     );
-    const registeredSubtitleSources = new Set(
-      subtitleSources.map(({subtitleSource}) => subtitleSource),
+    const credentialRequirements = new Map(
+      subtitleSources.map(({subtitleSource, credentialRequirement}) => [
+        subtitleSource,
+        credentialRequirement,
+      ]),
     );
 
     await openConfigure(page);
 
+    await expect(getMain(page)).toContainText(SOURCE_MARKER_LEGEND);
     await expect(await openTabMenuItems(page)).toHaveText(
       SUBTITLE_SOURCE_TAB_ORDER.filter(subtitleSource =>
-        registeredSubtitleSources.has(subtitleSource),
-      ).map(subtitleSource => SubtitleSource.label(subtitleSource)),
+        credentialRequirements.has(subtitleSource),
+      ).map(
+        subtitleSource =>
+          `${SubtitleSource.label(subtitleSource)}${CREDENTIAL_REQUIREMENT_MARKERS[credentialRequirements.get(subtitleSource)] ?? ''}`,
+      ),
     );
   });
 

@@ -532,6 +532,19 @@ test.describe('tab query', () => {
   });
 });
 
+test('a tab marker shows beside its label and stays out of the tab name', async ({
+  page,
+}) => {
+  await openFormShells(page);
+
+  const markedTab = page.getByRole('tab', {name: 'Güvenlik', exact: true});
+
+  await expect(markedTab).toHaveText('Güvenlik*');
+  await expect(page.getByRole('tab', {name: 'Genel', exact: true})).toHaveText(
+    'Genel',
+  );
+});
+
 test('a tab panel names itself with a heading hidden from view', async ({
   page,
 }) => {
