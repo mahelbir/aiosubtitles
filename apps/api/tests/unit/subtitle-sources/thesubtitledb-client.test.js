@@ -8,6 +8,7 @@ import {
   SourceCallRefusedError,
   SourceCredentialError,
   SourceRateLimitError,
+  SourceUnavailableError,
 } from '../../../src/lib/subtitle-sources/subtitle-source-errors.js';
 import {requestSubtitleSource} from '../../../src/lib/subtitle-sources/subtitle-source-request.js';
 import {
@@ -40,6 +41,25 @@ const subtitleRef = {
   catalogEpisode: null,
 };
 const fileBytes = Buffer.from('1\n00:00:01,000 --> 00:00:02,000\nMerhaba\n');
+const twoLookupLanguages = [
+  'spa',
+  'por',
+  'zho',
+  'tur',
+  'eng',
+  'fre',
+  'ger',
+  'ita',
+  'jpn',
+  'kor',
+  'rus',
+  'ara',
+  'pol',
+  'nld',
+  'swe',
+  'fin',
+  'dan',
+];
 
 afterEach(() => {
   vi.resetAllMocks();
@@ -50,6 +70,18 @@ function toFileResponse() {
     status: StatusCodes.OK,
     headers: {'content-type': 'application/x-subrip'},
     body: fileBytes,
+  };
+}
+
+function toLookupResponse(siteFileId, language) {
+  return {
+    status: StatusCodes.OK,
+    headers: {'content-type': 'application/json'},
+    body: {
+      subtitles: {
+        items: [{id: siteFileId, language, format: 'srt', release_name: ''}],
+      },
+    },
   };
 }
 
@@ -139,42 +171,12 @@ describe('thesubtitledbClient search', () => {
   });
 
   it('runs one lookup per 16 site codes and joins their items', async () => {
-    const toLookupResponse = (siteFileId, language) => ({
-      status: StatusCodes.OK,
-      headers: {'content-type': 'application/json'},
-      body: {
-        subtitles: {
-          items: [{id: siteFileId, language, format: 'srt', release_name: ''}],
-        },
-      },
-    });
     requestSubtitleSource
       .mockResolvedValueOnce(toLookupResponse(1, 'es'))
       .mockResolvedValueOnce(toLookupResponse(2, 'da'));
 
     const hits = await thesubtitledbClient.searchSubtitles(
-      makeSearchQuery({
-        imdbId: 'tt0133093',
-        languageCodes: [
-          'spa',
-          'por',
-          'zho',
-          'tur',
-          'eng',
-          'fre',
-          'ger',
-          'ita',
-          'jpn',
-          'kor',
-          'rus',
-          'ara',
-          'pol',
-          'nld',
-          'swe',
-          'fin',
-          'dan',
-        ],
-      }),
+      makeSearchQuery({imdbId: 'tt0133093', languageCodes: twoLookupLanguages}),
       null,
     );
     expect(requestSubtitleSource).toHaveBeenCalledTimes(2);
@@ -182,6 +184,27 @@ describe('thesubtitledbClient search', () => {
       ['1', 'spa'],
       ['2', 'dan'],
     ]);
+  });
+
+  it('fails the whole search when one of its lookups fails', async () => {
+    const unavailableError = new SourceUnavailableError({
+      subtitleSource: SubtitleSource.THESUBTITLEDB,
+      cause: new Error('Status 500.'),
+    });
+    requestSubtitleSource
+      .mockResolvedValueOnce(toLookupResponse(1, 'es'))
+      .mockRejectedValueOnce(unavailableError);
+
+    await expect(
+      thesubtitledbClient.searchSubtitles(
+        makeSearchQuery({
+          imdbId: 'tt0133093',
+          languageCodes: twoLookupLanguages,
+        }),
+        null,
+      ),
+    ).rejects.toBe(unavailableError);
+    expect(requestSubtitleSource).toHaveBeenCalledTimes(2);
   });
 
   it('throws a rate limit from any lookup', async () => {

@@ -62,7 +62,9 @@ export function createThesubtitledbClient({
           ),
         ),
       );
-      return readSettledHitLists(settledResults).flat();
+      return readSettledHitLists(settledResults, {
+        isEveryCallRequired: true,
+      }).flat();
     },
     downloadSubtitle(subtitleRef, credential, {signal, reserveCall} = {}) {
       return sharedCredentialPool.callWithCredential({

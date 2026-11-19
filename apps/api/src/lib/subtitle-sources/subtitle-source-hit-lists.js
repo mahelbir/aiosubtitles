@@ -14,9 +14,17 @@ function findSearchError(searchErrors, SearchError) {
   return searchErrors.find(searchError => searchError instanceof SearchError);
 }
 
+function pickSearchError(searchErrors) {
+  return (
+    SEARCH_ERROR_PRECEDENCE.map(SearchError =>
+      findSearchError(searchErrors, SearchError),
+    ).find(Boolean) ?? searchErrors[0]
+  );
+}
+
 export function readSettledHitLists(
   settledResults,
-  {isPartialKept = false} = {},
+  {isPartialKept = false, isEveryCallRequired = false} = {},
 ) {
   const searchErrors = settledResults
     .filter(({status}) => status === 'rejected')
@@ -28,12 +36,11 @@ export function readSettledHitLists(
   if (rateLimitError && !(isPartialKept && hitLists.length > 0)) {
     throw rateLimitError;
   }
-  if (searchErrors.length > 0 && hitLists.length === 0) {
-    throw (
-      SEARCH_ERROR_PRECEDENCE.map(SearchError =>
-        findSearchError(searchErrors, SearchError),
-      ).find(Boolean) ?? searchErrors[0]
-    );
+  if (
+    searchErrors.length > 0 &&
+    (isEveryCallRequired || hitLists.length === 0)
+  ) {
+    throw pickSearchError(searchErrors);
   }
   return hitLists;
 }

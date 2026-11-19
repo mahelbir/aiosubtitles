@@ -93,6 +93,49 @@ describe('readSettledHitLists', () => {
     ).toBe(rateLimitError);
   });
 
+  it('gives the lists of every call when every call is required and all answered', () => {
+    expect(
+      readSettledHitLists([toFulfilled(hitList), toFulfilled(otherHitList)], {
+        isEveryCallRequired: true,
+      }),
+    ).toEqual([hitList, otherHitList]);
+  });
+
+  it.each([
+    [
+      'a rate limit before a rejected key',
+      [unavailableError, credentialError, rateLimitError],
+      rateLimitError,
+    ],
+    [
+      'a rejected key before an unavailable source',
+      [otherError, unavailableError, credentialError],
+      credentialError,
+    ],
+    [
+      'an unavailable source before an unexpected error',
+      [otherError, unavailableError],
+      unavailableError,
+    ],
+    ['an unexpected error last', [otherError], otherError],
+  ])(
+    'throws %s over answered calls when every call is required',
+    (_, searchErrors, expectedError) => {
+      expect(
+        catchError(() =>
+          readSettledHitLists(
+            [
+              toFulfilled(hitList),
+              ...searchErrors.map(toRejected),
+              toFulfilled(otherHitList),
+            ],
+            {isEveryCallRequired: true},
+          ),
+        ),
+      ).toBe(expectedError);
+    },
+  );
+
   it('throws a rate limit before a rejected key when every call failed', () => {
     expect(
       catchError(() =>
