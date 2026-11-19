@@ -14,6 +14,7 @@ import {
 } from '../../../src/lib/subtitle-sources/subtitle-source-errors.js';
 import {requestSubtitleSource} from '../../../src/lib/subtitle-sources/subtitle-source-request.js';
 import {readFixture} from '../../helpers/read-fixture.js';
+import {toSharedAccessTokens} from '../../helpers/shared-credential-secrets.js';
 import {createTestSharedCredentialPool} from '../../helpers/shared-credentials.js';
 import {
   makeSearchQuery,
@@ -245,10 +246,9 @@ describe('anisubClient.downloadSubtitle without a user token', () => {
       .mockResolvedValueOnce(toFileResponse(fileBytes));
 
     await expect(
-      makeClient({[SubtitleSource.ANISUB]: [SHARED_TOKEN]}).downloadSubtitle(
-        siteRef,
-        null,
-      ),
+      makeClient({
+        [SubtitleSource.ANISUB]: toSharedAccessTokens(SHARED_TOKEN),
+      }).downloadSubtitle(siteRef, null),
     ).resolves.toMatchObject({fileBytes});
     const [[tokenRequest], [fileRequest]] = requestSubtitleSource.mock.calls;
     expect(tokenRequest).toMatchObject({
@@ -304,10 +304,9 @@ describe('anisubClient.downloadSubtitle without a user token', () => {
       .mockResolvedValueOnce(toFileResponse(fileBytes));
 
     await expect(
-      makeClient({[SubtitleSource.ANISUB]: [SHARED_TOKEN]}).downloadSubtitle(
-        siteRef,
-        null,
-      ),
+      makeClient({
+        [SubtitleSource.ANISUB]: toSharedAccessTokens(SHARED_TOKEN),
+      }).downloadSubtitle(siteRef, null),
     ).resolves.toMatchObject({fileBytes});
     const [, [publicRequest]] = requestSubtitleSource.mock.calls;
     expect(publicRequest).toMatchObject({
@@ -328,10 +327,9 @@ describe('anisubClient.downloadSubtitle without a user token', () => {
       .mockResolvedValueOnce(toFileResponse(fileBytes));
 
     await expect(
-      makeClient({[SubtitleSource.ANISUB]: [SHARED_TOKEN]}).downloadSubtitle(
-        siteRef,
-        null,
-      ),
+      makeClient({
+        [SubtitleSource.ANISUB]: toSharedAccessTokens(SHARED_TOKEN),
+      }).downloadSubtitle(siteRef, null),
     ).resolves.toMatchObject({fileBytes});
     expect(requestSubtitleSource.mock.calls[1][0]).toMatchObject({
       url: SITE_FILE_URL,
@@ -345,7 +343,7 @@ describe('anisubClient.downloadSubtitle without a user token', () => {
     );
 
     await makeClient({
-      [SubtitleSource.ANISUB]: [SHARED_TOKEN],
+      [SubtitleSource.ANISUB]: toSharedAccessTokens(SHARED_TOKEN),
     }).downloadSubtitle(siteRef, tokenCredential);
 
     expect(requestSubtitleSource.mock.calls[0][0]).toMatchObject({
@@ -360,10 +358,9 @@ describe('anisubClient.downloadSubtitle without a user token', () => {
     requestSubtitleSource.mockResolvedValueOnce(toFileResponse(fileBytes));
 
     await expect(
-      makeClient({[SubtitleSource.ANISUB]: [SHARED_TOKEN]}).downloadSubtitle(
-        {...siteRef, siteFileUrl: addonFileUrl},
-        null,
-      ),
+      makeClient({
+        [SubtitleSource.ANISUB]: toSharedAccessTokens(SHARED_TOKEN),
+      }).downloadSubtitle({...siteRef, siteFileUrl: addonFileUrl}, null),
     ).resolves.toMatchObject({fileBytes});
     expect(requestSubtitleSource).toHaveBeenCalledOnce();
     expect(requestSubtitleSource.mock.calls[0][0]).toMatchObject({

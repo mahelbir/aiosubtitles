@@ -36,6 +36,10 @@ export function createJimakuClient({
   sharedCredentialPool = defaultSharedCredentialPool,
 } = {}) {
   const subtitleSource = SubtitleSource.JIMAKU;
+  const sharedKeyTarget = {
+    subtitleSource,
+    credentialKind: CredentialKind.API_KEY,
+  };
 
   async function searchWithCredential(searchQuery, credential, signal) {
     const searchTarget = jimakuMapping.toSearchTarget(searchQuery, credential);
@@ -81,11 +85,11 @@ export function createJimakuClient({
     ],
     isAvailable: () => true,
     canSearchWithoutCredential: () =>
-      sharedCredentialPool.hasUsableCredential(subtitleSource),
+      sharedCredentialPool.hasUsableCredential(sharedKeyTarget),
     canDownloadWithoutCredential: () => true,
     searchSubtitles(searchQuery, credential, {signal} = {}) {
       return sharedCredentialPool.callWithCredential({
-        subtitleSource,
+        ...sharedKeyTarget,
         credential,
         isBreakerOnEveryLimit: true,
         runCall: activeCredential =>

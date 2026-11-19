@@ -12,6 +12,7 @@ import * as opensubtitlesSession from '../../src/lib/subtitle-sources/opensubtit
 import {opensubtitlesV3Client} from '../../src/lib/subtitle-sources/opensubtitles-v3/opensubtitles-v3-client.js';
 import {SubtitleAliasSource} from '../../src/lib/subtitle-sources/subtitle-alias-source.js';
 import {requestSubtitleSource} from '../../src/lib/subtitle-sources/subtitle-source-request.js';
+import {toSharedApiKeys} from '../helpers/shared-credential-secrets.js';
 import {createTestSharedCredentialPool} from '../helpers/shared-credentials.js';
 import {
   listMissingSecretNames,
@@ -48,9 +49,9 @@ const liveSecrets = loadLiveSecrets();
 const opensubtitlesClient = createOpensubtitlesClient({
   requestSubtitleSource,
   sharedCredentialPool: createTestSharedCredentialPool({
-    [SubtitleSource.OPENSUBTITLES]: compact([
-      liveSecrets.OPENSUBTITLES_API_KEY,
-    ]),
+    [SubtitleSource.OPENSUBTITLES]: toSharedApiKeys(
+      ...compact([liveSecrets.OPENSUBTITLES_API_KEY]),
+    ),
   }).sharedCredentialPool,
   sessionStore: {
     ...opensubtitlesSession,

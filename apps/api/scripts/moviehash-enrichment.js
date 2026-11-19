@@ -3,7 +3,9 @@ import path from 'node:path';
 import {parseArgs} from 'node:util';
 import {Settings} from '@mahelbir/settings';
 import {limitAsync, noop} from 'es-toolkit';
+import {CredentialKind} from '@repo/shared/constants/credential.js';
 import {SubtitleSource} from '@repo/shared/constants/subtitle-source.js';
+import {toSharedCredentialsKey} from '@repo/shared/lib/shared-credential-kinds.js';
 import {settingsDefinition} from '@repo/shared/schemas/setting.js';
 import {getMainCheckoutPath} from '@repo/tooling/git.js';
 import {assertPrivateOutputPath} from '@repo/tooling/private-output.js';
@@ -129,7 +131,11 @@ export async function createSearchCase({loadSecrets = loadLiveSecrets} = {}) {
       settings: new Settings({
         store: {
           read: async () => ({
-            sharedCredentials: {[SubtitleSource.OPENSUBTITLES]: [apiKey]},
+            sharedCredentials: {
+              [toSharedCredentialsKey(SubtitleSource.OPENSUBTITLES)]: {
+                [toSharedCredentialsKey(CredentialKind.API_KEY)]: [{apiKey}],
+              },
+            },
           }),
           update: noop,
         },

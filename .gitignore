@@ -356,11 +356,6 @@ $RECYCLE.BIN/
 
 # End of https://www.toptal.com/developers/gitignore/api/linux,macos,dotenv,windows,sublimetext,jetbrains+all,visualstudiocode,node
 
-*.local.*
-!*.example
-!*.sample
-/.reference/
-
 /apps/client/.next-test/
 /apps/client/test-results/
 /apps/client/playwright-report/
@@ -371,3 +366,8 @@ $RECYCLE.BIN/
 /apps/api/public-client/
 /apps/eval/.out/
 /apps/api/.out/
+
+*.local.*
+!*.example
+!*.sample
+/.reference/

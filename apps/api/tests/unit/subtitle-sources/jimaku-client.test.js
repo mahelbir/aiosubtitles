@@ -24,6 +24,7 @@ import {requestSubtitleSource} from '../../../src/lib/subtitle-sources/subtitle-
 import {CatalogService} from '../../../src/lib/video-catalog/catalog-service.js';
 import {toErrorText} from '../../helpers/caught-error.js';
 import {readFixture} from '../../helpers/read-fixture.js';
+import {toSharedApiKeys} from '../../helpers/shared-credential-secrets.js';
 import {createTestSharedCredentialPool} from '../../helpers/shared-credentials.js';
 import {
   makeSearchQuery,
@@ -94,7 +95,7 @@ describe('jimakuClient', () => {
   it('searches without a user key only while the server has a shared key, and always downloads without one', async () => {
     const {client: keylessClient} = makeClient();
     const {client: sharedClient} = makeClient(154587, {
-      [SubtitleSource.JIMAKU]: [SHARED_KEY],
+      [SubtitleSource.JIMAKU]: toSharedApiKeys(SHARED_KEY),
     });
 
     await expect(keylessClient.canSearchWithoutCredential()).resolves.toBe(
@@ -312,7 +313,9 @@ describe('jimaku credential use', () => {
       readCandidates({
         credentials: [],
         hasConfiguredCredential: false,
-        sharedCredentials: {[SubtitleSource.JIMAKU]: [SHARED_KEY]},
+        sharedCredentials: {
+          [SubtitleSource.JIMAKU]: toSharedApiKeys(SHARED_KEY),
+        },
       }),
     ).resolves.toEqual({searchCandidates: [null], downloadCandidates: [null]});
   });
@@ -322,7 +325,9 @@ describe('jimaku credential use', () => {
       readCandidates({
         credentials: [],
         hasConfiguredCredential: true,
-        sharedCredentials: {[SubtitleSource.JIMAKU]: [SHARED_KEY]},
+        sharedCredentials: {
+          [SubtitleSource.JIMAKU]: toSharedApiKeys(SHARED_KEY),
+        },
       }),
     ).resolves.toEqual({searchCandidates: [], downloadCandidates: []});
   });
@@ -332,7 +337,9 @@ describe('jimaku credential use', () => {
       readCandidates({
         credentials: [keyCredential],
         hasConfiguredCredential: true,
-        sharedCredentials: {[SubtitleSource.JIMAKU]: [SHARED_KEY]},
+        sharedCredentials: {
+          [SubtitleSource.JIMAKU]: toSharedApiKeys(SHARED_KEY),
+        },
       }),
     ).resolves.toEqual({
       searchCandidates: [keyCredential],
@@ -344,7 +351,7 @@ describe('jimaku credential use', () => {
 describe('jimakuClient with shared keys', () => {
   it('searches under a shared key when the user has none, and never names it in the request id', async () => {
     const {client} = makeClient(154587, {
-      [SubtitleSource.JIMAKU]: [SHARED_KEY],
+      [SubtitleSource.JIMAKU]: toSharedApiKeys(SHARED_KEY),
     });
     await answerEntriesAndFiles();
 
@@ -361,7 +368,7 @@ describe('jimakuClient with shared keys', () => {
 
   it("keeps the user's own key over every shared key", async () => {
     const {client} = makeClient(154587, {
-      [SubtitleSource.JIMAKU]: [SHARED_KEY],
+      [SubtitleSource.JIMAKU]: toSharedApiKeys(SHARED_KEY),
     });
     await answerEntriesAndFiles();
 
@@ -375,7 +382,7 @@ describe('jimakuClient with shared keys', () => {
 
   it('moves on to the next shared key when the site rejects one', async () => {
     const {client} = makeClient(154587, {
-      [SubtitleSource.JIMAKU]: [SHARED_KEY, OTHER_SHARED_KEY],
+      [SubtitleSource.JIMAKU]: toSharedApiKeys(SHARED_KEY, OTHER_SHARED_KEY),
     });
     const [entriesBody, filesBody] = await Promise.all([
       readFixture('subtitle-sources/jimaku/entries-search.json'),
@@ -417,7 +424,7 @@ describe('jimakuClient with shared keys', () => {
 
   it("stops at Jimaku's per-address limit without trying the other shared keys", async () => {
     const {client} = makeClient(154587, {
-      [SubtitleSource.JIMAKU]: [SHARED_KEY, OTHER_SHARED_KEY],
+      [SubtitleSource.JIMAKU]: toSharedApiKeys(SHARED_KEY, OTHER_SHARED_KEY),
     });
     requestSubtitleSource.mockResolvedValue({
       status: StatusCodes.TOO_MANY_REQUESTS,
@@ -436,7 +443,7 @@ describe('jimakuClient with shared keys', () => {
 
   it('raises the source rate limit once every shared key is limited', async () => {
     const {client} = makeClient(154587, {
-      [SubtitleSource.JIMAKU]: [SHARED_KEY, OTHER_SHARED_KEY],
+      [SubtitleSource.JIMAKU]: toSharedApiKeys(SHARED_KEY, OTHER_SHARED_KEY),
     });
     requestSubtitleSource.mockImplementation(async siteRequest => {
       throw new SourceRateLimitError({

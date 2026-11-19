@@ -5,6 +5,7 @@ import {
   betaseriesClient,
   createBetaseriesClient,
 } from '../../src/lib/subtitle-sources/betaseries/betaseries-client.js';
+import {toSharedApiKeys} from '../helpers/shared-credential-secrets.js';
 import {createTestSharedCredentialPool} from '../helpers/shared-credentials.js';
 import {makeSubtitleSourceCredential} from '../helpers/subtitle-source-factories.js';
 import {listMissingSecretNames, runLiveCase} from './helpers/live-report.js';
@@ -61,7 +62,9 @@ describe('BetaSeries live', () => {
       testContext,
       async () => {
         const {sharedCredentialPool} = createTestSharedCredentialPool({
-          [SubtitleSource.BETASERIES]: [liveSecrets.BETASERIES_API_KEY],
+          [SubtitleSource.BETASERIES]: toSharedApiKeys(
+            liveSecrets.BETASERIES_API_KEY,
+          ),
         });
         const sharedClient = createBetaseriesClient({sharedCredentialPool});
         const searchQuery = makeLiveSearchQuery('tt0903747:1:1', [

@@ -6,6 +6,7 @@ import {SubtitleSource} from '@repo/shared/constants/subtitle-source.js';
 import {loadLiveSecrets} from '../../scripts/lib/live-secrets.js';
 import {createOpensubtitlesClient} from '../../src/lib/subtitle-sources/opensubtitles/opensubtitles-client.js';
 import {requestSubtitleSource} from '../../src/lib/subtitle-sources/subtitle-source-request.js';
+import {toSharedApiKeys} from '../helpers/shared-credential-secrets.js';
 import {createTestSharedCredentialPool} from '../helpers/shared-credentials.js';
 import {listMissingSecretNames, runLiveCase} from './helpers/live-report.js';
 import {
@@ -28,9 +29,9 @@ const accountNames = [
 const opensubtitlesClient = createOpensubtitlesClient({
   requestSubtitleSource,
   sharedCredentialPool: createTestSharedCredentialPool({
-    [SubtitleSource.OPENSUBTITLES]: compact([
-      liveSecrets.OPENSUBTITLES_API_KEY,
-    ]),
+    [SubtitleSource.OPENSUBTITLES]: toSharedApiKeys(
+      ...compact([liveSecrets.OPENSUBTITLES_API_KEY]),
+    ),
   }).sharedCredentialPool,
 });
 const searchQuery = makeLiveSearchQuery('tt0133093', ['eng']);

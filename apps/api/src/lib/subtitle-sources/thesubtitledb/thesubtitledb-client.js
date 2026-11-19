@@ -50,6 +50,7 @@ export function createThesubtitledbClient({
     downloadSubtitle(subtitleRef, credential, {signal} = {}) {
       return sharedCredentialPool.callWithCredential({
         subtitleSource,
+        credentialKind: CredentialKind.API_KEY,
         credential,
         runCall: async activeCredential =>
           thesubtitledbMapping.toDownload(

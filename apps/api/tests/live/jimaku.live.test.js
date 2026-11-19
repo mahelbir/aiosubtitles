@@ -6,6 +6,7 @@ import {
   createJimakuClient,
   jimakuClient,
 } from '../../src/lib/subtitle-sources/jimaku/jimaku-client.js';
+import {toSharedApiKeys} from '../helpers/shared-credential-secrets.js';
 import {createTestSharedCredentialPool} from '../helpers/shared-credentials.js';
 import {makeSubtitleSourceCredential} from '../helpers/subtitle-source-factories.js';
 import {
@@ -93,7 +94,7 @@ describe('Jimaku live', () => {
       testContext,
       async () => {
         const {sharedCredentialPool} = createTestSharedCredentialPool({
-          [SubtitleSource.JIMAKU]: [liveSecrets.JIMAKU_API_KEY],
+          [SubtitleSource.JIMAKU]: toSharedApiKeys(liveSecrets.JIMAKU_API_KEY),
         });
         const sharedClient = createJimakuClient({sharedCredentialPool});
         const searchQuery = makeLiveSearchQuery('kitsu:46474:5', ['jpn']);

@@ -1,28 +1,48 @@
-import {compact, uniq} from 'es-toolkit';
+import {isEqual, mapKeys, mapValues, uniqWith} from 'es-toolkit';
 import {z} from 'zod';
-import {SubtitleSource} from '../constants/subtitle-source.js';
+import {
+  SHARED_CREDENTIAL_KINDS_BY_SOURCE,
+  toSharedCredentialsKey,
+} from '../lib/shared-credential-kinds.js';
 import {defineSettings} from '../lib/settings.js';
+import {getCredentialSecretField} from './user-config.js';
 
-const sharedCredentialListField = z
-  .array(z.string().trim())
-  .overwrite(sharedSecrets => uniq(compact(sharedSecrets)))
-  .default([]);
+function getSharedSecretListField(credentialKind) {
+  return z
+    .array(getCredentialSecretField(credentialKind))
+    .overwrite(sharedSecrets => uniqWith(sharedSecrets, isEqual))
+    .default([]);
+}
+
+export function getSharedCredentialsField(credentialKindsBySource) {
+  return z
+    .strictObject(
+      mapValues(
+        mapKeys(credentialKindsBySource, (credentialKinds, subtitleSource) =>
+          toSharedCredentialsKey(subtitleSource),
+        ),
+        credentialKinds =>
+          z
+            .strictObject(
+              Object.fromEntries(
+                credentialKinds.map(credentialKind => [
+                  toSharedCredentialsKey(credentialKind),
+                  getSharedSecretListField(credentialKind),
+                ]),
+              ),
+            )
+            .prefault({}),
+      ),
+    )
+    .prefault({});
+}
 
 export const settingsDefinition = defineSettings({
   editableFields: {},
   serverFields: {
-    sharedCredentials: z
-      .object(
-        Object.fromEntries(
-          SubtitleSource.values
-            .filter(
-              subtitleSource =>
-                SubtitleSource.raw(subtitleSource).sharedCredentialKind,
-            )
-            .map(subtitleSource => [subtitleSource, sharedCredentialListField]),
-        ),
-      )
-      .prefault({}),
+    sharedCredentials: getSharedCredentialsField(
+      SHARED_CREDENTIAL_KINDS_BY_SOURCE,
+    ),
   },
   rules: [],
 });

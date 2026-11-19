@@ -21,6 +21,7 @@ import {
 import {requestSubtitleSource} from '../../../src/lib/subtitle-sources/subtitle-source-request.js';
 import {toErrorText} from '../../helpers/caught-error.js';
 import {readFixture} from '../../helpers/read-fixture.js';
+import {toSharedApiKeys} from '../../helpers/shared-credential-secrets.js';
 import {createTestSharedCredentialPool} from '../../helpers/shared-credentials.js';
 import {
   makeSearchQuery,
@@ -102,7 +103,7 @@ describe('betaseriesClient', () => {
   it('searches without a user key only while the server has a shared key, and always downloads without one', async () => {
     const keylessClient = makeClient();
     const sharedClient = makeClient({
-      [SubtitleSource.BETASERIES]: [SHARED_KEY],
+      [SubtitleSource.BETASERIES]: toSharedApiKeys(SHARED_KEY),
     });
 
     await expect(keylessClient.canSearchWithoutCredential()).resolves.toBe(
@@ -401,7 +402,9 @@ describe('betaseries credential use', () => {
       readCandidates({
         credentials: [],
         hasConfiguredCredential: false,
-        sharedCredentials: {[SubtitleSource.BETASERIES]: [SHARED_KEY]},
+        sharedCredentials: {
+          [SubtitleSource.BETASERIES]: toSharedApiKeys(SHARED_KEY),
+        },
       }),
     ).resolves.toEqual({searchCandidates: [null], downloadCandidates: [null]});
   });
@@ -411,7 +414,9 @@ describe('betaseries credential use', () => {
       readCandidates({
         credentials: [],
         hasConfiguredCredential: true,
-        sharedCredentials: {[SubtitleSource.BETASERIES]: [SHARED_KEY]},
+        sharedCredentials: {
+          [SubtitleSource.BETASERIES]: toSharedApiKeys(SHARED_KEY),
+        },
       }),
     ).resolves.toEqual({searchCandidates: [], downloadCandidates: []});
   });
@@ -421,7 +426,9 @@ describe('betaseries credential use', () => {
       readCandidates({
         credentials: [keyCredential],
         hasConfiguredCredential: true,
-        sharedCredentials: {[SubtitleSource.BETASERIES]: [SHARED_KEY]},
+        sharedCredentials: {
+          [SubtitleSource.BETASERIES]: toSharedApiKeys(SHARED_KEY),
+        },
       }),
     ).resolves.toEqual({
       searchCandidates: [keyCredential],
@@ -442,7 +449,7 @@ describe('betaseriesClient with shared keys', () => {
     await mockLookupChain();
 
     const hits = await makeClient({
-      [SubtitleSource.BETASERIES]: [SHARED_KEY],
+      [SubtitleSource.BETASERIES]: toSharedApiKeys(SHARED_KEY),
     }).searchSubtitles(episodeQuery, null);
 
     expect(hits.length).toBeGreaterThan(0);
@@ -457,7 +464,7 @@ describe('betaseriesClient with shared keys', () => {
     await mockLookupChain();
 
     await makeClient({
-      [SubtitleSource.BETASERIES]: [SHARED_KEY],
+      [SubtitleSource.BETASERIES]: toSharedApiKeys(SHARED_KEY),
     }).searchSubtitles(episodeQuery, keyCredential);
 
     for (const [siteRequest] of requestSubtitleSource.mock.calls) {
@@ -467,7 +474,10 @@ describe('betaseriesClient with shared keys', () => {
 
   it('moves on to the next shared key when the site rejects one', async () => {
     const client = makeClient({
-      [SubtitleSource.BETASERIES]: [SHARED_KEY, OTHER_SHARED_KEY],
+      [SubtitleSource.BETASERIES]: toSharedApiKeys(
+        SHARED_KEY,
+        OTHER_SHARED_KEY,
+      ),
     });
     requestSubtitleSource.mockResolvedValueOnce({
       status: StatusCodes.BAD_REQUEST,
@@ -493,7 +503,10 @@ describe('betaseriesClient with shared keys', () => {
 
   it('moves a rate-limited shared key aside, then answers could not search once every key is limited, without opening the breaker', async () => {
     const client = makeClient({
-      [SubtitleSource.BETASERIES]: [SHARED_KEY, OTHER_SHARED_KEY],
+      [SubtitleSource.BETASERIES]: toSharedApiKeys(
+        SHARED_KEY,
+        OTHER_SHARED_KEY,
+      ),
     });
     requestSubtitleSource.mockImplementation(async siteRequest => {
       throw new SourceRateLimitError({
@@ -511,7 +524,7 @@ describe('betaseriesClient with shared keys', () => {
 
   it("still searches under a user's own key while every shared key is limited", async () => {
     const client = makeClient({
-      [SubtitleSource.BETASERIES]: [SHARED_KEY],
+      [SubtitleSource.BETASERIES]: toSharedApiKeys(SHARED_KEY),
     });
     requestSubtitleSource.mockImplementationOnce(async siteRequest => {
       throw new SourceRateLimitError({
@@ -541,7 +554,7 @@ describe('betaseriesClient with shared keys', () => {
     });
 
     await makeClient({
-      [SubtitleSource.BETASERIES]: [SHARED_KEY],
+      [SubtitleSource.BETASERIES]: toSharedApiKeys(SHARED_KEY),
     }).downloadSubtitle(subtitleRef, null);
 
     const [downloadRequest] = requestSubtitleSource.mock.calls[0];

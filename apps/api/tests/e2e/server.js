@@ -3,6 +3,7 @@ import * as path from 'node:path';
 import closeWithGrace from 'close-with-grace';
 import {SubtitleSource} from '@repo/shared/constants/subtitle-source.js';
 import {startInfrastructure} from '../helpers/infrastructure.js';
+import {toSharedApiKeys} from '../helpers/shared-credential-secrets.js';
 import {OPENSUBTITLES_SHARED_API_KEY} from './fixture-credentials.js';
 import {getE2eApiPort, getE2eClientOrigin} from './ports.js';
 
@@ -22,7 +23,9 @@ await fs.writeFile(
   path.join(process.env.STORAGE_PATH, 'private', 'settings.json'),
   JSON.stringify({
     sharedCredentials: {
-      [SubtitleSource.OPENSUBTITLES]: [OPENSUBTITLES_SHARED_API_KEY],
+      [SubtitleSource.OPENSUBTITLES]: toSharedApiKeys(
+        OPENSUBTITLES_SHARED_API_KEY,
+      ),
     },
   }),
 );

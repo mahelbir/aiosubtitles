@@ -303,15 +303,16 @@
 # Re-include placeholders
 !**/*.example
 !**/*.sample
+/.reference/
 
 # Project-specific
 !.env
-/.reference/
 /apps/client/.next-test/
 /apps/client/test-results/
 /apps/client/playwright-report/
 /apps/client/tests/e2e/.auth/
 /apps/api/storage/*/*
 !/apps/api/storage/*/.gitkeep
+!/apps/api/storage/*/*.example
 /data/
 /apps/api/public-client/

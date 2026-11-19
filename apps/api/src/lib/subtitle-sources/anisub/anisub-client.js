@@ -89,6 +89,7 @@ export function createAnisubClient({
       }
       return sharedCredentialPool.callWithCredential({
         subtitleSource,
+        credentialKind: CredentialKind.ACCESS_TOKEN,
         credential,
         runCall: activeCredential =>
           activeCredential

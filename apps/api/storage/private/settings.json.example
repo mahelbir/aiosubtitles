@@ -1,0 +1,22 @@
+{
+  "sharedCredentials": {
+    "opensubtitles": {
+      "apiKey": [
+        {"apiKey": "opensubtitles-app-key-1"},
+        {"apiKey": "opensubtitles-app-key-2"}
+      ]
+    },
+    "thesubtitledb": {
+      "apiKey": [{"apiKey": "thesubtitledb-api-key"}]
+    },
+    "anisub": {
+      "accessToken": [{"accessToken": "anisub-access-token"}]
+    },
+    "jimaku": {
+      "apiKey": [{"apiKey": "jimaku-api-key"}]
+    },
+    "betaseries": {
+      "apiKey": [{"apiKey": "betaseries-api-key"}]
+    }
+  }
+}

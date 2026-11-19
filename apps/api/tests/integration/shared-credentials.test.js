@@ -24,6 +24,10 @@ import {readEnvelope} from '../helpers/assertions.js';
 import {createUserConfig} from '../helpers/factories.js';
 import {readFixture} from '../helpers/read-fixture.js';
 import {
+  toSharedAccessTokens,
+  toSharedApiKeys,
+} from '../helpers/shared-credential-secrets.js';
+import {
   USER_CONFIGS_URL,
   callUserConfigApi,
   login,
@@ -62,10 +66,10 @@ const unexpectedUrls = [];
 const requestSite = vi.fn();
 let testPool = createSharedCredentialPool();
 const sharedCredentialPool = {
-  hasConfiguredCredential: subtitleSource =>
-    testPool.hasConfiguredCredential(subtitleSource),
-  hasUsableCredential: subtitleSource =>
-    testPool.hasUsableCredential(subtitleSource),
+  hasConfiguredCredential: sharedTarget =>
+    testPool.hasConfiguredCredential(sharedTarget),
+  hasUsableCredential: sharedTarget =>
+    testPool.hasUsableCredential(sharedTarget),
   callWithCredential: callOptions => testPool.callWithCredential(callOptions),
 };
 const clientOptions = {
@@ -227,7 +231,7 @@ function makeAnisubUserCredential() {
 describe('Jimaku with a shared server key', () => {
   it('lists what a shared key finds for a user without a key of their own', async () => {
     await writeSharedCredentials({
-      [SubtitleSource.JIMAKU]: [JIMAKU_SHARED_KEY],
+      [SubtitleSource.JIMAKU]: toSharedApiKeys(JIMAKU_SHARED_KEY),
     });
     await answerJimakuSite();
     await answerJimakuFiles();
@@ -314,7 +318,7 @@ describe('Jimaku with a shared server key', () => {
 
   it('downloads keyless in the foreground and the background alike, since a file download sends no key', async () => {
     await writeSharedCredentials({
-      [SubtitleSource.JIMAKU]: [JIMAKU_SHARED_KEY],
+      [SubtitleSource.JIMAKU]: toSharedApiKeys(JIMAKU_SHARED_KEY),
     });
     const {userConfig} = await createUserConfig({
       credentials: [makeJimakuUserCredential()],
@@ -336,7 +340,7 @@ describe('Jimaku with a shared server key', () => {
 
   it("gives AniSub background work the server path while the foreground keeps the user's own token", async () => {
     await writeSharedCredentials({
-      [SubtitleSource.ANISUB]: [ANISUB_SHARED_TOKEN],
+      [SubtitleSource.ANISUB]: toSharedAccessTokens(ANISUB_SHARED_TOKEN),
     });
     const {userConfig} = await createUserConfig({
       credentials: [makeAnisubUserCredential()],
@@ -376,7 +380,7 @@ describe('Jimaku with a shared server key', () => {
 describe('BetaSeries with a shared server key', () => {
   it('lists what a shared key finds for a user without a key of their own', async () => {
     await writeSharedCredentials({
-      [SubtitleSource.BETASERIES]: [BETASERIES_SHARED_KEY],
+      [SubtitleSource.BETASERIES]: toSharedApiKeys(BETASERIES_SHARED_KEY),
     });
     const [showBody, episodesBody, subtitlesBody] = await Promise.all([
       readFixture('subtitle-sources/betaseries/shows-display.json'),
@@ -451,7 +455,7 @@ describe('AniSub with a shared server token', () => {
 
   it('lists AniSub for a user without a token and downloads under a shared token', async () => {
     await writeSharedCredentials({
-      [SubtitleSource.ANISUB]: [ANISUB_SHARED_TOKEN],
+      [SubtitleSource.ANISUB]: toSharedAccessTokens(ANISUB_SHARED_TOKEN),
     });
     answerAnisubSearch();
     answerSite(ANISUB_TOKEN_DOWNLOAD_URL, () => ({
@@ -485,7 +489,7 @@ describe('AniSub with a shared server token', () => {
 
   it("downloads in the background through a shared token, never the user's own token", async () => {
     await writeSharedCredentials({
-      [SubtitleSource.ANISUB]: [ANISUB_SHARED_TOKEN],
+      [SubtitleSource.ANISUB]: toSharedAccessTokens(ANISUB_SHARED_TOKEN),
     });
     answerAnisubSearch();
     answerSite(ANISUB_TOKEN_DOWNLOAD_URL, toFileAnswer);
@@ -568,7 +572,9 @@ describe('OpenSubtitles with server app keys', () => {
   }
 
   function writeOpensubtitlesKeys(appKeys) {
-    return writeSharedCredentials({[SubtitleSource.OPENSUBTITLES]: appKeys});
+    return writeSharedCredentials({
+      [SubtitleSource.OPENSUBTITLES]: toSharedApiKeys(...appKeys),
+    });
   }
 
   async function readMaskedUserConfig(userConfigId, sessionToken) {
@@ -639,7 +645,9 @@ describe('OpenSubtitles with server app keys', () => {
       SETTINGS_FILE,
       JSON.stringify({
         sharedCredentials: {
-          [SubtitleSource.OPENSUBTITLES]: [OPENSUBTITLES_SHARED_KEY],
+          [SubtitleSource.OPENSUBTITLES]: toSharedApiKeys(
+            OPENSUBTITLES_SHARED_KEY,
+          ),
         },
       }),
     );

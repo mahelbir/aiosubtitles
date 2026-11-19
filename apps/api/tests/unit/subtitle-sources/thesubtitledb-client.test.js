@@ -13,6 +13,7 @@ import {
   createThesubtitledbClient,
   thesubtitledbClient,
 } from '../../../src/lib/subtitle-sources/thesubtitledb/thesubtitledb-client.js';
+import {toSharedApiKeys} from '../../helpers/shared-credential-secrets.js';
 import {createTestSharedCredentialPool} from '../../helpers/shared-credentials.js';
 import {
   makeSearchQuery,
@@ -71,8 +72,8 @@ describe('thesubtitledbClient', () => {
 
   it("takes operator shared keys while background work keeps the user's key behind its switch", () => {
     expect(
-      SubtitleSource.raw(SubtitleSource.THESUBTITLEDB).sharedCredentialKind,
-    ).toBe(CredentialKind.API_KEY);
+      SubtitleSource.raw(SubtitleSource.THESUBTITLEDB).sharedCredentialKinds,
+    ).toEqual([CredentialKind.API_KEY]);
     expect(thesubtitledbClient.canUseSharedCredential).toBeUndefined();
   });
 
@@ -125,7 +126,7 @@ describe('thesubtitledbClient search', () => {
 
     await expect(
       makeClient({
-        [SubtitleSource.THESUBTITLEDB]: [SHARED_API_KEY],
+        [SubtitleSource.THESUBTITLEDB]: toSharedApiKeys(SHARED_API_KEY),
       }).searchSubtitles(makeSearchQuery({imdbId: 'tt0133093'}), null),
     ).resolves.toEqual([]);
     const [[lookupRequest]] = requestSubtitleSource.mock.calls;
@@ -139,7 +140,7 @@ describe('thesubtitledbClient download', () => {
 
     await expect(
       makeClient({
-        [SubtitleSource.THESUBTITLEDB]: [SHARED_API_KEY],
+        [SubtitleSource.THESUBTITLEDB]: toSharedApiKeys(SHARED_API_KEY),
       }).downloadSubtitle(subtitleRef, userCredential),
     ).resolves.toMatchObject({fileBytes});
     const [[downloadRequest]] = requestSubtitleSource.mock.calls;
@@ -154,7 +155,7 @@ describe('thesubtitledbClient download', () => {
 
     await expect(
       makeClient({
-        [SubtitleSource.THESUBTITLEDB]: [SHARED_API_KEY],
+        [SubtitleSource.THESUBTITLEDB]: toSharedApiKeys(SHARED_API_KEY),
       }).downloadSubtitle(subtitleRef, null),
     ).resolves.toMatchObject({fileBytes});
     const [[downloadRequest]] = requestSubtitleSource.mock.calls;
@@ -187,7 +188,7 @@ describe('thesubtitledbClient download', () => {
 
     await expect(
       makeClient({
-        [SubtitleSource.THESUBTITLEDB]: [SHARED_API_KEY],
+        [SubtitleSource.THESUBTITLEDB]: toSharedApiKeys(SHARED_API_KEY),
       }).downloadSubtitle(subtitleRef, null),
     ).resolves.toMatchObject({fileBytes});
     const [, [keylessRequest]] = requestSubtitleSource.mock.calls;
@@ -204,7 +205,7 @@ describe('thesubtitledbClient download', () => {
 
     await expect(
       makeClient({
-        [SubtitleSource.THESUBTITLEDB]: [SHARED_API_KEY],
+        [SubtitleSource.THESUBTITLEDB]: toSharedApiKeys(SHARED_API_KEY),
       }).downloadSubtitle(subtitleRef, userCredential),
     ).rejects.toMatchObject({
       name: 'SourceCredentialError',

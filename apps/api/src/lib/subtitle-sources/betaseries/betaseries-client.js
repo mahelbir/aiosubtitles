@@ -13,6 +13,10 @@ export function createBetaseriesClient({
   sharedCredentialPool = defaultSharedCredentialPool,
 } = {}) {
   const subtitleSource = SubtitleSource.BETASERIES;
+  const sharedKeyTarget = {
+    subtitleSource,
+    credentialKind: CredentialKind.API_KEY,
+  };
 
   async function searchWithCredential(searchQuery, credential, signal) {
     const showRequest = betaseriesMapping.buildShowRequest(
@@ -72,11 +76,11 @@ export function createBetaseriesClient({
     ],
     isAvailable: () => true,
     canSearchWithoutCredential: () =>
-      sharedCredentialPool.hasUsableCredential(subtitleSource),
+      sharedCredentialPool.hasUsableCredential(sharedKeyTarget),
     canDownloadWithoutCredential: () => true,
     searchSubtitles(searchQuery, credential, {signal} = {}) {
       return sharedCredentialPool.callWithCredential({
-        subtitleSource,
+        ...sharedKeyTarget,
         credential,
         runCall: activeCredential =>
           searchWithCredential(searchQuery, activeCredential, signal),

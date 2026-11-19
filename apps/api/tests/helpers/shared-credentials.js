@@ -3,7 +3,10 @@ import {vi} from 'vitest';
 import {settingsDefinition} from '@repo/shared/schemas/setting.js';
 import {createSharedCredentialPool} from '../../src/lib/subtitle-sources/shared-credential-pool.js';
 
-export function createMemorySettings(storedSettings = {}) {
+export function createMemorySettings(
+  storedSettings = {},
+  {schema = settingsDefinition.schema} = {},
+) {
   let storedData = storedSettings;
   const settings = new Settings({
     store: {
@@ -13,7 +16,7 @@ export function createMemorySettings(storedSettings = {}) {
         storedData = (await updater(draftData)) ?? draftData;
       },
     },
-    schema: settingsDefinition.schema,
+    schema,
     onError: null,
   });
   return {
@@ -25,10 +28,16 @@ export function createMemorySettings(storedSettings = {}) {
   };
 }
 
-export function createTestSharedCredentialPool(sharedCredentials = {}) {
+export function createTestSharedCredentialPool(
+  sharedCredentials = {},
+  {schema} = {},
+) {
   const clock = {nowMs: 1_000_000};
   const logger = {warn: vi.fn()};
-  const {settings, writeSettings} = createMemorySettings({sharedCredentials});
+  const {settings, writeSettings} = createMemorySettings(
+    {sharedCredentials},
+    {schema},
+  );
   const sharedCredentialPool = createSharedCredentialPool({
     settings,
     logger,

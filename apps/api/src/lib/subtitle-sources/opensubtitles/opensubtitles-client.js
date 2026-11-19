@@ -87,6 +87,7 @@ export function createOpensubtitlesClient({
   logger = opensubtitlesLogger,
 }) {
   const subtitleSource = SubtitleSource.OPENSUBTITLES;
+  const appKeyTarget = {subtitleSource, credentialKind: CredentialKind.API_KEY};
   const loginByPinKey = new Map();
 
   async function runStoreCall(storeCall) {
@@ -221,7 +222,7 @@ export function createOpensubtitlesClient({
   async function callWithAccount(credential, signal, accountCall) {
     const storedSession = await readStoredSession(credential);
     return sharedCredentialPool.callWithCredential({
-      subtitleSource,
+      ...appKeyTarget,
       credential: null,
       isBreakerOnEveryLimit: true,
       isPreferredCredential: appCredential =>
@@ -326,13 +327,13 @@ export function createOpensubtitlesClient({
       },
     ],
     isAvailable: () =>
-      sharedCredentialPool.hasConfiguredCredential(subtitleSource),
+      sharedCredentialPool.hasConfiguredCredential(appKeyTarget),
     canSearchWithoutCredential: () =>
-      sharedCredentialPool.hasUsableCredential(subtitleSource),
+      sharedCredentialPool.hasUsableCredential(appKeyTarget),
     canDownloadWithoutCredential: () => false,
     searchSubtitles(searchQuery, credential, {signal} = {}) {
       return sharedCredentialPool.callWithCredential({
-        subtitleSource,
+        ...appKeyTarget,
         credential: opensubtitlesMapping.isApiKeyCredential(credential)
           ? credential
           : null,

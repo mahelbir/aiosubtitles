@@ -22,6 +22,7 @@ import {
 } from '../../../src/lib/subtitle-sources/subtitle-source-errors.js';
 import {readSubtitleSourceResponse} from '../../../src/lib/subtitle-sources/subtitle-source-request.js';
 import {readFixture} from '../../helpers/read-fixture.js';
+import {toSharedApiKeys} from '../../helpers/shared-credential-secrets.js';
 import {createTestSharedCredentialPool} from '../../helpers/shared-credentials.js';
 import {
   makeSearchQuery,
@@ -139,7 +140,7 @@ async function createSiteClient({
     writeSharedCredentials,
     logger: poolLogger,
   } = createTestSharedCredentialPool({
-    [SubtitleSource.OPENSUBTITLES]: appKeys,
+    [SubtitleSource.OPENSUBTITLES]: toSharedApiKeys(...appKeys),
   });
   const fakeSite = createFakeSite();
   const [loginBody, downloadBody, userBody, subtitlesBody] = await Promise.all(
@@ -181,7 +182,9 @@ async function createSiteClient({
     poolLogger,
     downloadBody,
     writeAppKeys: nextAppKeys =>
-      writeSharedCredentials({[SubtitleSource.OPENSUBTITLES]: nextAppKeys}),
+      writeSharedCredentials({
+        [SubtitleSource.OPENSUBTITLES]: toSharedApiKeys(...nextAppKeys),
+      }),
   };
 }
 

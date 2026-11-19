@@ -1,6 +1,6 @@
 import {stubFalse} from 'es-toolkit/compat';
 import {CredentialKind} from '@repo/shared/constants/credential.js';
-import {SubtitleSource} from '@repo/shared/constants/subtitle-source.js';
+import {toSharedCredentialsKey} from '@repo/shared/lib/shared-credential-kinds.js';
 import {createLogger} from '../logger.js';
 import {settings as appSettings} from '../settings.js';
 import {
@@ -15,14 +15,22 @@ const SHARED_CREDENTIALS_SETTING = 'sharedCredentials';
 
 const sharedCredentialLogger = createLogger('shared-credentials');
 
-function toSharedCredential(subtitleSource, {sharedIndex, sharedSecret}) {
-  const credentialKind =
-    SubtitleSource.raw(subtitleSource).sharedCredentialKind;
-  const [secretPart] = CredentialKind.raw(credentialKind).credentialSecretParts;
+function toSharedSecretKey(credentialKind, credentialSecret) {
+  return JSON.stringify(
+    CredentialKind.raw(credentialKind).credentialSecretParts.map(
+      credentialSecretPart => credentialSecret[credentialSecretPart],
+    ),
+  );
+}
+
+function toSharedCredential(
+  {subtitleSource, credentialKind, credentialSecrets},
+  {sharedIndex},
+) {
   return {
-    credentialId: `${SHARED_CREDENTIAL_ID_PREFIX}:${subtitleSource}:${sharedIndex}`,
+    credentialId: `${SHARED_CREDENTIAL_ID_PREFIX}:${subtitleSource}:${credentialKind}:${sharedIndex}`,
     credentialKind,
-    [secretPart]: sharedSecret,
+    ...credentialSecrets[sharedIndex],
   };
 }
 
@@ -110,34 +118,52 @@ export function createSharedCredentialPool({
     );
   }
 
-  async function readSharedSecrets(subtitleSource) {
-    let sharedSecrets;
+  async function readSharedPool({subtitleSource, credentialKind}) {
+    const stateKey = `${subtitleSource}:${credentialKind}`;
+    let credentialSecrets;
     let settingsVersion;
     try {
-      [sharedSecrets, settingsVersion] = await Promise.all([
-        settings.get(`${SHARED_CREDENTIALS_SETTING}.${subtitleSource}`, []),
+      [credentialSecrets, settingsVersion] = await Promise.all([
+        settings.get(
+          [
+            SHARED_CREDENTIALS_SETTING,
+            toSharedCredentialsKey(subtitleSource),
+            toSharedCredentialsKey(credentialKind),
+          ].join('.'),
+          [],
+        ),
         settings.getVersion(),
       ]);
     } catch (error) {
       reportReadFailure(error);
-      return {sharedSecrets: [], sourceState: createSourceState(null)};
+      return {
+        subtitleSource,
+        credentialKind,
+        credentialSecrets: [],
+        sharedSecrets: [],
+        sourceState: createSourceState(null),
+      };
     }
     readFailure = null;
-    const knownState = sourceStates.get(subtitleSource);
+    const sharedPool = {
+      subtitleSource,
+      credentialKind,
+      credentialSecrets,
+      sharedSecrets: credentialSecrets.map(credentialSecret =>
+        toSharedSecretKey(credentialKind, credentialSecret),
+      ),
+    };
+    const knownState = sourceStates.get(stateKey);
     if (knownState?.settingsVersion === settingsVersion) {
-      return {sharedSecrets, sourceState: knownState};
+      return {...sharedPool, sourceState: knownState};
     }
     const sourceState = createSourceState(settingsVersion, knownState);
-    sourceStates.set(subtitleSource, sourceState);
-    return {sharedSecrets, sourceState};
+    sourceStates.set(stateKey, sourceState);
+    return {...sharedPool, sourceState};
   }
 
-  function recordSharedFailure({
-    subtitleSource,
-    sourceState,
-    sharedPick,
-    error,
-  }) {
+  function recordSharedFailure({sharedPool, sharedPick, error}) {
+    const {subtitleSource, credentialKind, sourceState} = sharedPool;
     if (error instanceof SourceRateLimitError) {
       sourceState.limitedUntilMs.set(
         sharedPick.sharedSecret,
@@ -158,7 +184,11 @@ export function createSharedCredentialPool({
         nowMs + SHARED_CREDENTIAL_REJECTION_REST,
       );
       logger.warn(
-        {subtitleSource, sharedCredentialIndex: sharedPick.sharedIndex},
+        {
+          subtitleSource,
+          credentialKind,
+          sharedCredentialIndex: sharedPick.sharedIndex,
+        },
         'A shared credential was rejected and rests before it is tried again.',
       );
       return true;
@@ -167,13 +197,18 @@ export function createSharedCredentialPool({
   }
 
   return {
-    async hasConfiguredCredential(subtitleSource) {
-      const {sharedSecrets} = await readSharedSecrets(subtitleSource);
+    async hasConfiguredCredential({subtitleSource, credentialKind}) {
+      const {sharedSecrets} = await readSharedPool({
+        subtitleSource,
+        credentialKind,
+      });
       return sharedSecrets.length > 0;
     },
-    async hasUsableCredential(subtitleSource) {
-      const {sharedSecrets, sourceState} =
-        await readSharedSecrets(subtitleSource);
+    async hasUsableCredential({subtitleSource, credentialKind}) {
+      const {sharedSecrets, sourceState} = await readSharedPool({
+        subtitleSource,
+        credentialKind,
+      });
       const nowMs = readNowMs();
       return sharedSecrets.some(
         sharedSecret => !isRejected(sourceState, sharedSecret, nowMs),
@@ -181,6 +216,7 @@ export function createSharedCredentialPool({
     },
     async callWithCredential({
       subtitleSource,
+      credentialKind,
       credential,
       isBreakerOnEveryLimit = false,
       isPreferredCredential = stubFalse,
@@ -189,7 +225,7 @@ export function createSharedCredentialPool({
       if (credential) {
         return runCall(credential);
       }
-      const sharedPool = await readSharedSecrets(subtitleSource);
+      const sharedPool = await readSharedPool({subtitleSource, credentialKind});
       for (
         let attempt = 0;
         attempt < sharedPool.sharedSecrets.length;
@@ -199,25 +235,20 @@ export function createSharedCredentialPool({
           (attempt === 0 &&
             pickPreferredSecret(sharedPool, readNowMs(), preferredPick =>
               isPreferredCredential(
-                toSharedCredential(subtitleSource, preferredPick),
+                toSharedCredential(sharedPool, preferredPick),
               ),
             )) ||
           pickSharedSecret(sharedPool, readNowMs());
         if (!sharedPick) {
           break;
         }
-        const sharedCredential = toSharedCredential(subtitleSource, sharedPick);
+        const sharedCredential = toSharedCredential(sharedPool, sharedPick);
         try {
           return await runCall(sharedCredential);
         } catch (error) {
           const isSharedFailure =
             error?.credentialId === sharedCredential.credentialId &&
-            recordSharedFailure({
-              subtitleSource,
-              sourceState: sharedPool.sourceState,
-              sharedPick,
-              error,
-            });
+            recordSharedFailure({sharedPool, sharedPick, error});
           if (!isSharedFailure) {
             throw error;
           }
