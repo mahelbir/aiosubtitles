@@ -1,16 +1,11 @@
 import {StatusCodes} from 'http-status-codes';
 import {LinkButton} from '@/components/common/link-button';
 import {ErrorPage} from '@/components/common/error-page';
-import {THEME_COLORS} from '@/config/theme';
-import {AppDocument} from './app-document';
+import {APP_METADATA, APP_VIEWPORT, AppDocument} from './app-document';
 
-export const metadata = {
-  title: 'Page not found',
-};
+export const metadata = APP_METADATA;
 
-export const viewport = {
-  themeColor: THEME_COLORS,
-};
+export const viewport = APP_VIEWPORT;
 
 export default function GlobalNotFound() {
   return (

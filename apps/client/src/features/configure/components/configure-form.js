@@ -5,6 +5,7 @@ import {flushSync} from 'react-dom';
 import {useSelector} from '@tanstack/react-form';
 import {pick} from 'es-toolkit';
 import {useQueryState} from 'nuqs';
+import {ADDON_DESCRIPTION, ADDON_NAME} from '@repo/shared/constants/app.js';
 import {SUBTITLE_LANGUAGE_LIMIT_DEFAULT} from '@repo/shared/constants/user-config.js';
 import {applySubtitleSourceSwitchLocks} from '@repo/shared/lib/subtitle-source-switch.js';
 import {
@@ -110,8 +111,8 @@ function ConfigureFormLayout({
 
   return (
     <SettingsLayout
-      title="Subtitle settings"
-      description="Choose where subtitles come from and in which languages."
+      title={ADDON_NAME}
+      description={ADDON_DESCRIPTION}
       sections={CONFIGURE_SECTIONS}
       activeSection={activeSection}
       onSectionChange={setActiveSection}

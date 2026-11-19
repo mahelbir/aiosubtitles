@@ -1,16 +1,14 @@
 import '@/styles/globals.css';
 import {cn} from 'cn';
 import {preconnect} from 'react-dom';
-import {API_ORIGIN, APP_NAME, TITLE_SUFFIX} from '@/config/app';
+import {ADDON_NAME} from '@repo/shared/constants/app.js';
+import {API_ORIGIN} from '@/config/app';
 import {env} from '@/config/env.js';
 import {APP_THEME, THEME_COLORS} from '@/config/theme';
 import {fontVariables} from './fonts';
 
 export const APP_METADATA = {
-  title: {
-    default: APP_NAME,
-    template: `%s${TITLE_SUFFIX}`,
-  },
+  title: ADDON_NAME,
   robots: {
     index: false,
     follow: false,

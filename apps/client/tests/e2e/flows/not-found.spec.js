@@ -16,7 +16,6 @@ test.describe('an unknown URL', () => {
     const response = await page.goto(MISSING_PAGE_PATH);
 
     expect(response.status()).toBe(StatusCodes.NOT_FOUND);
-    await expect(page).toHaveTitle('Page not found');
     await expect(page.getByRole('heading', {name: 'Sorry!'})).toBeVisible();
     await expect(
       page.getByText('The page you are looking for was not found.'),
