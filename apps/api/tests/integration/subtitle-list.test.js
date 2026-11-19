@@ -39,6 +39,7 @@ import {redis} from '../../src/redis/index.js';
 import {
   getTestApp,
   getTestAppBasePath,
+  getTestAppBaseUrl,
   setTestAppOptions,
 } from '../helpers/app.js';
 import {createUserConfig} from '../helpers/factories.js';
@@ -192,10 +193,6 @@ function toEpisodeId(catalogSeason, catalogEpisode) {
 
 function toUrlCode(searchHit) {
   return computeUrlCode({...searchHit, archiveEntryPath: ''});
-}
-
-function toBaseUrl() {
-  return `http://localhost:80${getTestAppBasePath()}`;
 }
 
 async function createListUserConfig({
@@ -371,7 +368,7 @@ describe('the subtitle list route', () => {
     expect(subtitles).toEqual([
       {
         id: `TheSubtitleDB · ${MOVIE_RELEASE} · ${urlCode.slice(0, 8)}`,
-        url: `${toBaseUrl()}/${userConfig.id}/subtitle-files/${MOVIE_ID}/${urlCode}.srt`,
+        url: `${getTestAppBaseUrl()}/${userConfig.id}/subtitle-files/${MOVIE_ID}/${urlCode}.srt`,
         lang: 'tur',
         label: `TheSubtitleDB · ${MOVIE_RELEASE}`,
         subtitleFileName: MOVIE_RELEASE,
@@ -774,7 +771,7 @@ describe('the subtitle list route', () => {
       expect.objectContaining({url: KITSU_META_URL}),
     );
     expect(subtitles.map(({url}) => url)).toEqual([
-      `${toBaseUrl()}/${userConfig.id}/subtitle-files/${kitsuVideoId}/${toUrlCode(searchHit)}.srt`,
+      `${getTestAppBaseUrl()}/${userConfig.id}/subtitle-files/${kitsuVideoId}/${toUrlCode(searchHit)}.srt`,
     ]);
     const candidates = await SubtitleVideoCandidate.findAll({
       attributes: ['videoId'],
@@ -1611,7 +1608,7 @@ describe('the OpenSubtitles account notice', () => {
       id: NOTICE_ID,
       lang: 'tur',
       label: 'Add an OpenSubtitles account to see 2 more',
-      url: `${toBaseUrl()}/${userConfig.id}/subtitle-notices/opensubtitles-account.srt`,
+      url: `${getTestAppBaseUrl()}/${userConfig.id}/subtitle-notices/opensubtitles-account.srt`,
     });
   });
 
@@ -1707,7 +1704,7 @@ describe('the OpenSubtitles account notice', () => {
     const app = await getTestApp();
 
     const subtitles = await getSubtitleList({userConfigId: userConfig.id});
-    const noticeUrl = `${toBaseUrl()}/${userConfig.id}/subtitle-notices/${subtitleNotice}.srt`;
+    const noticeUrl = `${getTestAppBaseUrl()}/${userConfig.id}/subtitle-notices/${subtitleNotice}.srt`;
     const noticeResponse = await app.inject(
       noticeUrl.slice('http://localhost:80'.length),
     );
@@ -1937,7 +1934,7 @@ describe('a kitsu pack served after the list', () => {
     );
 
     const fileResponse = await requestFile(
-      `${toBaseUrl()}/${userConfig.id}/subtitle-files/${kitsuVideoId}/${packUrlCode}.srt`,
+      `${getTestAppBaseUrl()}/${userConfig.id}/subtitle-files/${kitsuVideoId}/${packUrlCode}.srt`,
     );
 
     expect(fileResponse.statusCode).toBe(StatusCodes.OK);

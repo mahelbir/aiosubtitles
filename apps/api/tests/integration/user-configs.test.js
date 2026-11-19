@@ -19,6 +19,7 @@ import {SourceUnavailableError} from '../../src/lib/subtitle-sources/subtitle-so
 import {
   getTestApp,
   getTestAppBasePath,
+  getTestAppBaseUrl,
   setTestAppOptions,
 } from '../helpers/app.js';
 import {readEnvelope} from '../helpers/assertions.js';
@@ -147,7 +148,7 @@ describe('creating a configuration', () => {
     expect(response.statusCode).toBe(StatusCodes.CREATED);
     const {data} = readEnvelope(response);
     expect(data.manifestUrl).toBe(
-      `http://localhost:80/${data.userConfigId}/manifest.json`,
+      `${getTestAppBaseUrl()}/${data.userConfigId}/manifest.json`,
     );
     const stored = await UserConfigCredential.findOne({
       attributes: ['credentialSecret', 'credentialStatus'],
@@ -252,7 +253,7 @@ describe('reading a configuration', () => {
     const {data} = readEnvelope(response);
     expect(data).toEqual({
       userConfigId: userConfig.id,
-      manifestUrl: `http://localhost:80/${userConfig.id}/manifest.json`,
+      manifestUrl: `${getTestAppBaseUrl()}/${userConfig.id}/manifest.json`,
       languageCodes: ['tur'],
       subtitleLanguageLimit: userConfig.subtitleLanguageLimit,
       subtitleSourceSwitchStates: SWITCH_STATES,

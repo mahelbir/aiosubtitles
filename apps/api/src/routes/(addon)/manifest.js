@@ -1,29 +1,28 @@
 import {z} from 'zod';
 import {StatusCodes} from 'http-status-codes';
 import {
+  ADDON_DESCRIPTION,
   ADDON_MANIFEST_VERSION,
   ADDON_NAME,
 } from '@repo/shared/constants/app.js';
 import {config} from '../../config/index.js';
 import {RateLimitKey} from '../../lib/rate-limit.js';
+import {getRequestBaseUrl} from '../_request-base-url.js';
 import {AddonVideoType} from './_addon-video-type.js';
 import {readCachedUserConfig} from './_cached-user-config.js';
+
+const ADDON_LOGO_PATH = '/logo.png';
 
 const ADDON_MANIFEST = {
   id: 'com.mahmuthanelbir.aiosubtitles',
   version: ADDON_MANIFEST_VERSION,
   name: ADDON_NAME,
-  description:
-    'Puts the subtitle that best fits the playing video at the top of the list.',
+  description: ADDON_DESCRIPTION,
   resources: ['subtitles'],
   types: AddonVideoType.values,
   idPrefixes: ['tt', 'kitsu'],
   catalogs: [],
 };
-
-const GENERAL_MANIFEST = toManifest({isConfigurationRequired: true});
-
-const USER_MANIFEST = toManifest({isConfigurationRequired: false});
 
 const MANIFEST_SCHEMA = {
   response: {
@@ -33,6 +32,7 @@ const MANIFEST_SCHEMA = {
         version: z.string(),
         name: z.string(),
         description: z.string(),
+        logo: z.string(),
         resources: z.array(z.string()),
         types: z.array(z.string()),
         idPrefixes: z.array(z.string()),
@@ -61,14 +61,15 @@ const ADDON_ROUTE_CONFIG = {
       timeWindow: config.rateLimitWindow,
     },
   ],
-  replyAddonFallback: (request, reply) => reply.send(GENERAL_MANIFEST),
+  replyAddonFallback: (request, reply) =>
+    reply.send(toManifest(request, {isConfigurationRequired: true})),
 };
 
 export default async function (fastify) {
   fastify.get(
     '/manifest.json',
     {schema: MANIFEST_SCHEMA, config: ADDON_ROUTE_CONFIG},
-    async () => GENERAL_MANIFEST,
+    async request => toManifest(request, {isConfigurationRequired: true}),
   );
 
   fastify.get(
@@ -84,14 +85,15 @@ export default async function (fastify) {
       const userConfig = await readCachedUserConfig(
         request.params.userConfigId,
       );
-      return userConfig ? USER_MANIFEST : GENERAL_MANIFEST;
+      return toManifest(request, {isConfigurationRequired: !userConfig});
     },
   );
 }
 
-function toManifest({isConfigurationRequired}) {
+function toManifest(request, {isConfigurationRequired}) {
   return {
     ...ADDON_MANIFEST,
+    logo: `${getRequestBaseUrl(request)}${ADDON_LOGO_PATH}`,
     behaviorHints: {
       configurable: true,
       configurationRequired: isConfigurationRequired,

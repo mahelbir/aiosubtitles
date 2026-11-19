@@ -521,6 +521,7 @@ describe('the manifest a player installs', () => {
           id: expect.stringMatching(/^[\w-]+(?:\.[\w-]+)+$/),
           name: expect.any(String),
           description: expect.any(String),
+          logo: expect.stringMatching(/^https?:\/\/[^/]+\/\S*\.png$/),
           version: expect.stringMatching(SEMANTIC_VERSION_PATTERN),
           resources: expect.arrayContaining(['subtitles']),
           types: expect.arrayContaining(['movie', 'series']),

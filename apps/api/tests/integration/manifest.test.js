@@ -2,7 +2,11 @@ import {afterEach, describe, expect, it, vi} from 'vitest';
 import {StatusCodes} from 'http-status-codes';
 import {uuidV4} from '../../src/lib/common.js';
 import {userConfigCache} from '../../src/lib/user-config-cache.js';
-import {getTestApp, getTestAppBasePath} from '../helpers/app.js';
+import {
+  getTestApp,
+  getTestAppBasePath,
+  getTestAppBaseUrl,
+} from '../helpers/app.js';
 import {readEnvelope} from '../helpers/assertions.js';
 import {createUserConfig} from '../helpers/factories.js';
 
@@ -15,7 +19,8 @@ const GENERAL_MANIFEST = {
   version: '1.0.0',
   name: 'AIOSubtitles',
   description:
-    'Puts the subtitle that best fits the playing video at the top of the list.',
+    'AIOSubtitles is the smartest subtitle addon. It brings many subtitle sites into one configurable addon, searches them all at once, and smartly puts the subtitle that fits your video best at the top of each language.',
+  logo: `${getTestAppBaseUrl()}/logo.png`,
   resources: ['subtitles'],
   types: ['movie', 'series', 'anime'],
   idPrefixes: ['tt', 'kitsu'],

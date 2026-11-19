@@ -3,6 +3,8 @@ import {config} from '../../src/config/index.js';
 import {basePathField} from '../../src/config/schema.js';
 import {HTTP_FIXTURE_URL, httpFixture} from './fixtures.js';
 
+const INJECT_ORIGIN = 'http://localhost:80';
+
 let instance = null;
 let scope = null;
 let basePath = config.apiBasePath;
@@ -33,6 +35,10 @@ export function setTestAppOptions(options) {
 
 export function getTestAppBasePath() {
   return basePath;
+}
+
+export function getTestAppBaseUrl() {
+  return `${INJECT_ORIGIN}${basePath}`;
 }
 
 export async function getTestApp() {

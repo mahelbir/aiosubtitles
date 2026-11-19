@@ -2493,6 +2493,9 @@ exports[`OpenAPI document > matches the recorded contract 1`] = `
                       },
                       "type": "array",
                     },
+                    "logo": {
+                      "type": "string",
+                    },
                     "name": {
                       "type": "string",
                     },
@@ -2517,6 +2520,7 @@ exports[`OpenAPI document > matches the recorded contract 1`] = `
                     "version",
                     "name",
                     "description",
+                    "logo",
                     "resources",
                     "types",
                     "idPrefixes",
@@ -2623,6 +2627,9 @@ exports[`OpenAPI document > matches the recorded contract 1`] = `
                       },
                       "type": "array",
                     },
+                    "logo": {
+                      "type": "string",
+                    },
                     "name": {
                       "type": "string",
                     },
@@ -2647,6 +2654,7 @@ exports[`OpenAPI document > matches the recorded contract 1`] = `
                     "version",
                     "name",
                     "description",
+                    "logo",
                     "resources",
                     "types",
                     "idPrefixes",
