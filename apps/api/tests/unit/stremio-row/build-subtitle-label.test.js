@@ -9,7 +9,7 @@ const EXACT_WORD = ConfidenceWord.label(ConfidenceWord.EXACT);
 const CLOSE_WORD = ConfidenceWord.label(ConfidenceWord.CLOSE);
 
 describe('buildSubtitleLabel', () => {
-  it('orders label parts and notes', () => {
+  it('orders label parts and notes, a quota-costly row leading with $', () => {
     expect(
       buildSubtitleLabel({
         confidenceWord: ConfidenceWord.EXACT,
@@ -17,12 +17,21 @@ describe('buildSubtitleLabel', () => {
         noteFlags: {isHearingImpaired: true, isQuotaCostly: true},
         releaseName: RELEASE_NAME,
       }),
-    ).toBe(
-      `${EXACT_WORD} · ${OPENSUBTITLES_NAME} · HI · Quota · ${RELEASE_NAME}`,
-    );
+    ).toBe(`$ · ${EXACT_WORD} · ${OPENSUBTITLES_NAME} · HI · ${RELEASE_NAME}`);
   });
 
-  it('puts every note in the order HI, Forced, MT, Quota', () => {
+  it('leads with $ before the source name when there is no confidence word', () => {
+    expect(
+      buildSubtitleLabel({
+        confidenceWord: null,
+        subtitleSourceName: OPENSUBTITLES_NAME,
+        noteFlags: {isQuotaCostly: true},
+        releaseName: RELEASE_NAME,
+      }),
+    ).toBe(`$ · ${OPENSUBTITLES_NAME} · ${RELEASE_NAME}`);
+  });
+
+  it('puts every note in the order HI, Forced, MT', () => {
     expect(
       buildSubtitleLabel({
         confidenceWord: ConfidenceWord.CLOSE,
@@ -36,7 +45,7 @@ describe('buildSubtitleLabel', () => {
         releaseName: RELEASE_NAME,
       }),
     ).toBe(
-      `${CLOSE_WORD} · ${OPENSUBTITLES_NAME} · HI · Forced · MT · Quota · ${RELEASE_NAME}`,
+      `$ · ${CLOSE_WORD} · ${OPENSUBTITLES_NAME} · HI · Forced · MT · ${RELEASE_NAME}`,
     );
   });
 

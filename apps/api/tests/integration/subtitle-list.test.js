@@ -1747,7 +1747,7 @@ describe('the OpenSubtitles account notice', () => {
       ]),
     );
     expect(labelByUrlCode).toEqual({
-      [toUrlCode(quotaHit)]: `OpenSubtitles · Quota · ${MOVIE_RELEASE}`,
+      [toUrlCode(quotaHit)]: `$ · OpenSubtitles · ${MOVIE_RELEASE}`,
       [toUrlCode(storedHit)]: 'OpenSubtitles · The.Matrix.1999.720p.WEB-DL-BBB',
     });
   });

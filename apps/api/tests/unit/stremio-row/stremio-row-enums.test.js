@@ -16,7 +16,7 @@ const enumMembers = [
   [
     'SubtitleNote',
     SubtitleNote,
-    ['HEARING_IMPAIRED', 'FORCED', 'MACHINE_TRANSLATED', 'QUOTA_COSTLY'],
+    ['HEARING_IMPAIRED', 'FORCED', 'MACHINE_TRANSLATED'],
   ],
   [
     'SubtitleMessage',
@@ -53,7 +53,7 @@ describe('stremio-row enums', () => {
     },
   );
 
-  it('labels the subtitle notes in the order HI, Forced, MT, Quota with their row flags', () => {
+  it('labels the subtitle notes in the order HI, Forced, MT with their row flags', () => {
     const noteList = SubtitleNote.toList({
       extra: note => ({noteFlagName: note.raw.noteFlagName}),
     });
@@ -64,7 +64,6 @@ describe('stremio-row enums', () => {
       ['HI', 'isHearingImpaired'],
       ['Forced', 'isForced'],
       ['MT', 'isMachineTranslated'],
-      ['Quota', 'isQuotaCostly'],
     ]);
   });
 

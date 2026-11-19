@@ -12,11 +12,6 @@ export const SubtitleNote = Enum({
     label: 'MT',
     noteFlagName: 'isMachineTranslated',
   },
-  QUOTA_COSTLY: {
-    value: 'quota-costly',
-    label: 'Quota',
-    noteFlagName: 'isQuotaCostly',
-  },
 });
 
 export const SubtitleNotice = Enum({

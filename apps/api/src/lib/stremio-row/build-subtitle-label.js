@@ -3,6 +3,8 @@ import {SubtitleNote} from './stremio-row-enums.js';
 
 export const LABEL_SEPARATOR = ' · ';
 
+const QUOTA_COSTLY_MARK = '$';
+
 const subtitleNoteList = SubtitleNote.toList({
   extra: note => ({noteFlagName: note.raw.noteFlagName}),
 });
@@ -17,6 +19,7 @@ export const buildSubtitleLabel = ({
   releaseName,
 }) =>
   [
+    noteFlags.isQuotaCostly ? QUOTA_COSTLY_MARK : null,
     confidenceWord === null ? null : ConfidenceWord.label(confidenceWord),
     subtitleSourceName,
     ...subtitleNoteList
