@@ -22,7 +22,7 @@ import {
 import {Button} from '@/components/ui/button';
 import {
   Card,
-  CardDescription,
+  CardContent,
   CardFooter,
   CardHeader,
   CardTitle,
@@ -97,10 +97,13 @@ export function DeleteConfigurationCard() {
     <Card>
       <CardHeader>
         <CardTitle>Delete</CardTitle>
-        <CardDescription>
-          Remove this configuration and its keys from the server.
-        </CardDescription>
       </CardHeader>
+      <CardContent>
+        <p className="text-sm text-muted-foreground">
+          Your settings and keys are removed from the server for good. Subtitles
+          already stored keep working.
+        </p>
+      </CardContent>
       <CardFooter>
         <AlertDialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
           <AlertDialogTrigger render={<Button variant="destructive" />}>

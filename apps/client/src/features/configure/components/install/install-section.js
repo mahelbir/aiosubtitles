@@ -9,7 +9,7 @@ export function InstallSection({manifestUrl}) {
   return (
     <PageSection
       title={INSTALL_TITLE}
-      description="Add this link to Stremio to use your subtitle settings."
+      description="Install the addon and manage this configuration."
     >
       <div className="flex flex-col gap-6">
         <ManifestLinkCard manifestUrl={manifestUrl} />

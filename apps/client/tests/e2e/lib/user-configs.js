@@ -32,8 +32,6 @@ export const SAVED_TEXT = 'All changes saved';
 
 export const NOT_SAVED_YET_TEXT = 'Not saved yet';
 
-export const MANIFEST_URL_PATTERN = /\/[0-9a-f-]{36}\/manifest\.json$/;
-
 export function getUserConfigPath(userConfigId) {
   return `${USER_CONFIGS_PATH}/${userConfigId}`;
 }

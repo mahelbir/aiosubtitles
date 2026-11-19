@@ -17,7 +17,6 @@ import {expectSearchParams} from '../lib/page.js';
 import {recordRequests} from '../lib/requests.js';
 import {
   LOGIN_REFUSAL,
-  MANIFEST_URL_PATTERN,
   NOT_SAVED_YET_TEXT,
   SAVED_TEXT,
   SESSION_REFUSAL,
@@ -142,9 +141,9 @@ test.describe('configure', () => {
       const userConfigId = new URL(page.url()).searchParams.get('userConfigId');
       userConfigs.track({userConfigId, password: PASSWORD});
       await expectSearchParams(page).toEqual({userConfigId, tab: 'install'});
-      await expect(getMain(page).getByText(MANIFEST_URL_PATTERN)).toContainText(
-        `/${userConfigId}/manifest.json`,
-      );
+      await expect(
+        getMain(page).getByRole('textbox', {name: 'Addon URL', exact: true}),
+      ).toHaveValue(new RegExp(`/${userConfigId}/manifest\\.json$`));
       await expect(getVisibleText(page, SAVED_TEXT)).toBeVisible();
       await expect(getVisibleText(page, NOT_SAVED_YET_TEXT)).toHaveCount(0);
       expect(await readSessionToken(page, userConfigId)).toEqual(

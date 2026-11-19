@@ -2,20 +2,33 @@
 
 import {CopyIcon, DownloadIcon} from 'lucide-react';
 import {toast} from 'react-toastify/unstyled';
-import {LinkButton} from '@/components/common/link-button';
-import {Button} from '@/components/ui/button';
+import {ExternalLinkButton, LinkButton} from '@/components/common/link-button';
 import {
   Card,
   CardContent,
-  CardDescription,
   CardFooter,
   CardHeader,
   CardTitle,
 } from '@/components/ui/card';
+import {
+  InputGroup,
+  InputGroupAddon,
+  InputGroupButton,
+  InputGroupInput,
+} from '@/components/ui/input-group';
+import {Tooltip, TooltipContent, TooltipTrigger} from '@/components/ui/tooltip';
 
-function toStremioUrl(manifestUrl) {
+const ADDON_URL_LABEL = 'Addon URL';
+const COPY_LINK_LABEL = 'Copy link';
+const STREMIO_WEB_ADDONS_URL = 'https://web.stremio.com/#/addons';
+
+function toAppUrl(manifestUrl, scheme) {
   const {host, pathname} = new URL(manifestUrl);
-  return `stremio://${host}${pathname}`;
+  return `${scheme}://${host}${pathname}`;
+}
+
+function toStremioWebUrl(manifestUrl) {
+  return `${STREMIO_WEB_ADDONS_URL}?${new URLSearchParams({addon: manifestUrl})}`;
 }
 
 export function ManifestLinkCard({manifestUrl}) {
@@ -28,25 +41,51 @@ export function ManifestLinkCard({manifestUrl}) {
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Install link</CardTitle>
-        <CardDescription>
-          Install opens Stremio. Copy the link to paste it in Stremio yourself.
-        </CardDescription>
+        <CardTitle>{ADDON_URL_LABEL}</CardTitle>
       </CardHeader>
       <CardContent>
-        <code className="block rounded-lg border bg-muted px-3 py-2 font-mono text-sm break-all">
-          {manifestUrl}
-        </code>
+        <InputGroup>
+          <InputGroupInput
+            readOnly
+            value={manifestUrl}
+            aria-label={ADDON_URL_LABEL}
+            className="font-mono"
+            onFocus={event => event.target.select()}
+          />
+          <InputGroupAddon align="inline-end">
+            <Tooltip>
+              <TooltipTrigger
+                render={
+                  <InputGroupButton
+                    size="icon-xs"
+                    aria-label={COPY_LINK_LABEL}
+                    onClick={copyManifestUrl}
+                  />
+                }
+              >
+                <CopyIcon />
+              </TooltipTrigger>
+              <TooltipContent>{COPY_LINK_LABEL}</TooltipContent>
+            </Tooltip>
+          </InputGroupAddon>
+        </InputGroup>
       </CardContent>
       <CardFooter className="flex-wrap gap-2">
-        <LinkButton href={toStremioUrl(manifestUrl)}>
+        <LinkButton variant="outline" href={toAppUrl(manifestUrl, 'stremio')}>
           <DownloadIcon data-icon="inline-start" />
-          Install in Stremio
+          Install in Stremio app
         </LinkButton>
-        <Button variant="outline" onClick={copyManifestUrl}>
-          <CopyIcon data-icon="inline-start" />
-          Copy
-        </Button>
+        <ExternalLinkButton
+          variant="outline"
+          size="default"
+          href={toStremioWebUrl(manifestUrl)}
+        >
+          Install in Stremio Web
+        </ExternalLinkButton>
+        <LinkButton variant="outline" href={toAppUrl(manifestUrl, 'nuvio')}>
+          <DownloadIcon data-icon="inline-start" />
+          Install in Nuvio
+        </LinkButton>
       </CardFooter>
     </Card>
   );

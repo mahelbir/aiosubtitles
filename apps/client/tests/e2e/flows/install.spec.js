@@ -44,11 +44,35 @@ function readClipboard(page) {
 }
 
 function getInstallLink(page) {
-  return getMain(page).getByRole('link', {name: 'Install in Stremio'});
+  return getMain(page).getByRole('link', {
+    name: 'Install in Stremio app',
+    exact: true,
+  });
+}
+
+function getWebInstallLink(page) {
+  return getMain(page).getByRole('link', {
+    name: 'Install in Stremio Web',
+    exact: true,
+  });
+}
+
+function getNuvioInstallLink(page) {
+  return getMain(page).getByRole('link', {
+    name: 'Install in Nuvio',
+    exact: true,
+  });
+}
+
+function getManifestUrlField(page) {
+  return getMain(page).getByRole('textbox', {
+    name: 'Addon URL',
+    exact: true,
+  });
 }
 
 function getCopyButton(page) {
-  return getMain(page).getByRole('button', {name: 'Copy', exact: true});
+  return getMain(page).getByRole('button', {name: 'Copy link', exact: true});
 }
 
 function getChangePasswordButton(page) {
@@ -165,8 +189,65 @@ test.describe('install', () => {
       expect(href.endsWith(`/${userConfig.userConfigId}/manifest.json`)).toBe(
         true,
       );
-      await expect(getMain(page).getByText(manifestUrl.href)).toBeVisible();
+      await expect(getManifestUrlField(page)).toHaveValue(manifestUrl.href);
+      await expect(getManifestUrlField(page)).not.toBeEditable();
       await expect(getMain(page).getByText(SAVE_FIRST_TEXT)).toHaveCount(0);
+    });
+
+    test('links Stremio Web to the manifest URL in a new tab', async ({
+      page,
+      request,
+      userConfigs,
+    }) => {
+      const userConfig = await userConfigs.create({
+        password: PASSWORD,
+        languageCodes: STORED_LANGUAGE_CODES,
+      });
+      const manifestUrl = await readManifestUrl(request, userConfig);
+
+      await openSignedIn(page, userConfig);
+
+      const webInstallLink = getWebInstallLink(page);
+      await expect(webInstallLink).toHaveAttribute(
+        'href',
+        `https://web.stremio.com/#/addons?addon=${encodeURIComponent(manifestUrl)}`,
+      );
+      await expect(webInstallLink).toHaveAttribute('target', '_blank');
+    });
+
+    test('links Nuvio to the manifest URL', async ({
+      page,
+      request,
+      userConfigs,
+    }) => {
+      const userConfig = await userConfigs.create({
+        password: PASSWORD,
+        languageCodes: STORED_LANGUAGE_CODES,
+      });
+      const {host, pathname} = new URL(
+        await readManifestUrl(request, userConfig),
+      );
+
+      await openSignedIn(page, userConfig);
+
+      await expect(getNuvioInstallLink(page)).toHaveAttribute(
+        'href',
+        `nuvio://${host}${pathname}`,
+      );
+    });
+
+    test('notes in the delete card that stored subtitles keep working', async ({
+      page,
+      userConfigs,
+    }) => {
+      const userConfig = await userConfigs.create({
+        password: PASSWORD,
+        languageCodes: STORED_LANGUAGE_CODES,
+      });
+
+      await openSignedIn(page, userConfig);
+
+      await expect(getMain(page).getByText(DELETE_NOTE)).toBeVisible();
     });
 
     test('Copy puts the manifest URL on the clipboard and says so', async ({

@@ -10,7 +10,6 @@ import {TextInput} from '@/components/form/text-input';
 import {
   Card,
   CardContent,
-  CardDescription,
   CardFooter,
   CardHeader,
   CardTitle,
@@ -56,9 +55,6 @@ export function ChangePasswordCard() {
       <Card>
         <CardHeader>
           <CardTitle>Password</CardTitle>
-          <CardDescription>
-            The password you enter to change these settings.
-          </CardDescription>
         </CardHeader>
         <CardContent>
           <FormGrid>
