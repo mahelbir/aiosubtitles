@@ -17,6 +17,6 @@ export function createCatalogLookup({
   });
   return {
     readCatalogValue: catalogKey => catalogCache.get(catalogKey),
-    reloadCatalogValue: catalogKey => catalogCache.reload(catalogKey),
+    refreshCatalogValue: catalogKey => catalogCache.refresh(catalogKey),
   };
 }

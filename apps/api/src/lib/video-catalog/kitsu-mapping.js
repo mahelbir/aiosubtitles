@@ -109,7 +109,7 @@ async function claimKitsuMappingRefresh(kitsuId) {
 export function createKitsuVideoResolver({
   requestRemoteResource = sendRemoteResourceRequest,
 } = {}) {
-  const {readCatalogValue, reloadCatalogValue} = createCatalogLookup({
+  const {readCatalogValue, refreshCatalogValue} = createCatalogLookup({
     prefix: 'kitsu-mapping:v1:',
     ttl: KITSU_MAPPING_TTL,
     requestRemoteResource,
@@ -127,7 +127,7 @@ export function createKitsuVideoResolver({
     ) {
       return kitsuVideo;
     }
-    return pickKitsuVideo(await reloadCatalogValue(kitsuId), kitsuEpisode);
+    return pickKitsuVideo(await refreshCatalogValue(kitsuId), kitsuEpisode);
   };
 }
 

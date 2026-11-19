@@ -40,6 +40,7 @@ export class RedisCache {
   _memo;
   _epoch = 0;
   _inFlight = new Map();
+  _refreshing = new Map();
 
   constructor({prefix, ttl, load, memo = false}) {
     this._prefix = prefix;
@@ -66,17 +67,30 @@ export class RedisCache {
       }
     }
 
-    const pending = this._inFlight.get(key);
+    return (
+      this._refreshing.get(key) ??
+      this._share(this._inFlight, key, () => this._fill(key, id, enabled))
+    );
+  }
+
+  refresh(id) {
+    const key = this._key(id);
+    return this._share(this._refreshing, key, () =>
+      this._fill(key, id, this._ttl() > 0, {isRefreshing: true}),
+    );
+  }
+
+  async _share(flights, key, start) {
+    const pending = flights.get(key);
     if (pending) {
       return pending;
     }
-
-    const promise = this._fill(key, id, enabled);
-    this._inFlight.set(key, promise);
+    const promise = start();
+    flights.set(key, promise);
     try {
       return await promise;
     } finally {
-      this._inFlight.delete(key);
+      flights.delete(key);
     }
   }
 
@@ -101,13 +115,7 @@ export class RedisCache {
     return this._remember(key, deepFreeze(JSON.parse(cached)), epoch);
   }
 
-  reload(id) {
-    const key = this._key(id);
-    this._memo?.delete(key);
-    return this._fill(key, id, this._ttl() > 0, {isReplacing: true});
-  }
-
-  async _fill(key, id, enabled, {isReplacing = false} = {}) {
+  async _fill(key, id, enabled, {isRefreshing = false} = {}) {
     const epoch = this._epoch;
     const generation = enabled
       ? Number(await redis.get(this._generationKey))
@@ -125,9 +133,10 @@ export class RedisCache {
       isMissing ? MISSING : JSON.stringify(data),
       isMissing ? Math.min(this._ttl(), MISSING_TTL) : this._ttl(),
     ];
-    const stored = isReplacing
-      ? await redis.replaceAtGeneration(...storeArguments, TOMBSTONE)
-      : await redis.claimAtGeneration(...storeArguments);
+    const stored =
+      isRefreshing && !isMissing
+        ? await redis.replaceAtGeneration(...storeArguments, TOMBSTONE)
+        : await redis.claimAtGeneration(...storeArguments);
     return stored ? this._remember(key, value, epoch) : value;
   }
 

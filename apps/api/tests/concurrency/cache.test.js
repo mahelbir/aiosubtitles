@@ -374,7 +374,7 @@ describe('peek', () => {
   });
 });
 
-describe('a reload', () => {
+describe('a refresh', () => {
   it('replaces a cached value with a fresh load at the full TTL', async () => {
     const load = vi
       .fn()
@@ -383,7 +383,9 @@ describe('a reload', () => {
     const cache = createFixtureCache(load);
     await cache.get(FIXTURE_SUBJECT);
 
-    await expect(cache.reload(FIXTURE_SUBJECT)).resolves.toEqual({version: 2});
+    await expect(cache.refresh(FIXTURE_SUBJECT)).resolves.toEqual({
+      version: 2,
+    });
     await expect(cache.get(FIXTURE_SUBJECT)).resolves.toEqual({version: 2});
     expect(load).toHaveBeenCalledTimes(2);
     await expect(
@@ -396,10 +398,74 @@ describe('a reload', () => {
     await cache.get(FIXTURE_SUBJECT);
     await cache.invalidate(FIXTURE_SUBJECT);
 
-    await cache.reload(FIXTURE_SUBJECT);
+    await cache.refresh(FIXTURE_SUBJECT);
 
     expect(await cache.peek(FIXTURE_SUBJECT, 'invalidated')).toBe(
       'invalidated',
     );
+  });
+
+  it('keeps the cached value when the fresh load finds nothing', async () => {
+    const load = vi
+      .fn()
+      .mockResolvedValueOnce({version: 1})
+      .mockResolvedValue(null);
+    const cache = createFixtureCache(load);
+    await cache.get(FIXTURE_SUBJECT);
+
+    await expect(cache.refresh(FIXTURE_SUBJECT)).resolves.toBeNull();
+
+    expect(await cache.peek(FIXTURE_SUBJECT)).toEqual({version: 1});
+    await expect(
+      redis.ttl(`${FIXTURE_PREFIX}${FIXTURE_SUBJECT}`),
+    ).resolves.toBeGreaterThan(FIXTURE_TTL - 5);
+  });
+
+  it('caches the absence it finds where nothing was cached', async () => {
+    const cache = createFixtureCache(async () => null);
+
+    await cache.refresh(FIXTURE_SUBJECT);
+
+    expect(await cache.peek(FIXTURE_SUBJECT, 'unknown')).toBeNull();
+  });
+
+  it('keeps the cached value when the fresh load fails', async () => {
+    const load = vi
+      .fn()
+      .mockResolvedValueOnce({version: 1})
+      .mockRejectedValue(new Error('source down'));
+    const cache = createFixtureCache(load);
+    await cache.get(FIXTURE_SUBJECT);
+
+    await expect(cache.refresh(FIXTURE_SUBJECT)).rejects.toThrow('source down');
+
+    expect(await cache.peek(FIXTURE_SUBJECT)).toEqual({version: 1});
+  });
+
+  it('shares one load with every refresh and cold read that overlaps it', async () => {
+    const loading = Promise.withResolvers();
+    const released = Promise.withResolvers();
+    const load = vi.fn(async () => {
+      loading.resolve();
+      await released.promise;
+      return {version: 1};
+    });
+    const cache = createFixtureCache(load);
+
+    const refreshes = [
+      cache.refresh(FIXTURE_SUBJECT),
+      cache.refresh(FIXTURE_SUBJECT),
+    ];
+    await loading.promise;
+    const read = cache.get(FIXTURE_SUBJECT);
+    await redis.ping();
+    released.resolve();
+
+    await expect(Promise.all([...refreshes, read])).resolves.toEqual([
+      {version: 1},
+      {version: 1},
+      {version: 1},
+    ]);
+    expect(load).toHaveBeenCalledTimes(1);
   });
 });
