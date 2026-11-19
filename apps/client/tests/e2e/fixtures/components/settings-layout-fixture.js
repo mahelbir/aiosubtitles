@@ -26,7 +26,7 @@ export function SettingsLayoutFixture() {
       activeSection={activeSection}
       onSectionChange={setActiveSection}
       isDirty={searchParams.has('dirty')}
-      isSaving={false}
+      isSaving={searchParams.has('saving')}
       formId={formId}
       savedText={searchParams.has('unsaved') ? 'Not saved yet' : undefined}
     >

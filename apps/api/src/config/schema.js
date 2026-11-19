@@ -142,6 +142,11 @@ export function getEnvSchema({appPath}) {
     REDIS_USER: z.string().default(''),
     REDIS_PASS: z.string().default(''),
     REDIS_DB: z.coerce.number().int().nonnegative().default(0),
+    REDIS_MAXMEMORY: z
+      .string()
+      .trim()
+      .regex(/^\d+(?:[kmg]b?)?$/i, 'Must be a size such as 512mb or 1gb')
+      .default('512mb'),
 
     OPENSUBTITLES_API_KEY: z.string().default(''),
     SUBTITLE_SEARCH_DEADLINE: z.coerce

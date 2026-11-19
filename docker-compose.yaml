@@ -61,8 +61,6 @@ services:
           - network-alias-postgres
     volumes:
       - postgres-data:/var/lib/postgresql/data
-    ports:
-      - '127.0.0.1:${DB_PORT}:${DB_PORT}'
     restart: unless-stopped
     healthcheck:
       <<: *datastore-healthcheck
@@ -80,6 +78,10 @@ services:
         'yes',
         '--requirepass',
         *redis-pass,
+        '--maxmemory',
+        '${REDIS_MAXMEMORY:-512mb}',
+        '--maxmemory-policy',
+        'volatile-lru',
       ]
     environment:
       REDISCLI_AUTH: *redis-pass
@@ -89,8 +91,6 @@ services:
           - network-alias-redis
     volumes:
       - redis-data:/data
-    ports:
-      - '127.0.0.1:${REDIS_PORT}:${REDIS_PORT}'
     restart: unless-stopped
     healthcheck:
       <<: *datastore-healthcheck
@@ -130,7 +130,7 @@ services:
       TRUST_PROXY: loopback,uniquelocal
       API_BASE_PATH: ${API_BASE_PATH:-}
     ports:
-      - '127.0.0.1:${PORT}:${PORT}'
+      - '127.0.0.1:${PORT:?}:${PORT:?}'
     volumes:
       - ./data/storage:/app/storage
     restart: unless-stopped
@@ -140,7 +140,7 @@ services:
       test:
         [
           'CMD-SHELL',
-          'wget -q --spider http://127.0.0.1:${PORT}${API_BASE_PATH:-/}',
+          'wget -q --spider http://127.0.0.1:${PORT:?}${API_BASE_PATH:-/}',
         ]
     depends_on:
       migrate:

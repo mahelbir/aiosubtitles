@@ -203,6 +203,7 @@ export function FormPoliciesFixture() {
         </FormGrid>
       </Form>
       <PasswordForm />
+      <ServerListForm />
       <SecretForm onSave={setSecretPayload} />
       <EndpointForm />
       <FixtureState
@@ -265,6 +266,28 @@ function PasswordForm() {
         </FormField>
       </FormGrid>
       <SubmitButton className="self-start">Parolayı doğrula</SubmitButton>
+    </Form>
+  );
+}
+
+function ServerListForm() {
+  const mutation = useSubmitFormPolicies();
+  const form = useAppForm({
+    mutation,
+    defaultValues: {people: [{name: 'Ali'}, {name: 'Ayşe'}]},
+  });
+
+  return (
+    <Form form={form} aria-label="Sunucu liste formu">
+      <FormGrid>
+        <FormField name="people[0].name" className="col-span-6">
+          <TextInput label="Kişi 1" />
+        </FormField>
+        <FormField name="people[1].name" className="col-span-6">
+          <TextInput label="Kişi 2" />
+        </FormField>
+      </FormGrid>
+      <SaveButton align="start" className="self-start" />
     </Form>
   );
 }

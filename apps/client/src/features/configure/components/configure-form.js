@@ -15,7 +15,7 @@ import {Form} from '@/components/form/form';
 import {UnsavedChangesGuard} from '@/components/form/unsaved-changes-guard';
 import {SettingsLayout} from '@/components/layout/settings/settings-layout';
 import {useTabQuery} from '@/hooks/use-tab-query';
-import {hasUnsavedChanges, useAppForm} from '@/lib/form';
+import {useAppForm} from '@/lib/form';
 import {useUpdateUserConfig} from '../api';
 import {
   CONFIGURE_SECTIONS,
@@ -63,7 +63,7 @@ function ConfigureFormLayout({
 }) {
   const [activeSection, setActiveSection] = useTabQuery(CONFIGURE_SECTIONS);
   const [, setSubtitleSourceTab] = useQueryState(SUBTITLE_SOURCE_TAB_URL_KEY);
-  const isDirty = useSelector(form.store, hasUnsavedChanges);
+  const isDirty = useSelector(form.store, state => state.isDirty);
   const isSaving = useSelector(form.store, state => state.isSubmitting);
 
   const lockCredentialedSwitches = () => {
@@ -218,7 +218,10 @@ export function LoadedConfigureForm({userConfig}) {
         {!sessionToken && !isPasswordDialogDismissed && (
           <PasswordDialog
             userConfigId={userConfigId}
-            onClose={() => setIsPasswordDialogDismissed(true)}
+            onClose={() => {
+              setIsPasswordDialogDismissed(true);
+              setIsRetryPending(false);
+            }}
             onSignedIn={retrySave}
           />
         )}

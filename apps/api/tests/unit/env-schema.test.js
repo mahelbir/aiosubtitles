@@ -266,6 +266,28 @@ describe('the subtitle service keys', () => {
   });
 });
 
+describe('the Valkey memory cap', () => {
+  const redisMaxmemory = shape.REDIS_MAXMEMORY;
+
+  it('caps the bundled server at 512 MB when left unset', () => {
+    expect(redisMaxmemory.parse(undefined)).toBe('512mb');
+  });
+
+  it.each(['1gb', '256MB', '100000000', '2g'])(
+    'takes %j, a size Valkey reads',
+    size => {
+      expect(redisMaxmemory.safeParse(size).success).toBe(true);
+    },
+  );
+
+  it.each(['', 'lots', '1.5gb', '-1gb', '1tb'])(
+    'refuses %j, so the boot fails',
+    size => {
+      expect(redisMaxmemory.safeParse(size).success).toBe(false);
+    },
+  );
+});
+
 describe('the proxy trust setting', () => {
   const trustProxy = shape.TRUST_PROXY;
 

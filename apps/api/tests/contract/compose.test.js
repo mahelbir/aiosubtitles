@@ -10,6 +10,32 @@ const envShape = getEnvSchema({appPath: '/app'}).shape;
 
 const bundledDbHost = envShape.DB_HOST.parse(undefined);
 
+const redisMaxmemory = envShape.REDIS_MAXMEMORY.parse(undefined);
+
+const WORKSPACE_FOLDERS = ['apps', 'packages'];
+
+const DATASTORE_SERVICES = ['postgres', 'redis'];
+
+function readServiceBlock(compose, service) {
+  return compose
+    .split(/^(?= {2}[\w-]+:$)/m)
+    .find(block => block.startsWith(`  ${service}:\n`));
+}
+
+async function readWorkspacePackageDirs() {
+  const dirs = await Promise.all(
+    WORKSPACE_FOLDERS.map(async folder => {
+      const entries = await fs.readdir(path.join(getWorkspacePath(), folder), {
+        withFileTypes: true,
+      });
+      return entries
+        .filter(entry => entry.isDirectory())
+        .map(entry => `${folder}/${entry.name}`);
+    }),
+  );
+  return dirs.flat();
+}
+
 const TRUST_PROXY_LINE = /^\s*TRUST_PROXY:\s*(.+)$/m;
 const DOCKER_GATEWAY = '172.18.0.1';
 const CLIENT = '203.0.113.7';
@@ -38,6 +64,19 @@ describe.each(['docker-compose.yaml', 'docker-compose.dev.yaml'])(
       expect(compose).toContain(`DB_HOST: \${DB_HOST:-${bundledDbHost}}`);
     });
 
+    it('caps Valkey memory at the schema default and evicts only keys that expire', async () => {
+      const redis = readServiceBlock(await readCompose(file), 'redis');
+      expect(redis).toMatch(
+        new RegExp(
+          `'--maxmemory',\\s+'\\$\\{REDIS_MAXMEMORY:-${escapeRegExp(redisMaxmemory)}\\}',\\s+'--maxmemory-policy',\\s+'volatile-lru',`,
+        ),
+      );
+    });
+
+    it('stops with a clear error when a port is missing', async () => {
+      expect(await readCompose(file)).not.toMatch(/\$\{\w*PORT\}/);
+    });
+
     it('keeps the :+ expansion Coolify cannot parse out of every value but a profile', async () => {
       const lines = (await readCompose(file)).split('\n');
       expect(
@@ -50,7 +89,33 @@ describe.each(['docker-compose.yaml', 'docker-compose.dev.yaml'])(
   },
 );
 
+describe('the development compose', () => {
+  it('keeps every workspace package node_modules in a container volume', async () => {
+    const [compose, packageDirs] = await Promise.all([
+      readCompose('docker-compose.dev.yaml'),
+      readWorkspacePackageDirs(),
+    ]);
+    for (const packageDir of packageDirs) {
+      expect(compose).toMatch(
+        new RegExp(
+          `^ {4}- ([\\w-]+):/repo/${escapeRegExp(packageDir)}/node_modules$[\\s\\S]*^ {2}\\1:$`,
+          'm',
+        ),
+      );
+    }
+  });
+});
+
 describe('the production compose', () => {
+  it.each(DATASTORE_SERVICES)('publishes no %s port', async service => {
+    const block = readServiceBlock(
+      await readCompose('docker-compose.yaml'),
+      service,
+    );
+    expect(block).toBeDefined();
+    expect(block).not.toMatch(/^ {4}ports:/m);
+  });
+
   it('names the caller behind the host proxy, not the proxy itself', async () => {
     expect(
       await resolveBehindCompose({

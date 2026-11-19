@@ -21,6 +21,7 @@ const ENDPOINT_PATH = '/fixtures/form-policies';
 const ENDPOINT = getApiUrl(ENDPOINT_PATH);
 const DISPLAY_FORM = 'Görüntüleme formu';
 const SERVER_FORM = 'Sunucu formu';
+const SERVER_LIST_FORM = 'Sunucu liste formu';
 const DRAFT_FORM = 'Taslak formu';
 const COMPUTED_FORM = 'Hesaplama formu';
 const PASSWORD_FORM = 'Parola formu';
@@ -436,6 +437,28 @@ test.describe('form policies', () => {
 
       await expect(username).toHaveAttribute('aria-invalid', 'true');
       await expectFixtureState(page).toMatchObject({server: {isDirty: true}});
+    });
+  });
+
+  test.describe('with a 422 naming an array item by its dotted path', () => {
+    test.use({allowedConsoleError: FAILED_SUBMIT_ERROR});
+
+    test('shows the message under the item field, with no toast', async ({
+      page,
+    }) => {
+      await stubValidationFailure(page, [
+        {field: 'people.1.name', message: TAKEN_MESSAGE},
+      ]);
+      const secondPerson = getFormField(page, SERVER_LIST_FORM, 'Kişi 2');
+
+      await getSaveButton(getForm(page, SERVER_LIST_FORM)).click();
+
+      await expect(secondPerson).toHaveAttribute('aria-invalid', 'true');
+      await expect(secondPerson).toHaveAccessibleDescription(TAKEN_MESSAGE);
+      await expect(
+        getFormField(page, SERVER_LIST_FORM, 'Kişi 1'),
+      ).toHaveAttribute('aria-invalid', 'false');
+      await expectToasts(page, []);
     });
   });
 

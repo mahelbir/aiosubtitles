@@ -79,7 +79,21 @@ export function hasUnsavedChanges(state) {
   return state.isDirty && !state.isSubmitting;
 }
 
-export function serverFormErrors(error, hasField) {
+function toFieldName(path, values) {
+  let name = '';
+  let value = values;
+  for (const key of toPath(path)) {
+    if (Array.isArray(value)) {
+      name += `[${key}]`;
+    } else {
+      name += name ? `.${key}` : key;
+    }
+    value = value?.[key];
+  }
+  return name;
+}
+
+export function serverFormErrors(error, hasField, values) {
   if (
     error?.errorCode !== ErrorCode.VALIDATION_ERROR ||
     !Array.isArray(error?.data?.errors)
@@ -87,7 +101,10 @@ export function serverFormErrors(error, hasField) {
     return null;
   }
   const [fieldless, named] = partition(error.data.errors, item => !item.field);
-  const [known, orphaned] = partition(named, item => hasField(item.field));
+  const [known, orphaned] = partition(
+    named.map(item => ({...item, field: toFieldName(item.field, values)})),
+    item => hasField(item.field),
+  );
   const formError = fieldless.at(-1)?.message;
   return {
     ...(formError && {form: formError}),
@@ -302,8 +319,10 @@ export function useAppForm({
             }
             return null;
           } catch (error) {
-            const errors = serverFormErrors(error, name =>
-              isFormField(formApi, name),
+            const errors = serverFormErrors(
+              error,
+              name => isFormField(formApi, name),
+              formApi.state.values,
             );
             if (!errors) {
               return null;

@@ -17,6 +17,7 @@ const FIXTURE = 'settings-layout';
 const DESKTOP_VIEWPORT = Object.freeze({width: 1280, height: 800});
 const SECTION_LABELS = ['Sources', 'Languages', 'Install'];
 const UNSAVED_TEXT = 'You have unsaved changes';
+const SAVING_TEXT = 'Saving…';
 const INDICATOR_SLOT = 'settings-nav-indicator';
 const REDUCED_MOTION_MAX_SECONDS = 0.0001;
 
@@ -156,6 +157,18 @@ test.describe('settings layout', () => {
 
       await expectFixtureState(page, 'saveCount').toBe(1);
     });
+
+    for (const query of [{saving: 1}, {dirty: 1, saving: 1}]) {
+      test(`mid-save says it is saving, never saved or unsaved (${Object.keys(query).join(', ')})`, async ({
+        page,
+      }) => {
+        await openFixture(page, FIXTURE, query);
+
+        await expect(getVisibleText(page, SAVING_TEXT)).toBeVisible();
+        await expect(page.getByText('All changes saved')).toHaveCount(0);
+        await expect(getUnsavedNotice(page)).toHaveCount(0);
+      });
+    }
 
     test('the active indicator sits on the active item', async ({page}) => {
       await openFixture(page, FIXTURE);

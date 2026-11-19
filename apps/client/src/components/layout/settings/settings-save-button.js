@@ -28,14 +28,14 @@ export function SettingsSaveAction({className, children}) {
 }
 
 export function SettingsSaveStatus({className}) {
-  const {isDirty, savedText} = useSettingsLayout();
+  const {isDirty, isSaving, savedText} = useSettingsLayout();
 
   return (
     <p
       aria-live="polite"
       className={cn('text-center text-xs text-muted-foreground', className)}
     >
-      {isDirty ? 'You have unsaved changes' : savedText}
+      {isSaving ? 'Saving…' : isDirty ? 'You have unsaved changes' : savedText}
     </p>
   );
 }

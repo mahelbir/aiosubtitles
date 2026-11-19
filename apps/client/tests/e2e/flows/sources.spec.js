@@ -1,3 +1,4 @@
+import {StatusCodes} from 'http-status-codes';
 import {
   CredentialKind,
   CredentialStatus,
@@ -10,18 +11,25 @@ import {
   THESUBTITLEDB_LATE_API_KEY_PREFIX,
   THESUBTITLEDB_VALID_API_KEY,
 } from '../../../../api/tests/e2e/fixture-credentials.js';
-import {getApiUrl} from '../lib/api.js';
+import {
+  getApiUrl,
+  getFailedRequestPattern,
+  getValidationEnvelope,
+} from '../lib/api.js';
 import {getTabPanel} from '../lib/locators.js';
+import {holdRequest} from '../lib/requests.js';
 import {
   openTabMenuItem,
   openTabMenuItems,
   readTokenColor,
 } from '../lib/page.js';
 import {
+  USER_CONFIG_PATH,
   callApi,
   expect,
   getAllSourcesCheckbox,
   getUnsavedNotice,
+  getUserConfigPath,
   getVisibleSaveButton,
   openConfigure,
   openSignedIn,
@@ -38,6 +46,7 @@ const API_KEY = CredentialKind.label(CredentialKind.API_KEY);
 const REJECTED_API_KEY = 'sdb_rejected_fixture';
 const REJECTED_ACCOUNT = {username: 'rejected-user', password: 'rejected-pass'};
 const CHECK_AGAIN = 'Check again';
+const STORED_SECRET_MESSAGE = 'Enter both the username and the password.';
 const QUOTA_TOTAL_PATTERN = /downloads? left today in total$/;
 const OPENSUBTITLES = SubtitleSource.label(SubtitleSource.OPENSUBTITLES);
 const OPENSUBTITLES_V3 = SubtitleSource.label(SubtitleSource.OPENSUBTITLES_V3);
@@ -348,6 +357,46 @@ test.describe('sources', () => {
     await expect(checkAgain).toHaveCount(0);
   });
 
+  test('Check again stays disabled while a save is on its way', async ({
+    page,
+    userConfigs,
+  }) => {
+    const userConfig = await userConfigs.create({
+      password: PASSWORD,
+      languageCodes: STORED_LANGUAGE_CODES,
+      credentials: [
+        {
+          subtitleSource: SubtitleSource.THESUBTITLEDB,
+          credentialKind: CredentialKind.API_KEY,
+          credentialSecret: {
+            apiKey: `${THESUBTITLEDB_LATE_API_KEY_PREFIX}${crypto.randomUUID()}`,
+          },
+        },
+      ],
+    });
+    await openSignedIn(page, userConfig);
+    const panel = await openTabMenuItem(page, THESUBTITLEDB);
+    const checkAgain = panel.getByRole('button', {
+      name: CHECK_AGAIN,
+      exact: true,
+    });
+    await expect(checkAgain).toBeEnabled();
+    await getAllSourcesCheckbox(page).click();
+    await expect(checkAgain).toBeDisabled();
+    const save = await holdRequest(
+      page,
+      getApiUrl(getUserConfigPath(userConfig.userConfigId)),
+      {method: 'PATCH'},
+    );
+
+    await getVisibleSaveButton(page).click();
+    const request = await save.request;
+
+    await expect(checkAgain).toBeDisabled();
+    save.release();
+    await request.response();
+  });
+
   test('Check again stays away while every key in the tab has a final status', async ({
     page,
     userConfigs,
@@ -583,6 +632,57 @@ test.describe('sources', () => {
     const allSources = getAllSourcesCheckbox(page);
     await expect(allSources).toBeChecked();
     await expect(allSources).toBeDisabled();
+  });
+
+  test.describe('with a 422 on a stored account password', () => {
+    test.use({
+      allowedConsoleError: getFailedRequestPattern({
+        [USER_CONFIG_PATH]: [StatusCodes.UNPROCESSABLE_ENTITY],
+      }),
+    });
+
+    test('shows the server message under the Password field', async ({
+      page,
+      userConfigs,
+    }) => {
+      const userConfig = await userConfigs.create({
+        password: PASSWORD,
+        languageCodes: STORED_LANGUAGE_CODES,
+        credentials: [
+          {
+            subtitleSource: SubtitleSource.OPENSUBTITLES,
+            credentialKind: CredentialKind.ACCOUNT,
+            credentialSecret: {...OPENSUBTITLES_VALID_ACCOUNT},
+          },
+        ],
+      });
+      await openSignedIn(page, userConfig);
+      const panel = await openTabMenuItem(page, OPENSUBTITLES);
+      await page.route(
+        getApiUrl(getUserConfigPath(userConfig.userConfigId)),
+        route =>
+          route.request().method() === 'PATCH'
+            ? route.fulfill({
+                status: StatusCodes.UNPROCESSABLE_ENTITY,
+                json: getValidationEnvelope([
+                  {
+                    field: 'credentials.0.credentialSecret.password',
+                    message: STORED_SECRET_MESSAGE,
+                  },
+                ]),
+              })
+            : route.fallback(),
+      );
+      const passwordField = panel.getByLabel('Password', {exact: true});
+      await passwordField.fill(OPENSUBTITLES_VALID_ACCOUNT.password);
+
+      await getVisibleSaveButton(page).click();
+
+      await expect(passwordField).toHaveAttribute('aria-invalid', 'true');
+      await expect(passwordField).toHaveAccessibleDescription(
+        STORED_SECRET_MESSAGE,
+      );
+    });
   });
 
   test('a stored OpenSubtitles account takes a new password alone and keeps its username', async ({

@@ -338,6 +338,64 @@ test.describe('configure', () => {
       expect(saves).toHaveLength(1);
     });
 
+    test('a cancelled save is not sent once a later prompt signs in', async ({
+      page,
+      userConfigs,
+    }) => {
+      const userConfig = await userConfigs.create({
+        password: PASSWORD,
+        languageCodes: STORED_LANGUAGE_CODES,
+      });
+      await openSignedIn(page, userConfig, {tab: 'languages'});
+      await addLanguage(page, ENGLISH);
+      await refuseNextSave(page, userConfig.userConfigId);
+      const saves = recordRequests(
+        page,
+        request =>
+          request.method() === 'PATCH' &&
+          request.url() ===
+            getApiUrl(getUserConfigPath(userConfig.userConfigId)),
+      );
+      await getVisibleSaveButton(page).click();
+      const passwordDialog = getPasswordDialog(page);
+      await expect(passwordDialog).toBeVisible();
+      await passwordDialog
+        .getByRole('button', {name: 'Cancel', exact: true})
+        .click();
+      await expect(passwordDialog).toHaveCount(0);
+      await openSection(page, 'Install');
+      const main = getMain(page);
+      await main.getByLabel('Current password', {exact: true}).fill(PASSWORD);
+      await main.getByLabel('New password', {exact: true}).fill(NEW_PASSWORD);
+      await main
+        .getByLabel('Repeat new password', {exact: true})
+        .fill(NEW_PASSWORD);
+      const changePassword = main.getByRole('button', {
+        name: 'Change password',
+        exact: true,
+      });
+      await changePassword.click();
+      await expect(passwordDialog).toBeVisible();
+
+      await submitPassword(passwordDialog, PASSWORD);
+      await expect(passwordDialog).toHaveCount(0);
+      const passwordChange = page.waitForResponse(
+        response =>
+          response.request().method() === 'PUT' &&
+          response.url() ===
+            getApiUrl(`${getUserConfigPath(userConfig.userConfigId)}/password`),
+      );
+      await changePassword.click();
+      expect((await passwordChange).ok()).toBe(true);
+      userConfigs.setPassword({
+        userConfigId: userConfig.userConfigId,
+        password: NEW_PASSWORD,
+      });
+
+      expect(saves).toHaveLength(1);
+      await expect(getUnsavedNotice(page)).toBeVisible();
+    });
+
     test('a password changed elsewhere ends the open session, and the new password saves the kept edit', async ({
       page,
       userConfigs,

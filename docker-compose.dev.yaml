@@ -36,6 +36,7 @@ x-workspace: &workspace
     - shared-modules:/repo/packages/shared/node_modules
     - tooling-modules:/repo/packages/tooling/node_modules
     - subtitle-core-modules:/repo/packages/subtitle-core/node_modules
+    - eval-modules:/repo/apps/eval/node_modules
     - client-next:/repo/apps/client/.next
 x-workspace-env: &workspace-env
   PNPM_CONFIG_STORE_DIR: /pnpm-store
@@ -57,7 +58,7 @@ services:
     volumes:
       - postgres-data:/var/lib/postgresql/data
     ports:
-      - '127.0.0.1:${DB_PORT}:${DB_PORT}'
+      - '127.0.0.1:${DB_PORT:?}:${DB_PORT:?}'
     healthcheck:
       <<: *datastore-healthcheck
       test: ['CMD-SHELL', 'pg_isready -U "$$POSTGRES_USER" -d "$$POSTGRES_DB"']
@@ -73,6 +74,10 @@ services:
         'yes',
         '--requirepass',
         *redis-pass,
+        '--maxmemory',
+        '${REDIS_MAXMEMORY:-512mb}',
+        '--maxmemory-policy',
+        'volatile-lru',
       ]
     environment:
       REDISCLI_AUTH: *redis-pass
@@ -83,7 +88,7 @@ services:
     volumes:
       - redis-data:/data
     ports:
-      - '127.0.0.1:${REDIS_PORT}:${REDIS_PORT}'
+      - '127.0.0.1:${REDIS_PORT:?}:${REDIS_PORT:?}'
     healthcheck:
       <<: *datastore-healthcheck
       test: ['CMD', 'redis-cli', '-p', *redis-port, 'ping']
@@ -104,7 +109,7 @@ services:
       <<: [*workspace-env, *db-env, *redis-env]
       HOST: 0.0.0.0
     ports:
-      - '127.0.0.1:${PORT}:${PORT}'
+      - '127.0.0.1:${PORT:?}:${PORT:?}'
     depends_on:
       install:
         condition: service_completed_successfully
@@ -123,7 +128,7 @@ services:
     environment:
       <<: *workspace-env
     ports:
-      - '127.0.0.1:${NEXT_PORT}:${NEXT_PORT}'
+      - '127.0.0.1:${NEXT_PORT:?}:${NEXT_PORT:?}'
     depends_on:
       install:
         condition: service_completed_successfully
@@ -138,6 +143,7 @@ volumes:
   shared-modules:
   tooling-modules:
   subtitle-core-modules:
+  eval-modules:
   client-next:
   postgres-data:
   redis-data:

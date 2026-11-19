@@ -6,7 +6,6 @@ import {CredentialStatus} from '@repo/shared/constants/credential.js';
 import {LOADING_LABEL} from '@/components/common/loading-status';
 import {Button} from '@/components/ui/button';
 import {Spinner} from '@/components/ui/spinner';
-import {hasUnsavedChanges} from '@/lib/form';
 import {useFormContext} from '@/lib/form-context';
 import {useCheckUserConfigCredentials} from '../../api';
 import {useStoredCredentials} from '../../hooks/use-stored-credentials';
@@ -18,7 +17,10 @@ const RECHECKED_CREDENTIAL_STATUSES = [
 
 function CheckCredentialsAction() {
   const form = useFormContext();
-  const isDirty = useSelector(form.store, hasUnsavedChanges);
+  const isFormBusy = useSelector(
+    form.store,
+    state => state.isDirty || state.isSubmitting,
+  );
   const checkMutation = useCheckUserConfigCredentials();
 
   return (
@@ -27,7 +29,7 @@ function CheckCredentialsAction() {
       variant="outline"
       size="sm"
       className="self-start"
-      disabled={isDirty || checkMutation.isPending}
+      disabled={isFormBusy || checkMutation.isPending}
       onClick={() => checkMutation.mutate()}
     >
       {checkMutation.isPending ? (
