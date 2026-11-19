@@ -1,6 +1,9 @@
 import {CredentialKind} from '@repo/shared/constants/credential.js';
 import {SubtitleSource} from '@repo/shared/constants/subtitle-source.js';
-import {SubtitleSourceBudgetScope} from '../subtitle-source-contract.js';
+import {
+  SubtitleSourceBudgetScope,
+  SubtitleSourceVideoType,
+} from '../subtitle-source-contract.js';
 import {requestSubtitleSource} from '../subtitle-source-request.js';
 import {stremioCommunitySubtitlesMapping} from './stremio-community-subtitles-mapping.js';
 
@@ -11,6 +14,11 @@ export const stremioCommunitySubtitlesClient = {
   subtitleSource: SubtitleSource.STREMIO_COMMUNITY_SUBTITLES,
   credentialKinds: [CredentialKind.ACCESS_TOKEN],
   isSearchHashSensitive: true,
+  servedLanguageCodes: stremioCommunitySubtitlesMapping.servedLanguageCodes,
+  servedVideoTypes: [
+    SubtitleSourceVideoType.MOVIE,
+    SubtitleSourceVideoType.SERIES,
+  ],
   isSearchCredentialScoped: true,
   downloadBudgets: [
     {

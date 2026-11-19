@@ -116,6 +116,8 @@ import {SubtitleAliasSource} from './subtitle-alias-source.js';
  * @property {string} subtitleSource
  * @property {string[]} credentialKinds
  * @property {boolean} isSearchHashSensitive
+ * @property {string[]|symbol} servedLanguageCodes
+ * @property {string[]} servedVideoTypes
  * @property {boolean} [isSearchCredentialScoped]
  * @property {boolean} [canUseSharedCredential]
  * @property {boolean} [isSearchKeyless]
@@ -149,6 +151,38 @@ export const SubtitleSourceBudgetScope = Enum({
   SUBTITLE_SOURCE: {value: 'subtitle-source'},
   CREDENTIAL: {value: 'credential'},
 });
+
+export const SubtitleSourceVideoType = Enum({
+  MOVIE: {value: VideoType.MOVIE},
+  SERIES: {value: VideoType.SERIES},
+  ANIME: {value: 'anime'},
+});
+
+export const ANY_SUBTITLE_LANGUAGE = Symbol('any-subtitle-language');
+
+function listQueryVideoTypes({videoType, kitsuId}) {
+  return isNil(kitsuId)
+    ? [videoType]
+    : [videoType, SubtitleSourceVideoType.ANIME];
+}
+
+export function toServedSearchQuery(client, searchQuery) {
+  const {servedLanguageCodes, servedVideoTypes} = client;
+  if (
+    !listQueryVideoTypes(searchQuery).some(videoType =>
+      servedVideoTypes.includes(videoType),
+    )
+  ) {
+    return null;
+  }
+  if (servedLanguageCodes === ANY_SUBTITLE_LANGUAGE) {
+    return searchQuery;
+  }
+  const languageCodes = searchQuery.languageCodes.filter(languageCode =>
+    servedLanguageCodes.includes(languageCode),
+  );
+  return languageCodes.length === 0 ? null : {...searchQuery, languageCodes};
+}
 
 const nullableBooleanField = z.boolean().nullable();
 const nullableCountField = z

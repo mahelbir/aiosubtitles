@@ -93,20 +93,6 @@ describe('yifyMapping.buildSearchRequest', () => {
     );
   });
 
-  it('asks nothing for a series episode', () => {
-    expect(
-      yifyMapping.buildSearchRequest(
-        makeSearchQuery({
-          videoId: 'tt0903747:1:1',
-          videoType: 'series',
-          imdbId: 'tt0903747',
-          catalogSeason: 1,
-          catalogEpisode: 1,
-        }),
-      ),
-    ).toBeNull();
-  });
-
   it('asks nothing without an imdb id', () => {
     expect(
       yifyMapping.buildSearchRequest(

@@ -1,7 +1,10 @@
 import {describe, expect, it} from 'vitest';
 import {SubtitleSource} from '@repo/shared/constants/subtitle-source.js';
 import {listSubtitleSourceClients} from '../../../src/lib/subtitle-sources/subtitle-source-clients.js';
-import {SubtitleSourceBudgetScope} from '../../../src/lib/subtitle-sources/subtitle-source-contract.js';
+import {
+  SubtitleSourceBudgetScope,
+  toServedSearchQuery,
+} from '../../../src/lib/subtitle-sources/subtitle-source-contract.js';
 import {yifyClient} from '../../../src/lib/subtitle-sources/yify/yify-client.js';
 import {makeSearchQuery} from '../../helpers/subtitle-source-factories.js';
 
@@ -38,9 +41,10 @@ describe('yifyClient', () => {
     expect(listSubtitleSourceClients()).toContain(yifyClient);
   });
 
-  it('answers a series query with no hits and no request', async () => {
-    await expect(
-      yifyClient.searchSubtitles?.(
+  it('is never searched for a series query', () => {
+    expect(
+      toServedSearchQuery(
+        yifyClient,
         makeSearchQuery({
           videoId: 'tt0903747:1:1',
           videoType: 'series',
@@ -48,9 +52,8 @@ describe('yifyClient', () => {
           catalogSeason: 1,
           catalogEpisode: 1,
         }),
-        null,
       ),
-    ).resolves.toBeNull();
+    ).toBeNull();
   });
 
   it('answers a query without an imdb id with no hits and no request', async () => {

@@ -1,4 +1,5 @@
 import {describe, expect, it} from 'vitest';
+import {SubtitleLanguage} from '@repo/shared/constants/subtitle-language.js';
 import {SubtitleSource} from '@repo/shared/constants/subtitle-source.js';
 import {computeUrlCode} from '../../../src/lib/stremio-row/url-code.js';
 import {
@@ -6,7 +7,9 @@ import {
   listSubtitleSourceClients,
 } from '../../../src/lib/subtitle-sources/subtitle-source-clients.js';
 import {
+  ANY_SUBTITLE_LANGUAGE,
   SubtitleSourceBudgetScope,
+  SubtitleSourceVideoType,
   buildImdbVideoId,
   isSupportedSubtitleSourceFormat,
   subtitleSourceHitSchema,
@@ -15,6 +18,7 @@ import {
   toHitSiteFileId,
   toNullableBoolean,
   toSiteCount,
+  toServedSearchQuery,
   toSubtitleRowValues,
 } from '../../../src/lib/subtitle-sources/subtitle-source-contract.js';
 import {
@@ -23,7 +27,10 @@ import {
   SourceUnavailableError,
 } from '../../../src/lib/subtitle-sources/subtitle-source-errors.js';
 import {createFixtureSubtitleSourceClient} from '../../helpers/fixture-subtitle-source.js';
-import {makeSubtitleSourceHit} from '../../helpers/subtitle-source-factories.js';
+import {
+  makeSearchQuery,
+  makeSubtitleSourceHit,
+} from '../../helpers/subtitle-source-factories.js';
 
 describe('SubtitleSourceBudgetScope', () => {
   it('scopes a download budget to the subtitle source or to the credential', () => {
@@ -33,6 +40,101 @@ describe('SubtitleSourceBudgetScope', () => {
       'credential',
       'subtitle-source',
     ]);
+  });
+});
+
+describe('SubtitleSourceVideoType', () => {
+  it('names the movie, series and anime video types a source serves', () => {
+    expect([...SubtitleSourceVideoType.values].sort()).toEqual([
+      'anime',
+      'movie',
+      'series',
+    ]);
+  });
+});
+
+describe('toServedSearchQuery', () => {
+  const {MOVIE, SERIES, ANIME} = SubtitleSourceVideoType;
+  const seriesQuery = makeSearchQuery({
+    videoId: 'tt0903747:1:1',
+    videoType: 'series',
+    imdbId: 'tt0903747',
+    catalogSeason: 1,
+    catalogEpisode: 1,
+  });
+  const animeQuery = makeSearchQuery({
+    videoId: 'kitsu:1376:2',
+    videoType: 'series',
+    imdbId: 'tt0994314',
+    kitsuId: '1376',
+    catalogSeason: 1,
+    catalogEpisode: 2,
+    kitsuEpisode: 2,
+  });
+
+  function makeServingClient(servedLanguageCodes, servedVideoTypes) {
+    return createFixtureSubtitleSourceClient({
+      servedLanguageCodes,
+      servedVideoTypes,
+    });
+  }
+
+  it('keeps a query whose video type and languages the source serves', () => {
+    const searchQuery = makeSearchQuery({languageCodes: ['tur', 'eng']});
+    expect(
+      toServedSearchQuery(
+        makeServingClient(ANY_SUBTITLE_LANGUAGE, [MOVIE, SERIES]),
+        searchQuery,
+      ),
+    ).toEqual(searchQuery);
+  });
+
+  it('answers null for a video type the source does not serve', () => {
+    expect(
+      toServedSearchQuery(
+        makeServingClient(ANY_SUBTITLE_LANGUAGE, [SERIES]),
+        makeSearchQuery(),
+      ),
+    ).toBeNull();
+    expect(
+      toServedSearchQuery(
+        makeServingClient(ANY_SUBTITLE_LANGUAGE, [MOVIE]),
+        seriesQuery,
+      ),
+    ).toBeNull();
+  });
+
+  it('serves anime only to a query that carries a Kitsu id', () => {
+    const animeClient = makeServingClient(ANY_SUBTITLE_LANGUAGE, [ANIME]);
+    expect(toServedSearchQuery(animeClient, seriesQuery)).toBeNull();
+    expect(toServedSearchQuery(animeClient, animeQuery)).toEqual(animeQuery);
+  });
+
+  it('searches an anime with a Kitsu id on a series source as a series', () => {
+    expect(
+      toServedSearchQuery(
+        makeServingClient(ANY_SUBTITLE_LANGUAGE, [SERIES]),
+        animeQuery,
+      ),
+    ).toEqual(animeQuery);
+  });
+
+  it('answers null when the source serves none of the user languages', () => {
+    expect(
+      toServedSearchQuery(
+        makeServingClient(['jpn'], [MOVIE, SERIES]),
+        makeSearchQuery({languageCodes: ['tur', 'eng']}),
+      ),
+    ).toBeNull();
+  });
+
+  it('passes only the served languages, in the user order', () => {
+    expect(
+      toServedSearchQuery(makeServingClient(['eng', 'fre'], [SERIES]), {
+        ...seriesQuery,
+        languageCodes: ['tur', 'fre', 'ger', 'eng'],
+      }),
+    ).toEqual({...seriesQuery, languageCodes: ['fre', 'eng']});
   });
 });
 
@@ -500,6 +602,102 @@ describe('shipped subtitle source clients', () => {
       }
       expect(typeof client.checkCredential === 'function', subtitleSource).toBe(
         client.credentialKinds.length > 0,
+      );
+    }
+  });
+
+  it('each declares the subtitle languages it serves', () => {
+    const tvsubtitlesLanguageCodes = [
+      'ara',
+      'pob',
+      'bul',
+      'zho',
+      'ces',
+      'dan',
+      'nld',
+      'eng',
+      'fin',
+      'fre',
+      'ger',
+      'ell',
+      'hun',
+      'ita',
+      'jpn',
+      'kor',
+      'pol',
+      'por',
+      'ron',
+      'rus',
+      'spa',
+      'swe',
+      'tur',
+      'ukr',
+    ];
+    const expectedLanguageCodes = {
+      [SubtitleSource.ALTYAZIDB]: ['tur'],
+      [SubtitleSource.ANISUB]: ['tur'],
+      [SubtitleSource.JIMAKU]: ['jpn'],
+      [SubtitleSource.BETASERIES]: ['eng', 'fre'],
+      [SubtitleSource.TVSUBTITLES]: tvsubtitlesLanguageCodes.toSorted(),
+      [SubtitleSource.OPENSUBTITLES]: ANY_SUBTITLE_LANGUAGE,
+      [SubtitleSource.OPENSUBTITLES_V3]: ANY_SUBTITLE_LANGUAGE,
+      [SubtitleSource.THESUBTITLEDB]: ANY_SUBTITLE_LANGUAGE,
+      [SubtitleSource.SUBSOURCE]: ANY_SUBTITLE_LANGUAGE,
+      [SubtitleSource.SUBDL]: ANY_SUBTITLE_LANGUAGE,
+      [SubtitleSource.WYZIE]: ANY_SUBTITLE_LANGUAGE,
+      [SubtitleSource.GESTDOWN]: ANY_SUBTITLE_LANGUAGE,
+      [SubtitleSource.ANIMETOSHO]: ANY_SUBTITLE_LANGUAGE,
+      [SubtitleSource.YIFY]: ANY_SUBTITLE_LANGUAGE,
+    };
+    for (const client of listSubtitleSourceClients()) {
+      const {subtitleSource, servedLanguageCodes} = client;
+      if (subtitleSource === SubtitleSource.STREMIO_COMMUNITY_SUBTITLES) {
+        expect(servedLanguageCodes).toHaveLength(51);
+        expect(servedLanguageCodes).toEqual(expect.arrayContaining(['pob']));
+        continue;
+      }
+      expect(
+        servedLanguageCodes === ANY_SUBTITLE_LANGUAGE
+          ? servedLanguageCodes
+          : servedLanguageCodes.toSorted(),
+        subtitleSource,
+      ).toEqual(expectedLanguageCodes[subtitleSource]);
+    }
+  });
+
+  it('each declares only subtitle languages AIOSubtitles knows', () => {
+    for (const {
+      subtitleSource,
+      servedLanguageCodes,
+    } of listSubtitleSourceClients()) {
+      if (servedLanguageCodes !== ANY_SUBTITLE_LANGUAGE) {
+        expect(
+          servedLanguageCodes.filter(
+            languageCode => !SubtitleLanguage.has(languageCode),
+          ),
+          subtitleSource,
+        ).toEqual([]);
+      }
+    }
+  });
+
+  it('each declares the video types it serves', () => {
+    const {MOVIE, SERIES, ANIME} = SubtitleSourceVideoType;
+    const expectedVideoTypes = {
+      [SubtitleSource.YIFY]: [MOVIE],
+      [SubtitleSource.TVSUBTITLES]: [SERIES],
+      [SubtitleSource.GESTDOWN]: [SERIES],
+      [SubtitleSource.BETASERIES]: [SERIES],
+      [SubtitleSource.JIMAKU]: [ANIME],
+      [SubtitleSource.ANIMETOSHO]: [ANIME],
+      [SubtitleSource.WYZIE]: [MOVIE, SERIES, ANIME],
+    };
+    for (const {
+      subtitleSource,
+      servedVideoTypes,
+    } of listSubtitleSourceClients()) {
+      expect(servedVideoTypes.toSorted(), subtitleSource).toEqual(
+        (expectedVideoTypes[subtitleSource] ?? [MOVIE, SERIES]).toSorted(),
       );
     }
   });

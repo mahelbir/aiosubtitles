@@ -22,6 +22,8 @@ const SHIPPED_CLIENT_FIELDS = [
   'subtitleSource',
   'credentialKinds',
   'isSearchHashSensitive',
+  'servedLanguageCodes',
+  'servedVideoTypes',
   'downloadBudgets',
   'isAvailable',
 ];

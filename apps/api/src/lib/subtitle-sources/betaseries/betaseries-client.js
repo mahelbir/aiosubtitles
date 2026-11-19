@@ -1,7 +1,10 @@
 import {CredentialKind} from '@repo/shared/constants/credential.js';
 import {SubtitleSource} from '@repo/shared/constants/subtitle-source.js';
 import {sharedCredentialPool as defaultSharedCredentialPool} from '../shared-credential-pool.js';
-import {SubtitleSourceBudgetScope} from '../subtitle-source-contract.js';
+import {
+  SubtitleSourceBudgetScope,
+  SubtitleSourceVideoType,
+} from '../subtitle-source-contract.js';
 import {requestSubtitleSource as requestSite} from '../subtitle-source-request.js';
 import {betaseriesMapping} from './betaseries-mapping.js';
 
@@ -65,6 +68,8 @@ export function createBetaseriesClient({
     subtitleSource,
     credentialKinds: [CredentialKind.API_KEY],
     isSearchHashSensitive: false,
+    servedLanguageCodes: betaseriesMapping.servedLanguageCodes,
+    servedVideoTypes: [SubtitleSourceVideoType.SERIES],
     canUseSharedCredential: true,
     isDownloadKeyless: true,
     downloadBudgets: [

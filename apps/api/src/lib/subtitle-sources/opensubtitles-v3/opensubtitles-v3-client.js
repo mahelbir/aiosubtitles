@@ -1,5 +1,9 @@
 import {SubtitleSource} from '@repo/shared/constants/subtitle-source.js';
-import {SubtitleSourceBudgetScope} from '../subtitle-source-contract.js';
+import {
+  ANY_SUBTITLE_LANGUAGE,
+  SubtitleSourceBudgetScope,
+  SubtitleSourceVideoType,
+} from '../subtitle-source-contract.js';
 import {requestSubtitleSource} from '../subtitle-source-request.js';
 import {opensubtitlesV3Mapping} from './opensubtitles-v3-mapping.js';
 
@@ -10,6 +14,11 @@ export const opensubtitlesV3Client = {
   subtitleSource: SubtitleSource.OPENSUBTITLES_V3,
   credentialKinds: [],
   isSearchHashSensitive: false,
+  servedLanguageCodes: ANY_SUBTITLE_LANGUAGE,
+  servedVideoTypes: [
+    SubtitleSourceVideoType.MOVIE,
+    SubtitleSourceVideoType.SERIES,
+  ],
   downloadBudgets: [
     {
       budgetScope: SubtitleSourceBudgetScope.SUBTITLE_SOURCE,

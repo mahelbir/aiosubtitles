@@ -1,6 +1,10 @@
 import {CredentialKind} from '@repo/shared/constants/credential.js';
 import {SubtitleSource} from '@repo/shared/constants/subtitle-source.js';
-import {SubtitleSourceBudgetScope} from '../subtitle-source-contract.js';
+import {
+  ANY_SUBTITLE_LANGUAGE,
+  SubtitleSourceBudgetScope,
+  SubtitleSourceVideoType,
+} from '../subtitle-source-contract.js';
 import {requestSubtitleSource} from '../subtitle-source-request.js';
 import {subdlMapping} from './subdl-mapping.js';
 
@@ -11,6 +15,11 @@ export const subdlClient = {
   subtitleSource: SubtitleSource.SUBDL,
   credentialKinds: [CredentialKind.API_KEY],
   isSearchHashSensitive: false,
+  servedLanguageCodes: ANY_SUBTITLE_LANGUAGE,
+  servedVideoTypes: [
+    SubtitleSourceVideoType.MOVIE,
+    SubtitleSourceVideoType.SERIES,
+  ],
   downloadBudgets: [
     {
       budgetScope: SubtitleSourceBudgetScope.CREDENTIAL,

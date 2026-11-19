@@ -165,6 +165,10 @@ function toSiteWord(languageCode) {
   return SUBSOURCE_LANGUAGE_WORDS.get(languageCode)?.[0] ?? null;
 }
 
+function listSiteWords(languageCodes) {
+  return uniq(languageCodes.map(toSiteWord).filter(Boolean));
+}
+
 function buildRequest(sitePath, searchParams, credential, requestOptions = {}) {
   const siteUrl = new URL(sitePath, SUBSOURCE_API_URL);
   siteUrl.search = new URLSearchParams(searchParams).toString();
@@ -191,7 +195,8 @@ function buildMovieSearchRequest(searchQuery, credential) {
   if (
     !credential ||
     !searchQuery.imdbId ||
-    (isSeriesQuery(searchQuery) && isNil(searchQuery.catalogSeason))
+    (isSeriesQuery(searchQuery) && isNil(searchQuery.catalogSeason)) ||
+    listSiteWords(searchQuery.languageCodes).length === 0
   ) {
     return null;
   }
@@ -225,7 +230,7 @@ function findMovieId({status, body}, searchQuery) {
 }
 
 function buildSubtitlesRequests(movieId, {languageCodes}, credential) {
-  return uniq(languageCodes.map(toSiteWord).filter(Boolean)).map(siteWord =>
+  return listSiteWords(languageCodes).map(siteWord =>
     buildRequest(
       '/api/v1/subtitles',
       {

@@ -1,5 +1,9 @@
 import {SubtitleSource} from '@repo/shared/constants/subtitle-source.js';
-import {SubtitleSourceBudgetScope} from '../subtitle-source-contract.js';
+import {
+  ANY_SUBTITLE_LANGUAGE,
+  SubtitleSourceBudgetScope,
+  SubtitleSourceVideoType,
+} from '../subtitle-source-contract.js';
 import {readSettledHitLists} from '../subtitle-source-hit-lists.js';
 import {requestSubtitleSource} from '../subtitle-source-request.js';
 import {gestdownMapping} from './gestdown-mapping.js';
@@ -11,6 +15,8 @@ export const gestdownClient = {
   subtitleSource: SubtitleSource.GESTDOWN,
   credentialKinds: [],
   isSearchHashSensitive: false,
+  servedLanguageCodes: ANY_SUBTITLE_LANGUAGE,
+  servedVideoTypes: [SubtitleSourceVideoType.SERIES],
   downloadBudgets: [
     {
       budgetScope: SubtitleSourceBudgetScope.SUBTITLE_SOURCE,

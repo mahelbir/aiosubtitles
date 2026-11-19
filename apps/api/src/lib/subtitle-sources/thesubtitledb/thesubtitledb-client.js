@@ -1,7 +1,11 @@
 import {CredentialKind} from '@repo/shared/constants/credential.js';
 import {SubtitleSource} from '@repo/shared/constants/subtitle-source.js';
 import {sharedCredentialPool as defaultSharedCredentialPool} from '../shared-credential-pool.js';
-import {SubtitleSourceBudgetScope} from '../subtitle-source-contract.js';
+import {
+  ANY_SUBTITLE_LANGUAGE,
+  SubtitleSourceBudgetScope,
+  SubtitleSourceVideoType,
+} from '../subtitle-source-contract.js';
 import {throwIfKeylessPaused} from '../subtitle-source-errors.js';
 import {requestSubtitleSource as requestSite} from '../subtitle-source-request.js';
 import {thesubtitledbMapping} from './thesubtitledb-mapping.js';
@@ -21,6 +25,11 @@ export function createThesubtitledbClient({
     subtitleSource,
     credentialKinds: [CredentialKind.API_KEY],
     isSearchHashSensitive: false,
+    servedLanguageCodes: ANY_SUBTITLE_LANGUAGE,
+    servedVideoTypes: [
+      SubtitleSourceVideoType.MOVIE,
+      SubtitleSourceVideoType.SERIES,
+    ],
     isKeylessLimitSeparate: true,
     downloadBudgets: [
       {

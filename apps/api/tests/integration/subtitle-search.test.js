@@ -22,7 +22,10 @@ import {
 import {spendSubtitleSourceBudget} from '../../src/lib/subtitle-search/subtitle-source-budget.js';
 import {jimakuClient} from '../../src/lib/subtitle-sources/jimaku/jimaku-client.js';
 import {opensubtitlesClient} from '../../src/lib/subtitle-sources/opensubtitles/opensubtitles-client.js';
-import {SubtitleSourceBudgetScope} from '../../src/lib/subtitle-sources/subtitle-source-contract.js';
+import {
+  SubtitleSourceBudgetScope,
+  SubtitleSourceVideoType,
+} from '../../src/lib/subtitle-sources/subtitle-source-contract.js';
 import {
   SourceCredentialError,
   SourceRateLimitError,
@@ -120,6 +123,79 @@ describe('searchSubtitleSource', () => {
         ),
       ),
     ).toEqual({searchFetchedAt: NOW_MS});
+  });
+
+  it('never calls a source for a video type it does not serve', async () => {
+    const client = createFixtureSubtitleSourceClient({
+      servedVideoTypes: [SubtitleSourceVideoType.SERIES],
+    });
+
+    const searchHits = await searchSubtitleSource({
+      client,
+      searchQuery: makeTurkishQuery(),
+      ...WITHOUT_CREDENTIALS,
+      nowMs: NOW_MS,
+    });
+
+    expect(searchHits).toEqual([]);
+    expect(client.searchSubtitles).not.toHaveBeenCalled();
+    expect(await redis.keys('subtitle-search-cache:*')).toEqual([]);
+  });
+
+  it('never calls a source that serves none of the user languages', async () => {
+    const client = createFixtureSubtitleSourceClient({
+      servedLanguageCodes: ['jpn'],
+    });
+
+    const searchHits = await searchSubtitleSource({
+      client,
+      searchQuery: makeSearchQuery({languageCodes: ['tur', 'eng']}),
+      ...WITHOUT_CREDENTIALS,
+      nowMs: NOW_MS,
+    });
+
+    expect(searchHits).toEqual([]);
+    expect(client.searchSubtitles).not.toHaveBeenCalled();
+    expect(await redis.keys('subtitle-search-cache:*')).toEqual([]);
+  });
+
+  it('asks a source only for the languages it serves and caches only those', async () => {
+    const client = createFixtureSubtitleSourceClient({
+      servedLanguageCodes: ['tur'],
+    });
+
+    await searchSubtitleSource({
+      client,
+      searchQuery: makeSearchQuery({languageCodes: ['eng', 'tur']}),
+      ...WITHOUT_CREDENTIALS,
+      nowMs: NOW_MS,
+    });
+
+    expect(client.searchSubtitles).toHaveBeenCalledOnce();
+    expect(client.searchSubtitles.mock.calls[0][0].languageCodes).toEqual([
+      'tur',
+    ]);
+    expect(await redis.keys('subtitle-search-cache:*')).toEqual([
+      `subtitle-search-cache:v1:${SUBTITLE_SOURCE}:tt0111161:tur`,
+    ]);
+  });
+
+  it('asks a credential-scoped source only for the languages it serves', async () => {
+    const client = createFixtureSubtitleSourceClient({
+      isSearchCredentialScoped: true,
+      servedLanguageCodes: ['tur'],
+    });
+
+    await searchSubtitleSource({
+      client,
+      searchQuery: makeSearchQuery({languageCodes: ['eng', 'tur']}),
+      ...WITHOUT_CREDENTIALS,
+      nowMs: NOW_MS,
+    });
+
+    expect(client.searchSubtitles.mock.calls[0][0].languageCodes).toEqual([
+      'tur',
+    ]);
   });
 
   it('answers stale hits and refreshes once in the background', async () => {

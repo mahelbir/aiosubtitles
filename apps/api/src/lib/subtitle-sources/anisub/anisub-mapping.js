@@ -106,10 +106,7 @@ function fromAnisubLanguage(siteLanguage) {
 
 function buildSearchRequest(searchQuery) {
   const imdbVideoId = buildImdbVideoId(searchQuery);
-  if (
-    imdbVideoId === null ||
-    !searchQuery.languageCodes.includes(SubtitleLanguage.TUR)
-  ) {
+  if (imdbVideoId === null) {
     return null;
   }
   return buildRequest(

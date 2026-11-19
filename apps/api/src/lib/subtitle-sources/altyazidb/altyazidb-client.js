@@ -1,6 +1,10 @@
 import {CredentialKind} from '@repo/shared/constants/credential.js';
+import {SubtitleLanguage} from '@repo/shared/constants/subtitle-language.js';
 import {SubtitleSource} from '@repo/shared/constants/subtitle-source.js';
-import {SubtitleSourceBudgetScope} from '../subtitle-source-contract.js';
+import {
+  SubtitleSourceBudgetScope,
+  SubtitleSourceVideoType,
+} from '../subtitle-source-contract.js';
 import {readSettledHitLists} from '../subtitle-source-hit-lists.js';
 import {requestSubtitleSource} from '../subtitle-source-request.js';
 import {altyazidbMapping} from './altyazidb-mapping.js';
@@ -12,6 +16,11 @@ export const altyazidbClient = {
   subtitleSource: SubtitleSource.ALTYAZIDB,
   credentialKinds: [CredentialKind.API_KEY],
   isSearchHashSensitive: false,
+  servedLanguageCodes: [SubtitleLanguage.TUR],
+  servedVideoTypes: [
+    SubtitleSourceVideoType.MOVIE,
+    SubtitleSourceVideoType.SERIES,
+  ],
   downloadBudgets: [
     {
       budgetScope: SubtitleSourceBudgetScope.SUBTITLE_SOURCE,

@@ -6,7 +6,11 @@ import {
 import {SubtitleSource} from '@repo/shared/constants/subtitle-source.js';
 import {createLogger} from '../../logger.js';
 import {sharedCredentialPool as defaultSharedCredentialPool} from '../shared-credential-pool.js';
-import {SubtitleSourceBudgetScope} from '../subtitle-source-contract.js';
+import {
+  ANY_SUBTITLE_LANGUAGE,
+  SubtitleSourceBudgetScope,
+  SubtitleSourceVideoType,
+} from '../subtitle-source-contract.js';
 import {
   SourceCredentialError,
   SourceRateLimitError,
@@ -314,6 +318,11 @@ export function createOpensubtitlesClient({
     subtitleSource,
     credentialKinds: [CredentialKind.ACCOUNT, CredentialKind.API_KEY],
     isSearchHashSensitive: true,
+    servedLanguageCodes: ANY_SUBTITLE_LANGUAGE,
+    servedVideoTypes: [
+      SubtitleSourceVideoType.MOVIE,
+      SubtitleSourceVideoType.SERIES,
+    ],
     downloadBudgets: [
       {
         budgetScope: SubtitleSourceBudgetScope.CREDENTIAL,

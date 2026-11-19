@@ -4,7 +4,11 @@ import {deriveSecretKey, fingerprintSecret} from '../../crypto.js';
 import {createLogger} from '../../logger.js';
 import {MemoryStore} from '../../memory-store.js';
 import {createCredentialQuotaReader} from '../credential-quota-store.js';
-import {SubtitleSourceBudgetScope} from '../subtitle-source-contract.js';
+import {
+  ANY_SUBTITLE_LANGUAGE,
+  SubtitleSourceBudgetScope,
+  SubtitleSourceVideoType,
+} from '../subtitle-source-contract.js';
 import {
   SourceCredentialError,
   SourceUnavailableError,
@@ -114,6 +118,8 @@ export function createWyzieClient({
     subtitleSource: SubtitleSource.WYZIE,
     credentialKinds: [CredentialKind.API_KEY],
     isSearchHashSensitive: true,
+    servedLanguageCodes: ANY_SUBTITLE_LANGUAGE,
+    servedVideoTypes: SubtitleSourceVideoType.values,
     downloadBudgets: [
       {
         budgetScope: SubtitleSourceBudgetScope.CREDENTIAL,

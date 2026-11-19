@@ -193,21 +193,6 @@ describe('betaseriesMapping.buildShowRequest', () => {
       betaseriesMapping.buildShowRequest(searchQuery, credential),
     ).toBeNull();
   });
-
-  it('asks nothing when no french or english subtitle is wanted', () => {
-    expect(
-      betaseriesMapping.buildShowRequest(
-        {...episodeQuery, languageCodes: ['ger']},
-        keyCredential,
-      ),
-    ).toBeNull();
-    expect(
-      betaseriesMapping.buildShowRequest(
-        {...episodeQuery, languageCodes: ['ger', 'fre']},
-        keyCredential,
-      ),
-    ).not.toBeNull();
-  });
 });
 
 describe('betaseriesMapping.findShowId', () => {

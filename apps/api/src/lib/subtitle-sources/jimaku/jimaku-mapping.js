@@ -92,12 +92,8 @@ function readListBody(response, causeText) {
   return body;
 }
 
-function toSearchTarget({kitsuId, kitsuEpisode, languageCodes}, credential) {
-  if (
-    !credential ||
-    isNil(kitsuId) ||
-    !languageCodes.includes(SubtitleLanguage.JPN)
-  ) {
+function toSearchTarget({kitsuId, kitsuEpisode}, credential) {
+  if (!credential || isNil(kitsuId)) {
     return null;
   }
   return {kitsuId, kitsuEpisode: kitsuEpisode ?? null};

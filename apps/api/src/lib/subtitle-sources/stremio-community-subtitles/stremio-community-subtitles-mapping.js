@@ -164,7 +164,6 @@ function buildSearchRequest(searchQuery, credential) {
     .filter(Boolean);
   if (
     readToken(credential) === null ||
-    siteLanguageCodes.length === 0 ||
     typeof videoId !== 'string' ||
     !VIDEO_ID_PATTERN.test(videoId) ||
     (videoType === 'series' && isNil(catalogEpisode))
@@ -361,6 +360,7 @@ function toCredentialCheck(response) {
 }
 
 export const stremioCommunitySubtitlesMapping = {
+  servedLanguageCodes: [...siteLanguageCodeByLanguageCode.keys()],
   buildSearchRequest,
   toSearchHits,
   buildDownloadRequest,

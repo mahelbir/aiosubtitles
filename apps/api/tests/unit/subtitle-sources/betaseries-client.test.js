@@ -12,7 +12,10 @@ import {
   createBetaseriesClient,
 } from '../../../src/lib/subtitle-sources/betaseries/betaseries-client.js';
 import {listSubtitleSourceClients} from '../../../src/lib/subtitle-sources/subtitle-source-clients.js';
-import {SubtitleSourceBudgetScope} from '../../../src/lib/subtitle-sources/subtitle-source-contract.js';
+import {
+  SubtitleSourceBudgetScope,
+  toServedSearchQuery,
+} from '../../../src/lib/subtitle-sources/subtitle-source-contract.js';
 import {
   SourceCredentialError,
   SourceRateLimitError,
@@ -222,17 +225,20 @@ describe('betaseriesClient.searchSubtitles', () => {
     ).rejects.toBe(rateLimitError);
   });
 
-  it('makes no call for german only', async () => {
-    await mockLookupChain();
-    await expect(
-      betaseriesClient.searchSubtitles(
-        {...episodeQuery, languageCodes: ['ger']},
-        keyCredential,
-      ),
-    ).resolves.toBeNull();
-    expect(requestSubtitleSource).not.toHaveBeenCalled();
-    await betaseriesClient.searchSubtitles(episodeQuery, keyCredential);
-    expect(requestSubtitleSource).toHaveBeenCalledTimes(3);
+  it('is searched for neither german only nor a movie', () => {
+    expect(
+      toServedSearchQuery(betaseriesClient, {
+        ...episodeQuery,
+        languageCodes: ['ger'],
+      }),
+    ).toBeNull();
+    expect(
+      toServedSearchQuery(betaseriesClient, {
+        ...episodeQuery,
+        languageCodes: ['ger', 'fre'],
+      }).languageCodes,
+    ).toEqual(['fre']);
+    expect(toServedSearchQuery(betaseriesClient, makeSearchQuery())).toBeNull();
   });
 
   it.each([

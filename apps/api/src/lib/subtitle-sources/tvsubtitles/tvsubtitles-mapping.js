@@ -2,7 +2,6 @@ import {load} from 'cheerio';
 import {isNil, uniqBy} from 'es-toolkit';
 import {StatusCodes} from 'http-status-codes';
 import {SubtitleSource} from '@repo/shared/constants/subtitle-source.js';
-import {VideoType} from '@repo/shared/constants/video-type.js';
 import {toSubtitleLanguageCode} from '@repo/shared/lib/subtitle-language.js';
 import {SubtitleFileExtension} from '@repo/subtitle-core/constants/subtitle-core-enums.js';
 import {toHitReleaseNames, toSiteCount} from '../subtitle-source-contract.js';
@@ -187,14 +186,8 @@ function pickShowId(showLinks, wantedShow) {
   );
 }
 
-function buildSearchRequest({
-  videoType,
-  catalogTitle,
-  catalogSeason,
-  catalogEpisode,
-}) {
+function buildSearchRequest({catalogTitle, catalogSeason, catalogEpisode}) {
   if (
-    videoType !== VideoType.SERIES ||
     !catalogTitle ||
     !Number.isInteger(catalogSeason) ||
     !Number.isInteger(catalogEpisode)

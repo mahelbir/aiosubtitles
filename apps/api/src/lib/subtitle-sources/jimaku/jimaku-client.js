@@ -1,9 +1,13 @@
 import {uniqBy} from 'es-toolkit';
 import {CredentialKind} from '@repo/shared/constants/credential.js';
+import {SubtitleLanguage} from '@repo/shared/constants/subtitle-language.js';
 import {SubtitleSource} from '@repo/shared/constants/subtitle-source.js';
 import {readKitsuAnilistId} from '../../video-catalog/kitsu-mapping.js';
 import {sharedCredentialPool as defaultSharedCredentialPool} from '../shared-credential-pool.js';
-import {SubtitleSourceBudgetScope} from '../subtitle-source-contract.js';
+import {
+  SubtitleSourceBudgetScope,
+  SubtitleSourceVideoType,
+} from '../subtitle-source-contract.js';
 import {requestSubtitleSource as requestSite} from '../subtitle-source-request.js';
 import {jimakuMapping} from './jimaku-mapping.js';
 
@@ -74,6 +78,8 @@ export function createJimakuClient({
     subtitleSource,
     credentialKinds: [CredentialKind.API_KEY],
     isSearchHashSensitive: false,
+    servedLanguageCodes: [SubtitleLanguage.JPN],
+    servedVideoTypes: [SubtitleSourceVideoType.ANIME],
     canUseSharedCredential: true,
     isDownloadKeyless: true,
     downloadBudgets: [

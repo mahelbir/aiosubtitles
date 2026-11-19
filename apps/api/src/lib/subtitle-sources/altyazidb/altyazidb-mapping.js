@@ -18,7 +18,6 @@ import {
 } from '../subtitle-source-request.js';
 
 const ALTYAZIDB_API_URL = 'https://altyazidb.com/api/v1/';
-const ALTYAZIDB_SITE_LANGUAGE_CODES = new Set(['tr', 'en']);
 const PACK_EPISODE = 'PAKET';
 const SEARCH_RESULTS_MAX = 50;
 const SITE_FILE_ID_PATTERN = /^\d+$/;
@@ -111,11 +110,7 @@ function buildSearchRequests(searchQuery, credential) {
   if (!credential?.apiKey || !searchQuery.imdbId) {
     return [];
   }
-  const siteLanguageCodes = toSiteLanguageCodes(
-    searchQuery.languageCodes,
-  ).filter(siteLanguageCode =>
-    ALTYAZIDB_SITE_LANGUAGE_CODES.has(siteLanguageCode),
-  );
+  const siteLanguageCodes = toSiteLanguageCodes(searchQuery.languageCodes);
   const searchEpisodes = listSearchEpisodes(searchQuery);
   return siteLanguageCodes.flatMap(siteLanguageCode =>
     searchEpisodes.map(({episodeParams, isPackSearch}) => ({

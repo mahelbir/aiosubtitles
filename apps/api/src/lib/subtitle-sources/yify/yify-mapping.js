@@ -1,7 +1,6 @@
 import {load} from 'cheerio';
 import {StatusCodes} from 'http-status-codes';
 import {SubtitleSource} from '@repo/shared/constants/subtitle-source.js';
-import {VideoType} from '@repo/shared/constants/video-type.js';
 import {toSubtitleLanguageCode} from '@repo/shared/lib/subtitle-language.js';
 import {SubtitleFileExtension} from '@repo/subtitle-core/constants/subtitle-core-enums.js';
 import {toHitReleaseNames} from '../subtitle-source-contract.js';
@@ -59,8 +58,8 @@ function isYifyHostname(hostname) {
   return hostname === YIFY_HOSTNAME || hostname.endsWith(`.${YIFY_HOSTNAME}`);
 }
 
-function buildSearchRequest({videoType, imdbId}) {
-  if (videoType !== VideoType.MOVIE || !imdbId) {
+function buildSearchRequest({imdbId}) {
+  if (!imdbId) {
     return null;
   }
   return buildRequest(

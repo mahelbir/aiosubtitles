@@ -3,7 +3,10 @@ import {CredentialKind} from '@repo/shared/constants/credential.js';
 import {SubtitleSource} from '@repo/shared/constants/subtitle-source.js';
 import {altyazidbClient} from '../../../src/lib/subtitle-sources/altyazidb/altyazidb-client.js';
 import {listSubtitleSourceClients} from '../../../src/lib/subtitle-sources/subtitle-source-clients.js';
-import {SubtitleSourceBudgetScope} from '../../../src/lib/subtitle-sources/subtitle-source-contract.js';
+import {
+  SubtitleSourceBudgetScope,
+  toServedSearchQuery,
+} from '../../../src/lib/subtitle-sources/subtitle-source-contract.js';
 import {
   SourceRateLimitError,
   SourceUnavailableError,
@@ -49,6 +52,21 @@ describe('altyazidbClient', () => {
 
   it('searches by id, not by video hash', () => {
     expect(altyazidbClient.isSearchHashSensitive).toBe(false);
+  });
+
+  it('is searched for Turkish only', () => {
+    expect(
+      toServedSearchQuery(
+        altyazidbClient,
+        makeSearchQuery({languageCodes: ['eng', 'tur']}),
+      ).languageCodes,
+    ).toEqual(['tur']);
+    expect(
+      toServedSearchQuery(
+        altyazidbClient,
+        makeSearchQuery({languageCodes: ['eng']}),
+      ),
+    ).toBeNull();
   });
 
   it('declares the default budget for an unknown limit', () => {

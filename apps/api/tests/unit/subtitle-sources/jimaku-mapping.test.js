@@ -91,15 +91,6 @@ describe('jimakuMapping.toSearchTarget', () => {
     expect(jimakuMapping.toSearchTarget(kitsuEpisodeQuery, null)).toBeNull();
   });
 
-  it('has no target when Japanese is not asked', () => {
-    expect(
-      jimakuMapping.toSearchTarget(
-        {...kitsuEpisodeQuery, languageCodes: ['tur', 'eng']},
-        keyCredential,
-      ),
-    ).toBeNull();
-  });
-
   it('has no target for a video that is not anime', () => {
     expect(
       jimakuMapping.toSearchTarget(

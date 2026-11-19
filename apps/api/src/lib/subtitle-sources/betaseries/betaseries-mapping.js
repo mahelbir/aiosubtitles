@@ -3,7 +3,6 @@ import {StatusCodes} from 'http-status-codes';
 import {CredentialStatus} from '@repo/shared/constants/credential.js';
 import {SubtitleLanguage} from '@repo/shared/constants/subtitle-language.js';
 import {SubtitleSource} from '@repo/shared/constants/subtitle-source.js';
-import {VideoType} from '@repo/shared/constants/video-type.js';
 import {
   toHitFileExtension,
   toHitReleaseNames,
@@ -125,11 +124,9 @@ function readFoundList(response, credential, listName) {
 function buildShowRequest(searchQuery, credential) {
   if (
     !credential ||
-    searchQuery.videoType !== VideoType.SERIES ||
     !searchQuery.imdbId ||
     isNil(searchQuery.catalogSeason) ||
-    isNil(searchQuery.catalogEpisode) ||
-    toSiteLanguages(searchQuery.languageCodes).length === 0
+    isNil(searchQuery.catalogEpisode)
   ) {
     return null;
   }
@@ -291,6 +288,7 @@ function toCredentialCheck(response, credential) {
 }
 
 export const betaseriesMapping = {
+  servedLanguageCodes: [...SITE_LANGUAGE_BY_LANGUAGE_CODE.keys()],
   buildShowRequest,
   findShowId,
   buildEpisodeRequest,

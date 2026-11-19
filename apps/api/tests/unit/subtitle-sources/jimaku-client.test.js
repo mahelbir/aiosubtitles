@@ -14,7 +14,10 @@ import {
   jimakuClient,
 } from '../../../src/lib/subtitle-sources/jimaku/jimaku-client.js';
 import {listSubtitleSourceClients} from '../../../src/lib/subtitle-sources/subtitle-source-clients.js';
-import {SubtitleSourceBudgetScope} from '../../../src/lib/subtitle-sources/subtitle-source-contract.js';
+import {
+  SubtitleSourceBudgetScope,
+  toServedSearchQuery,
+} from '../../../src/lib/subtitle-sources/subtitle-source-contract.js';
 import {
   SourceCredentialError,
   SourceRateLimitError,
@@ -149,16 +152,16 @@ describe('jimakuClient.searchSubtitles', () => {
     expect(requestSubtitleSource).not.toHaveBeenCalled();
   });
 
-  it('makes no call when Japanese is not asked', async () => {
-    const {client, readAnilistId} = makeClient();
-    await expect(
-      client.searchSubtitles(
-        {...kitsuEpisodeQuery, languageCodes: ['tur']},
-        keyCredential,
-      ),
-    ).resolves.toBeNull();
-    expect(readAnilistId).not.toHaveBeenCalled();
-    expect(requestSubtitleSource).not.toHaveBeenCalled();
+  it('is searched only for Japanese', () => {
+    expect(
+      toServedSearchQuery(jimakuClient, {
+        ...kitsuEpisodeQuery,
+        languageCodes: ['tur'],
+      }),
+    ).toBeNull();
+    expect(
+      toServedSearchQuery(jimakuClient, kitsuEpisodeQuery).languageCodes,
+    ).toEqual(['jpn']);
   });
 
   it('makes no call for a video that is not anime', async () => {

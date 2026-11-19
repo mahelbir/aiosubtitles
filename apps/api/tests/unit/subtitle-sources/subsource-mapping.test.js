@@ -145,6 +145,15 @@ describe('subsourceMapping.buildMovieSearchRequest', () => {
     ).toBeNull();
   });
 
+  it('asks nothing when no user language has a site word', () => {
+    expect(
+      subsourceMapping.buildMovieSearchRequest(
+        {...movieQuery, languageCodes: ['aar', 'yor']},
+        keyCredential,
+      ),
+    ).toBeNull();
+  });
+
   it('asks nothing without an imdb id', () => {
     expect(
       subsourceMapping.buildMovieSearchRequest(

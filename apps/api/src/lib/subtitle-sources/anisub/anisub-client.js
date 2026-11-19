@@ -1,7 +1,11 @@
 import {CredentialKind} from '@repo/shared/constants/credential.js';
+import {SubtitleLanguage} from '@repo/shared/constants/subtitle-language.js';
 import {SubtitleSource} from '@repo/shared/constants/subtitle-source.js';
 import {sharedCredentialPool as defaultSharedCredentialPool} from '../shared-credential-pool.js';
-import {SubtitleSourceBudgetScope} from '../subtitle-source-contract.js';
+import {
+  SubtitleSourceBudgetScope,
+  SubtitleSourceVideoType,
+} from '../subtitle-source-contract.js';
 import {throwIfKeylessPaused} from '../subtitle-source-errors.js';
 import {requestSubtitleSource as requestSite} from '../subtitle-source-request.js';
 import {anisubMapping} from './anisub-mapping.js';
@@ -59,6 +63,11 @@ export function createAnisubClient({
     subtitleSource,
     credentialKinds: [CredentialKind.ACCESS_TOKEN],
     isSearchHashSensitive: false,
+    servedLanguageCodes: [SubtitleLanguage.TUR],
+    servedVideoTypes: [
+      SubtitleSourceVideoType.MOVIE,
+      SubtitleSourceVideoType.SERIES,
+    ],
     isSearchKeyless: true,
     isKeylessLimitSeparate: true,
     canUseSharedCredential: true,

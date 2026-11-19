@@ -1,7 +1,11 @@
 import {setTimeout as delay} from 'node:timers/promises';
 import {SubtitleSource} from '@repo/shared/constants/subtitle-source.js';
 import {readKitsuAnidbId} from '../../video-catalog/kitsu-mapping.js';
-import {SubtitleSourceBudgetScope} from '../subtitle-source-contract.js';
+import {
+  ANY_SUBTITLE_LANGUAGE,
+  SubtitleSourceBudgetScope,
+  SubtitleSourceVideoType,
+} from '../subtitle-source-contract.js';
 import {SourceUnavailableError} from '../subtitle-source-errors.js';
 import {readSettledHitLists} from '../subtitle-source-hit-lists.js';
 import {reserveSubtitleSourcePace} from '../subtitle-source-pace.js';
@@ -58,6 +62,8 @@ export function createAnimetoshoClient({
     subtitleSource: SubtitleSource.ANIMETOSHO,
     credentialKinds: [],
     isSearchHashSensitive: false,
+    servedLanguageCodes: ANY_SUBTITLE_LANGUAGE,
+    servedVideoTypes: [SubtitleSourceVideoType.ANIME],
     downloadBudgets: [
       {
         budgetScope: SubtitleSourceBudgetScope.SUBTITLE_SOURCE,

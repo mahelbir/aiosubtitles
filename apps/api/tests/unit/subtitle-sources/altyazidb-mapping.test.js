@@ -166,27 +166,6 @@ describe('altyazidbMapping.buildSearchRequests', () => {
     ).toEqual(['en:4', 'en:PAKET', 'tr:4', 'tr:PAKET']);
   });
 
-  it('asks only the languages the site has', () => {
-    const searchRequests = altyazidbMapping.buildSearchRequests(
-      {...movieQuery, languageCodes: ['ger', 'tur', 'fre']},
-      keyCredential,
-    );
-    expect(
-      toSearchUrls(searchRequests).map(searchUrl =>
-        searchUrl.searchParams.get('lang'),
-      ),
-    ).toEqual(['tr']);
-  });
-
-  it('asks nothing for a language the site does not have', () => {
-    expect(
-      altyazidbMapping.buildSearchRequests(
-        {...episodeQuery, languageCodes: ['ger']},
-        keyCredential,
-      ),
-    ).toEqual([]);
-  });
-
   it('asks nothing without a key', () => {
     expect(altyazidbMapping.buildSearchRequests(episodeQuery, null)).toEqual(
       [],

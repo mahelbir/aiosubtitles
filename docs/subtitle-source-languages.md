@@ -7,11 +7,22 @@ fact marked _inferred_ was read from the docs or the code but not seen in a live
 
 ## Terms
 
-- **Gate:** the source is searched only when the user's language list holds one of its languages.
+- **Gate:** the source is searched only when the user's language list holds one of its languages, and it is asked only
+  for those.
+- **Any language:** the source has no gate; it is asked for every language the user picked.
 - **Filtered after:** the request names no language; rows in languages the user did not pick are dropped from the
   answer.
 - **Gap:** a language the site has that AIOSubtitles never asks for or labels wrong, or a code AIOSubtitles sends that
   the site does not know.
+
+## How the search decides
+
+Each client declares the languages it serves (a fixed list, or any language) and the video types it serves (movie,
+series, anime). One check in `apps/api/src/lib/subtitle-search/search-subtitle-source.js` runs before every search,
+including the background refresh of a stale cache entry. It sends nothing when the video type is not served or when
+none of the user's languages is served; otherwise it passes the client only the served languages. A video is anime
+when its id is a Kitsu id. A fixed list is declared only for the language-specific sites: AniSub, AltyazıDB, Jimaku,
+BetaSeries, Stremio Community Subtitles and TVsubtitles. Every other site is asked in any language.
 
 ## Single-language and few-language sources
 
@@ -21,7 +32,8 @@ fact marked _inferred_ was read from the docs or the code but not seen in a live
 - **Content:** anime, matched by IMDb id. AniSub's own Stremio addon serves the movie and series types and finds an
   anime through the IMDb ids in its database, so an anime without an IMDb id is not found and a non-anime title returns
   nothing.
-- **How we ask:** gate on Turkish. A row with an empty language counts as Turkish.
+- **How we ask:** gate on Turkish, for a movie or series with an IMDb id. A row with an empty language counts as
+  Turkish.
 - **Gaps:** none.
 
 ### Jimaku
@@ -39,9 +51,9 @@ fact marked _inferred_ was read from the docs or the code but not seen in a live
   - With no language filter, The Matrix gave 46 Turkish and 4 English rows. An English search for Breaking Bad S1E1
     gave 1 row.
 - **Content:** movies and series, with season packs.
-- **How we ask:** one search per language, Turkish and English only.
-- **Gaps:** none. The "latest" list ignores the language filter; search respects it. Whether the rows marked English
-  really hold English text was not checked, because that needs a download.
+- **How we ask:** gate on Turkish; one search for Turkish only.
+- **Gaps:** English rows are never asked, by choice. The "latest" list ignores the language filter; search respects
+  it.
 
 ### BetaSeries
 
@@ -55,7 +67,7 @@ fact marked _inferred_ was read from the docs or the code but not seen in a live
 
 - **Languages:** a fixed list of 51 codes.
 - **Content:** movies and series.
-- **How we ask:** from the same 51-code list, which matches the site's own list one to one.
+- **How we ask:** gate on the same 51-code list, which matches the site's own list one to one.
 - **Gaps:** none.
 
 ### TVsubtitles
@@ -64,7 +76,7 @@ fact marked _inferred_ was read from the docs or the code but not seen in a live
   French, German, Greek, Hungarian, Italian, Japanese, Korean, Polish, Portuguese, Romanian, Russian, Spanish, Swedish,
   Turkish and Ukrainian.
 - **Content:** series only.
-- **How we ask:** filtered after. Every flag maps to a language.
+- **How we ask:** gate on the 24 flag languages, then filtered after. Every flag maps to a language.
 - **Gaps:** none.
 
 ## Many-language sources
@@ -108,7 +120,8 @@ fact marked _inferred_ was read from the docs or the code but not seen in a live
 
 - **Languages:** about 120 word codes, such as `english`, `chinese_bg_code` and `spanish_spain`.
 - **Content:** movies and series, searched by season.
-- **How we ask:** one word per language, and the site needs an exact match.
+- **How we ask:** any language, one word per language, and the site needs an exact match. When none of the user's
+  languages has a word, nothing is sent, not even the title lookup.
 - **Gaps:**
   - Chinese is sent as `chinese`: 0 rows for The Matrix, while `chinese_bg_code` gave 3. Simplified, traditional, Big5,
     Cantonese and bilingual Chinese are never asked.
@@ -138,9 +151,10 @@ fact marked _inferred_ was read from the docs or the code but not seen in a live
 - **Languages:** Addic7ed's languages, such as English, Spanish (Spain), Spanish (Latin America), Portuguese (Brazil),
   French (Canadian) and simplified and traditional Chinese. Any culture name is accepted; an unknown one is refused.
 - **Content:** series only.
-- **How we ask:** one request per language, with locale codes. Portuguese is sent as `pt`, Chinese as `zh-hans` and
-  Latin American Spanish as `es-419`.
+- **How we ask:** any language, one request per language, with locale codes. Portuguese is sent as `pt`, Chinese as
+  `zh-hans` and Latin American Spanish as `es-419`.
 - **Gaps:**
+  - A language the site does not know still costs one request, answered 423 and read as no rows.
   - Spanish is sent as `es`: 0 rows for Breaking Bad S1E1, while `es-es` gave 2 Spanish (Spain) rows.
   - Traditional Chinese (`zh-hant`) and Canadian French (`fr-ca`) are never asked.
 

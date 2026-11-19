@@ -1,5 +1,9 @@
+import {SubtitleLanguage} from '@repo/shared/constants/subtitle-language.js';
 import {SubtitleSource} from '@repo/shared/constants/subtitle-source.js';
-import {SubtitleSourceBudgetScope} from '../subtitle-source-contract.js';
+import {
+  SubtitleSourceBudgetScope,
+  SubtitleSourceVideoType,
+} from '../subtitle-source-contract.js';
 import {requestSubtitleSource} from '../subtitle-source-request.js';
 import {tvsubtitlesMapping} from './tvsubtitles-mapping.js';
 
@@ -10,6 +14,33 @@ export const tvsubtitlesClient = {
   subtitleSource: SubtitleSource.TVSUBTITLES,
   credentialKinds: [],
   isSearchHashSensitive: false,
+  servedLanguageCodes: [
+    SubtitleLanguage.ARA,
+    SubtitleLanguage.POB,
+    SubtitleLanguage.BUL,
+    SubtitleLanguage.ZHO,
+    SubtitleLanguage.CES,
+    SubtitleLanguage.DAN,
+    SubtitleLanguage.NLD,
+    SubtitleLanguage.ENG,
+    SubtitleLanguage.FIN,
+    SubtitleLanguage.FRE,
+    SubtitleLanguage.GER,
+    SubtitleLanguage.ELL,
+    SubtitleLanguage.HUN,
+    SubtitleLanguage.ITA,
+    SubtitleLanguage.JPN,
+    SubtitleLanguage.KOR,
+    SubtitleLanguage.POL,
+    SubtitleLanguage.POR,
+    SubtitleLanguage.RON,
+    SubtitleLanguage.RUS,
+    SubtitleLanguage.SPA,
+    SubtitleLanguage.SWE,
+    SubtitleLanguage.TUR,
+    SubtitleLanguage.UKR,
+  ],
+  servedVideoTypes: [SubtitleSourceVideoType.SERIES],
   downloadBudgets: [
     {
       budgetScope: SubtitleSourceBudgetScope.SUBTITLE_SOURCE,

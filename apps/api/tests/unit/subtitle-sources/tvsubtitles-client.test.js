@@ -3,7 +3,10 @@ import {afterEach, describe, expect, it, vi} from 'vitest';
 import {SubtitleSource} from '@repo/shared/constants/subtitle-source.js';
 import {getRemoteResourceClient} from '../../../src/lib/subtitle-sources/remote-resource-client.js';
 import {listSubtitleSourceClients} from '../../../src/lib/subtitle-sources/subtitle-source-clients.js';
-import {SubtitleSourceBudgetScope} from '../../../src/lib/subtitle-sources/subtitle-source-contract.js';
+import {
+  SubtitleSourceBudgetScope,
+  toServedSearchQuery,
+} from '../../../src/lib/subtitle-sources/subtitle-source-contract.js';
 import {SourceUnavailableError} from '../../../src/lib/subtitle-sources/subtitle-source-errors.js';
 import {tvsubtitlesClient} from '../../../src/lib/subtitle-sources/tvsubtitles/tvsubtitles-client.js';
 import {readFixture} from '../../helpers/read-fixture.js';
@@ -129,15 +132,15 @@ describe('tvsubtitlesClient', () => {
     expect(listSubtitleSourceClients()).toContain(tvsubtitlesClient);
   });
 
-  it('answers a movie query with no hits and no request', async () => {
+  it('is never searched for a movie query', () => {
     expect(
-      await tvsubtitlesClient.searchSubtitles(
+      toServedSearchQuery(
+        tvsubtitlesClient,
         makeSearchQuery({
           videoId: 'tt0133093',
           imdbId: 'tt0133093',
           catalogTitle: 'The Matrix',
         }),
-        null,
       ),
     ).toBeNull();
   });

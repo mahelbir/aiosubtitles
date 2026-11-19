@@ -7,7 +7,10 @@ import {
   createAnisubClient,
 } from '../../../src/lib/subtitle-sources/anisub/anisub-client.js';
 import {listSubtitleSourceClients} from '../../../src/lib/subtitle-sources/subtitle-source-clients.js';
-import {SubtitleSourceBudgetScope} from '../../../src/lib/subtitle-sources/subtitle-source-contract.js';
+import {
+  SubtitleSourceBudgetScope,
+  toServedSearchQuery,
+} from '../../../src/lib/subtitle-sources/subtitle-source-contract.js';
 import {
   SourceKeylessPauseError,
   SourceRateLimitError,
@@ -125,6 +128,28 @@ describe('anisubClient', () => {
 
   it('searches by id, not by video hash', () => {
     expect(anisubClient.isSearchHashSensitive).toBe(false);
+  });
+
+  it('is searched for a movie or series by IMDb id, and only in Turkish', () => {
+    const imdbEpisodeQuery = makeSearchQuery({
+      videoId: 'tt0388629:1:1',
+      videoType: 'series',
+      imdbId: 'tt0388629',
+      catalogSeason: 1,
+      catalogEpisode: 1,
+    });
+    expect(
+      toServedSearchQuery(anisubClient, imdbEpisodeQuery).languageCodes,
+    ).toEqual(['tur']);
+    expect(
+      toServedSearchQuery(anisubClient, makeSearchQuery()).languageCodes,
+    ).toEqual(['tur']);
+    expect(
+      toServedSearchQuery(anisubClient, {
+        ...imdbEpisodeQuery,
+        languageCodes: ['eng', 'jpn'],
+      }),
+    ).toBeNull();
   });
 
   it('keeps a token download off the keyless limit, while every search is keyless', () => {

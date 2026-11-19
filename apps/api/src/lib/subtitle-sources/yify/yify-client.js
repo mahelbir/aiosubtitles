@@ -1,5 +1,9 @@
 import {SubtitleSource} from '@repo/shared/constants/subtitle-source.js';
-import {SubtitleSourceBudgetScope} from '../subtitle-source-contract.js';
+import {
+  ANY_SUBTITLE_LANGUAGE,
+  SubtitleSourceBudgetScope,
+  SubtitleSourceVideoType,
+} from '../subtitle-source-contract.js';
 import {requestSubtitleSource} from '../subtitle-source-request.js';
 import {yifyMapping} from './yify-mapping.js';
 
@@ -10,6 +14,8 @@ export const yifyClient = {
   subtitleSource: SubtitleSource.YIFY,
   credentialKinds: [],
   isSearchHashSensitive: false,
+  servedLanguageCodes: ANY_SUBTITLE_LANGUAGE,
+  servedVideoTypes: [SubtitleSourceVideoType.MOVIE],
   downloadBudgets: [
     {
       budgetScope: SubtitleSourceBudgetScope.SUBTITLE_SOURCE,

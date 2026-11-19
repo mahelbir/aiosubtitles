@@ -3,7 +3,10 @@ import {afterEach, describe, expect, it, vi} from 'vitest';
 import {SubtitleSource} from '@repo/shared/constants/subtitle-source.js';
 import {gestdownClient} from '../../../src/lib/subtitle-sources/gestdown/gestdown-client.js';
 import {listSubtitleSourceClients} from '../../../src/lib/subtitle-sources/subtitle-source-clients.js';
-import {SubtitleSourceBudgetScope} from '../../../src/lib/subtitle-sources/subtitle-source-contract.js';
+import {
+  SubtitleSourceBudgetScope,
+  toServedSearchQuery,
+} from '../../../src/lib/subtitle-sources/subtitle-source-contract.js';
 import {requestSubtitleSource} from '../../../src/lib/subtitle-sources/subtitle-source-request.js';
 import {readFixture} from '../../helpers/read-fixture.js';
 import {makeSearchQuery} from '../../helpers/subtitle-source-factories.js';
@@ -81,14 +84,13 @@ describe('gestdownClient', () => {
     expect(listSubtitleSourceClients()).toContain(gestdownClient);
   });
 
-  it('answers a movie with no hits and no request', async () => {
-    await expect(
-      gestdownClient.searchSubtitles(
+  it('is never searched for a movie', () => {
+    expect(
+      toServedSearchQuery(
+        gestdownClient,
         makeSearchQuery({videoId: 'tt0133093', tvdbId: '169'}),
-        null,
       ),
-    ).resolves.toBeNull();
-    expect(requestSubtitleSource).not.toHaveBeenCalled();
+    ).toBeNull();
   });
 
   it('answers a series without a tvdb id with no hits and no request', async () => {

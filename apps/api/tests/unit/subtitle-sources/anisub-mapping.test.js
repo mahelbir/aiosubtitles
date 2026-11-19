@@ -172,15 +172,6 @@ describe('anisubMapping.buildSearchRequest', () => {
       ),
     ).toBeNull();
   });
-
-  it('asks nothing when Turkish, the only language the site serves, is not asked', () => {
-    expect(
-      anisubMapping.buildSearchRequest(
-        {...episodeQuery, languageCodes: ['eng', 'jpn']},
-        null,
-      ),
-    ).toBeNull();
-  });
 });
 
 describe('anisubMapping.toSearchHits', () => {

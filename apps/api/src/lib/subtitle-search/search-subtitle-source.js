@@ -5,6 +5,7 @@ import {waitForAbort} from '../shutdown-deadline.js';
 import {persistSearchHits} from '../subtitle-store/persist-search-hits.js';
 import {recordSubtitleSourceFailure} from '../record-subtitle-source-failure.js';
 import {toCandidateCredentials} from '../subtitle-source-credentials.js';
+import {toServedSearchQuery} from '../subtitle-sources/subtitle-source-contract.js';
 import {
   acquireSearchLock,
   readSearchCacheEntries,
@@ -56,7 +57,7 @@ export function searchSubtitleSource(searchOptions) {
 
 async function runSubtitleSourceSearch({
   client,
-  searchQuery,
+  searchQuery: askedSearchQuery,
   credentials,
   hasConfiguredCredential,
   signal,
@@ -65,7 +66,10 @@ async function runSubtitleSourceSearch({
   const {subtitleSource} = client;
   const startedAtMs = Date.now();
   const readNowMs = () => nowMs + Date.now() - startedAtMs;
-  if (isVideoTypeMismatch(searchQuery)) {
+  const searchQuery = isVideoTypeMismatch(askedSearchQuery)
+    ? null
+    : toServedSearchQuery(client, askedSearchQuery);
+  if (searchQuery === null) {
     return [];
   }
   if (client.isSearchCredentialScoped) {

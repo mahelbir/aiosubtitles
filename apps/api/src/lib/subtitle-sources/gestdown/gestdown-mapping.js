@@ -2,7 +2,6 @@ import {StatusCodes} from 'http-status-codes';
 import {isNil} from 'es-toolkit';
 import {SubtitleLanguage} from '@repo/shared/constants/subtitle-language.js';
 import {SubtitleSource} from '@repo/shared/constants/subtitle-source.js';
-import {VideoType} from '@repo/shared/constants/video-type.js';
 import {SubtitleFileExtension} from '@repo/subtitle-core/constants/subtitle-core-enums.js';
 import {
   SiteLanguageCodeStyle,
@@ -51,13 +50,8 @@ function buildRequest(url, requestOptions = {}) {
   };
 }
 
-function buildShowRequest({videoType, tvdbId, catalogSeason, catalogEpisode}) {
-  if (
-    videoType !== VideoType.SERIES ||
-    !tvdbId ||
-    isNil(catalogSeason) ||
-    isNil(catalogEpisode)
-  ) {
+function buildShowRequest({tvdbId, catalogSeason, catalogEpisode}) {
+  if (!tvdbId || isNil(catalogSeason) || isNil(catalogEpisode)) {
     return null;
   }
   return buildRequest(
