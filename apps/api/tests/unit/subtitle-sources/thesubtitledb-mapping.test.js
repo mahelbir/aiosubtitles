@@ -79,6 +79,18 @@ describe('thesubtitledbMapping.buildSearchRequest', () => {
     expect(searchRequest.url).not.toContain(API_KEY);
   });
 
+  it('asks without a key header and names no credential when there is no key', () => {
+    const searchRequest = thesubtitledbMapping.buildSearchRequest(
+      episodeQuery,
+      null,
+    );
+    expect(searchRequest.headers).toEqual({});
+    expect(searchRequest.credentialId).toBeNull();
+    expect(searchRequest.url).toBe(
+      thesubtitledbMapping.buildSearchRequest(episodeQuery, keyCredential).url,
+    );
+  });
+
   it('asks a regional language by its site code', () => {
     const searchUrl = new URL(
       thesubtitledbMapping.buildSearchRequest(
@@ -389,6 +401,19 @@ describe('thesubtitledbMapping.buildDownloadRequest', () => {
     });
     expect(downloadRequest.credentialId).toBe(keyCredential.credentialId);
     expect(downloadRequest.url).not.toContain(API_KEY);
+  });
+
+  it('downloads without a key header and names no credential when there is no key', () => {
+    const downloadRequest = thesubtitledbMapping.buildDownloadRequest(
+      subtitleRef,
+      null,
+    );
+    expect(downloadRequest).toMatchObject({
+      url: 'https://api.thesubtitledb.org/get/42',
+      headers: {},
+      responseType: 'bytes',
+      credentialId: null,
+    });
   });
 });
 

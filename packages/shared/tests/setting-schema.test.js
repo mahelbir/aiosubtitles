@@ -4,6 +4,7 @@ import {settingsDefinition} from '../src/schemas/setting.js';
 
 const EMPTY_SHARED_CREDENTIALS = {
   [SubtitleSource.OPENSUBTITLES]: [],
+  [SubtitleSource.THESUBTITLEDB]: [],
   [SubtitleSource.JIMAKU]: [],
   [SubtitleSource.BETASERIES]: [],
   [SubtitleSource.ANISUB]: [],

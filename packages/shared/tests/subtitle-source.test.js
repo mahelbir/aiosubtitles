@@ -9,7 +9,7 @@ const SUBTITLE_SOURCES = [
   ['opensubtitles', 'OpenSubtitles', 1, 'optional', ['account', 'api-key'], 10],
   ['opensubtitles-v3', 'OpenSubtitles v3', 1, 'none', [], 0],
   ['altyazidb', 'AltyazıDB', 1, 'required', ['api-key'], 10],
-  ['thesubtitledb', 'TheSubtitleDB', 1, 'required', ['api-key'], 10],
+  ['thesubtitledb', 'TheSubtitleDB', 1, 'optional', ['api-key'], 10],
   ['subsource', 'SubSource', 1, 'required', ['api-key'], 10],
   ['anisub', 'AniSub', 1, 'optional', ['access-token'], 1],
   ['subdl', 'SubDL', 2, 'required', ['api-key'], 10],
@@ -114,6 +114,7 @@ describe('SubtitleSource', () => {
         .map(({value, sharedCredentialKind}) => [value, sharedCredentialKind]),
     ).toEqual([
       [SubtitleSource.OPENSUBTITLES, CredentialKind.API_KEY],
+      [SubtitleSource.THESUBTITLEDB, CredentialKind.API_KEY],
       [SubtitleSource.ANISUB, CredentialKind.ACCESS_TOKEN],
       [SubtitleSource.JIMAKU, CredentialKind.API_KEY],
       [SubtitleSource.BETASERIES, CredentialKind.API_KEY],

@@ -35,7 +35,7 @@ export const SUBTITLE_SOURCE_DESCRIPTIONS = Object.freeze({
   },
   [SubtitleSource.THESUBTITLEDB]: {
     helpText:
-      'Requires an API key. With your key, you get 100,000 downloads a day of your own.',
+      "Optional. With your own API key, you get 100,000 downloads a day of your own. Without one, downloads use the server's shared key or share its limit of 1,000 an hour. Searching is free.",
     keyPageUrl: 'https://thesubtitledb.org/account/keys',
     limitPageUrl: 'https://thesubtitledb.org/developer/api#limits',
     limitCheckedDate: LIMIT_CHECKED_DATE,

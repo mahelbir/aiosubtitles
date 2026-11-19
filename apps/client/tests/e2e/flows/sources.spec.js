@@ -78,10 +78,10 @@ const SUBTITLE_SOURCE_TAB_ORDER = [
   SubtitleSource.SUBDL,
   SubtitleSource.SUBSOURCE,
   SubtitleSource.WYZIE,
-  SubtitleSource.THESUBTITLEDB,
   SubtitleSource.STREMIO_COMMUNITY_SUBTITLES,
   SubtitleSource.ALTYAZIDB,
   SubtitleSource.OPENSUBTITLES,
+  SubtitleSource.THESUBTITLEDB,
   SubtitleSource.BETASERIES,
   SubtitleSource.JIMAKU,
   SubtitleSource.ANISUB,
@@ -131,7 +131,7 @@ const SOURCE_HELP = [
     subtitleSource: SubtitleSource.THESUBTITLEDB,
     keyPageUrl: 'https://thesubtitledb.org/account/keys',
     helpText:
-      'Requires an API key. With your key, you get 100,000 downloads a day of your own.',
+      "Optional. With your own API key, you get 100,000 downloads a day of your own. Without one, downloads use the server's shared key or share its limit of 1,000 an hour. Searching is free.",
   },
   {
     subtitleSource: SubtitleSource.SUBSOURCE,
@@ -486,21 +486,19 @@ test.describe('sources', () => {
     });
   });
 
-  test('a source switch says what it does: stored subtitles without a key, a search with one, nothing when off', async ({
+  test('a source switch says what it does: stored subtitles without a required key, a search with one, nothing when off', async ({
     page,
   }) => {
     await openConfigure(page);
-    const panel = await openTabMenuItem(page, THESUBTITLEDB);
-    const sourceSwitch = getSourceSwitch(panel, THESUBTITLEDB);
+    const panel = await openTabMenuItem(page, SUBSOURCE);
+    const sourceSwitch = getSourceSwitch(panel, SUBSOURCE);
 
     await expect(sourceSwitch).toHaveAccessibleDescription(
       'On: only subtitles others already downloaded. Add your key for new searches.',
     );
 
     await panel.getByRole('button', {name: ADD_API_KEY, exact: true}).click();
-    await panel
-      .getByLabel(API_KEY, {exact: true})
-      .fill(THESUBTITLEDB_VALID_API_KEY);
+    await panel.getByLabel(API_KEY, {exact: true}).fill('subsource-key');
 
     await expect(sourceSwitch).toHaveAccessibleDescription(
       'On: searched and downloaded for you.',
@@ -511,6 +509,15 @@ test.describe('sources', () => {
     await expect(sourceSwitch).toHaveAccessibleDescription(
       'Off: this source is skipped.',
     );
+  });
+
+  test('TheSubtitleDB is searched without a key', async ({page}) => {
+    await openConfigure(page);
+    const panel = await openTabMenuItem(page, THESUBTITLEDB);
+
+    await expect(
+      getSourceSwitch(panel, THESUBTITLEDB),
+    ).toHaveAccessibleDescription('On: searched and downloaded for you.');
   });
 
   test('adding a key row switches a switched-off source on, and it still switches off', async ({

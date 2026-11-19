@@ -48,8 +48,9 @@ export const SubtitleSource = Enum({
     label: 'TheSubtitleDB',
     isListImprovementOnByDefault: true,
     subtitleSourcePhase: 1,
-    credentialRequirement: CredentialRequirement.REQUIRED,
+    credentialRequirement: CredentialRequirement.OPTIONAL,
     credentialKinds: [CredentialKind.API_KEY],
+    sharedCredentialKind: CredentialKind.API_KEY,
     credentialLimit: 10,
   },
   SUBSOURCE: {

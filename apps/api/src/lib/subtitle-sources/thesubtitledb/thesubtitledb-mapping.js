@@ -49,10 +49,10 @@ function buildRequest(sitePath, credential, requestOptions = {}) {
     subtitleSource: SubtitleSource.THESUBTITLEDB,
     url: new URL(sitePath, THESUBTITLEDB_API_URL).href,
     method: 'GET',
-    headers: {Authorization: `Bearer ${credential.apiKey}`},
+    headers: credential ? {Authorization: `Bearer ${credential.apiKey}`} : {},
     responseType: 'json',
     acceptedStatuses: [],
-    credentialId: credential.credentialId,
+    credentialId: credential?.credentialId ?? null,
     ...requestOptions,
   };
 }
