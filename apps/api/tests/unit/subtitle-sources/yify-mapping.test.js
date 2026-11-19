@@ -175,6 +175,24 @@ describe('yifyMapping.toSearchHits', () => {
     ).toBe(SubtitleLanguage.POB);
   });
 
+  it.each([
+    ['Big 5 code', 'zho'],
+    ['Spanish (Latin America)', 'spl'],
+  ])('maps the site name %s to %s', async (siteLanguage, languageCode) => {
+    const pageHtml = (await readPage(MOVIE_PAGE_FIXTURE)).replaceAll(
+      'sub-lang">Arabic<',
+      `sub-lang">${siteLanguage}<`,
+    );
+
+    const hits = yifyMapping.toSearchHits(toPageResponse(pageHtml), movieQuery);
+
+    expect(
+      hits
+        .filter(hit => hit.siteFileId.includes('-arabic-'))
+        .map(hit => hit.languageCode),
+    ).toEqual(Array(20).fill(languageCode));
+  });
+
   it('drops a row whose language does not map', async () => {
     const pageHtml = (await readPage(MOVIE_PAGE_FIXTURE)).replaceAll(
       'sub-lang">Arabic<',

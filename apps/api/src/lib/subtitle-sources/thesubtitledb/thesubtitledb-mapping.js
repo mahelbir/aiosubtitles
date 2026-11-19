@@ -1,4 +1,4 @@
-import {isNil} from 'es-toolkit';
+import {chunk, isNil} from 'es-toolkit';
 import {StatusCodes} from 'http-status-codes';
 import {CredentialStatus} from '@repo/shared/constants/credential.js';
 import {SubtitleSource} from '@repo/shared/constants/subtitle-source.js';
@@ -68,19 +68,21 @@ function buildLookupPath({videoType, imdbId, catalogSeason, catalogEpisode}) {
   return `${titlePath}/season/${catalogSeason}/episode/${catalogEpisode}`;
 }
 
-function buildSearchRequest(searchQuery, credential) {
-  const siteLanguageCodes = toSiteLanguageCodes(
-    searchQuery.languageCodes,
-  ).slice(0, SEARCH_LANGUAGE_CODES_MAX);
+function buildSearchRequests(searchQuery, credential) {
+  const siteLanguageCodes = toSiteLanguageCodes(searchQuery.languageCodes);
   const lookupPath = searchQuery.imdbId ? buildLookupPath(searchQuery) : null;
   if (lookupPath === null || siteLanguageCodes.length === 0) {
     return null;
   }
-  const searchParams = new URLSearchParams({
-    lang: siteLanguageCodes.join(','),
-    limit: String(SEARCH_RESULTS_MAX),
-  });
-  return buildRequest(`${lookupPath}?${searchParams}`, credential);
+  return chunk(siteLanguageCodes, SEARCH_LANGUAGE_CODES_MAX).map(
+    lookupLanguageCodes => {
+      const searchParams = new URLSearchParams({
+        lang: lookupLanguageCodes.join(','),
+        limit: String(SEARCH_RESULTS_MAX),
+      });
+      return buildRequest(`${lookupPath}?${searchParams}`, credential);
+    },
+  );
 }
 
 function toSearchHit(siteSubtitle) {
@@ -173,7 +175,7 @@ function toCredentialCheck(response) {
 }
 
 export const thesubtitledbMapping = {
-  buildSearchRequest,
+  buildSearchRequests,
   toSearchHits,
   buildDownloadRequest,
   toDownload,

@@ -8,8 +8,10 @@ import {
   CredentialKind,
   CredentialStatus,
 } from '@repo/shared/constants/credential.js';
+import {SubtitleLanguage} from '@repo/shared/constants/subtitle-language.js';
 import {SubtitleSource} from '@repo/shared/constants/subtitle-source.js';
 import {opensubtitlesMapping} from '../../../src/lib/subtitle-sources/opensubtitles/opensubtitles-mapping.js';
+import {fromSiteLanguageCode} from '../../../src/lib/subtitle-sources/site-language-codes.js';
 import {subtitleSourceHitSchema} from '../../../src/lib/subtitle-sources/subtitle-source-contract.js';
 import {
   SourceCredentialError,
@@ -175,22 +177,50 @@ describe('opensubtitlesMapping.buildSearchRequest', () => {
       makeSearchQuery({languageCodes: ['zho', 'por', 'spa', 'pob']}),
     );
     expect(searchUrl.searchParams.get('languages')).toBe(
-      'es,pt-br,pt-pt,zh-cn',
+      'es,pt-br,pt-pt,zh-cn,zh-tw',
     );
   });
 
-  it('skips Latin American Spanish, which the site lists no code for', () => {
+  it('asks the site codes for Latin American Spanish and Azerbaijani', () => {
     expect(
       readSearchUrl(
-        makeSearchQuery({languageCodes: ['spl', 'tur']}),
+        makeSearchQuery({languageCodes: ['spl', 'aze', 'tur']}),
       ).searchParams.get('languages'),
-    ).toBe('tr');
+    ).toBe('az-az,ea,tr');
+  });
+
+  it('asks Norwegian by the code the site lists', () => {
     expect(
-      opensubtitlesMapping.buildSearchRequest(
-        makeSearchQuery({languageCodes: ['spl']}),
-        appCredential,
+      readSearchUrl(makeSearchQuery({languageCodes: ['nor']})).searchParams.get(
+        'languages',
       ),
-    ).toBeNull();
+    ).toBe('no');
+  });
+
+  it('never asks Cantonese or bilingual Chinese, which have no language here', () => {
+    const siteLanguageCodes = readSearchUrl(
+      makeSearchQuery({languageCodes: ['zho']}),
+    )
+      .searchParams.get('languages')
+      .split(',');
+    expect(siteLanguageCodes).not.toContain('zh-ca');
+    expect(siteLanguageCodes).not.toContain('ze');
+  });
+
+  it('reads every code it asks back as the asked language', () => {
+    for (const languageCode of SubtitleLanguage.values) {
+      const searchRequest = opensubtitlesMapping.buildSearchRequest(
+        makeSearchQuery({languageCodes: [languageCode]}),
+        appCredential,
+      );
+      for (const siteLanguageCode of new URL(searchRequest.url).searchParams
+        .get('languages')
+        .split(',')) {
+        expect(fromSiteLanguageCode(siteLanguageCode), languageCode).toBe(
+          languageCode,
+        );
+      }
+    }
   });
 
   it('leaves the app User-Agent and Accept to the shared defaults', () => {
@@ -389,6 +419,27 @@ describe('opensubtitlesMapping.toSearchHits', () => {
       },
     ]);
     expect(hits.map(hit => hit.siteFileId)).toEqual(['9']);
+  });
+
+  it('reads the regional site codes back to their languages', async () => {
+    const firstItem = await readSubtitleItem('9300001');
+    const firstFile = firstItem.attributes.files[0];
+    const hits = mapItems(
+      ['ea', 'zh-tw', 'az-az', 'no'].map((language, itemIndex) => ({
+        ...firstItem,
+        attributes: {
+          ...firstItem.attributes,
+          language,
+          files: [{...firstFile, file_id: itemIndex + 1}],
+        },
+      })),
+    );
+    expect(hits.map(hit => hit.languageCode)).toEqual([
+      'spl',
+      'zho',
+      'aze',
+      'nor',
+    ]);
   });
 
   it.each([

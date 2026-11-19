@@ -7,6 +7,7 @@ import {
   SubtitleSourceVideoType,
 } from '../subtitle-source-contract.js';
 import {throwIfKeylessPaused} from '../subtitle-source-errors.js';
+import {readSettledHitLists} from '../subtitle-source-hit-lists.js';
 import {requestSubtitleSource as requestSite} from '../subtitle-source-request.js';
 import {thesubtitledbMapping} from './thesubtitledb-mapping.js';
 
@@ -47,16 +48,21 @@ export function createThesubtitledbClient({
     canSearchWithoutCredential: () => true,
     canDownloadWithoutCredential: () => true,
     async searchSubtitles(searchQuery, credential, {signal} = {}) {
-      const searchRequest = thesubtitledbMapping.buildSearchRequest(
+      const searchRequests = thesubtitledbMapping.buildSearchRequests(
         searchQuery,
         credential,
       );
-      if (searchRequest === null) {
+      if (searchRequests === null) {
         return null;
       }
-      return thesubtitledbMapping.toSearchHits(
-        await requestSubtitleSource({...searchRequest, signal}),
+      const settledResults = await Promise.allSettled(
+        searchRequests.map(async searchRequest =>
+          thesubtitledbMapping.toSearchHits(
+            await requestSubtitleSource({...searchRequest, signal}),
+          ),
+        ),
       );
+      return readSettledHitLists(settledResults).flat();
     },
     downloadSubtitle(
       subtitleRef,

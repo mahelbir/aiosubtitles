@@ -202,6 +202,24 @@ describe('opensubtitlesV3Mapping.toSearchHits', () => {
     ]);
   });
 
+  it('reads the legacy codes of a language it has', async () => {
+    const [siteRow] = await readSeriesRows();
+    const hits = toHitsOf(
+      ['zht', 'spn', 'scc', 'mne', 'zhe', 'ast'].map((lang, rowIndex) => ({
+        ...siteRow,
+        id: String(rowIndex + 1),
+        lang,
+      })),
+      makeSearchQuery({languageCodes: ['zho', 'spa', 'srp']}),
+    );
+    expect(hits.map(hit => [hit.siteFileId, hit.languageCode])).toEqual([
+      ['1', 'zho'],
+      ['2', 'spa'],
+      ['3', 'srp'],
+      ['4', 'srp'],
+    ]);
+  });
+
   it('keeps the file url byte for byte, its encoding query included', async () => {
     const siteRow = (await readSeriesRows()).find(
       siteSubtitle => siteSubtitle.id === '7100004',

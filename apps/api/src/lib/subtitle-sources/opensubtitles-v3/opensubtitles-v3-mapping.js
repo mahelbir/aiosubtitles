@@ -1,4 +1,5 @@
 import {StatusCodes} from 'http-status-codes';
+import {SubtitleLanguage} from '@repo/shared/constants/subtitle-language.js';
 import {SubtitleSource} from '@repo/shared/constants/subtitle-source.js';
 import {SubtitleFileExtension} from '@repo/subtitle-core/constants/subtitle-core-enums.js';
 import {fromSiteLanguageCode} from '../site-language-codes.js';
@@ -17,6 +18,12 @@ import {
 
 const OPENSUBTITLES_V3_URL = 'https://opensubtitles-v3.strem.io';
 const FPS_MILLI_PER_FPS = 1000;
+const OPENSUBTITLES_V3_LANGUAGE_CODES = new Map([
+  ['zht', SubtitleLanguage.ZHO],
+  ['spn', SubtitleLanguage.SPA],
+  ['scc', SubtitleLanguage.SRP],
+  ['mne', SubtitleLanguage.SRP],
+]);
 
 function buildRequest(url, requestOptions = {}) {
   return {
@@ -48,7 +55,10 @@ function buildSearchRequest(searchQuery) {
 }
 
 function toSearchHit(siteSubtitle, languageCodes) {
-  const languageCode = fromSiteLanguageCode(siteSubtitle?.lang);
+  const languageCode = fromSiteLanguageCode(
+    siteSubtitle?.lang,
+    OPENSUBTITLES_V3_LANGUAGE_CODES,
+  );
   const siteFileId = toHitSiteFileId(siteSubtitle?.id);
   if (
     !languageCodes.has(languageCode) ||

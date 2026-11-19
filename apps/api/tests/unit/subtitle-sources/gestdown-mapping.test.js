@@ -177,64 +177,51 @@ describe('gestdownMapping.findShowId', () => {
   );
 });
 
-describe('gestdownMapping.buildSubtitlesRequest', () => {
+describe('gestdownMapping.buildSubtitlesRequests', () => {
   it('asks one episode in one language, reading 423 itself', () => {
     expect(
-      gestdownMapping.buildSubtitlesRequest(SHOW_ID, episodeQuery, 'eng'),
-    ).toEqual({
-      subtitleSource: SubtitleSource.GESTDOWN,
-      url: `https://api.gestdown.info/subtitles/get/${SHOW_ID}/2/3/en`,
-      method: 'GET',
-      headers: {},
-      responseType: 'json',
-      acceptedStatuses: [StatusCodes.LOCKED],
-      credentialId: null,
-    });
+      gestdownMapping.buildSubtitlesRequests(SHOW_ID, episodeQuery, 'eng'),
+    ).toEqual([
+      {
+        subtitleSource: SubtitleSource.GESTDOWN,
+        url: `https://api.gestdown.info/subtitles/get/${SHOW_ID}/2/3/en`,
+        method: 'GET',
+        headers: {},
+        responseType: 'json',
+        acceptedStatuses: [StatusCodes.LOCKED],
+        credentialId: null,
+      },
+    ]);
   });
 
   it.each([
-    ['eng', 'en'],
-    ['tur', 'tr'],
-    ['fre', 'fr'],
-    ['ger', 'de'],
-    ['spa', 'es'],
-  ])('asks %s by its two-letter code %s', (languageCode, siteLanguage) => {
+    ['eng', ['en']],
+    ['tur', ['tr']],
+    ['ger', ['de']],
+    ['nob', ['nb']],
+    ['aze', ['az']],
+    ['pob', ['pt-br']],
+    ['por', ['pt']],
+    ['spl', ['es-419']],
+    ['spa', ['es', 'es-es']],
+    ['zho', ['zh-hans', 'zh-hant']],
+    ['fre', ['fr', 'fr-ca']],
+  ])('asks %s by the culture names %j', (languageCode, cultures) => {
     expect(
-      readLanguageSegment(
-        gestdownMapping.buildSubtitlesRequest(
-          SHOW_ID,
-          episodeQuery,
-          languageCode,
-        ),
-      ),
-    ).toBe(siteLanguage);
-  });
-
-  it.each([
-    ['pob', 'pt-br'],
-    ['por', 'pt'],
-    ['zho', 'zh-hans'],
-    ['spl', 'es-419'],
-  ])('asks the regional %s by its culture name %s', (languageCode, culture) => {
-    expect(
-      readLanguageSegment(
-        gestdownMapping.buildSubtitlesRequest(
-          SHOW_ID,
-          episodeQuery,
-          languageCode,
-        ),
-      ).toLowerCase(),
-    ).toBe(culture);
+      gestdownMapping
+        .buildSubtitlesRequests(SHOW_ID, episodeQuery, languageCode)
+        .map(readLanguageSegment),
+    ).toEqual(cultures);
   });
 
   it('asks nothing for a language the site has no code for', () => {
     expect(
-      gestdownMapping.buildSubtitlesRequest(SHOW_ID, episodeQuery, 'xxx'),
-    ).toBeNull();
+      gestdownMapping.buildSubtitlesRequests(SHOW_ID, episodeQuery, 'xxx'),
+    ).toEqual([]);
   });
 
   it('keeps the show id inside its own path segment', () => {
-    const subtitlesRequest = gestdownMapping.buildSubtitlesRequest(
+    const [subtitlesRequest] = gestdownMapping.buildSubtitlesRequests(
       'a/b?c',
       episodeQuery,
       'eng',

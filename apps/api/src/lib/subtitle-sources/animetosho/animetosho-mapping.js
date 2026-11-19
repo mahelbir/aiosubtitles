@@ -30,7 +30,16 @@ const ANIMETOSHO_FEED_URL = 'https://feed.animetosho.net/json';
 const ANIMETOSHO_STORAGE_HOSTNAME = 'storage.animetosho.net';
 const SUBTITLE_ATTACHMENT_TYPE = 'subtitle';
 const XZ_SUFFIX_PATTERN = /\.xz$/i;
-const BRAZILIAN_NAME_PATTERN = /brazil|\bbr\b/i;
+const REGIONAL_LANGUAGE_NAMES = new Map([
+  [
+    SubtitleLanguage.POR,
+    {namePattern: /brazil|\bbr\b/i, languageCode: SubtitleLanguage.POB},
+  ],
+  [
+    SubtitleLanguage.SPA,
+    {namePattern: /latin[\s_-]*america/i, languageCode: SubtitleLanguage.SPL},
+  ],
+]);
 const SUBRIP_CODEC_NAME = 'subrip';
 const ATTACHMENT_FORMATS = new Set([
   ...ASS_FILE_FORMATS,
@@ -126,9 +135,11 @@ function pickTorrentIds(response, {anidbId, kitsuEpisode}) {
 
 function toAttachmentLanguageCode({language_code: siteLanguageCode, name}) {
   const languageCode = fromSiteLanguageCode(siteLanguageCode);
-  return languageCode === SubtitleLanguage.POR &&
-    BRAZILIAN_NAME_PATTERN.test(typeof name === 'string' ? name : '')
-    ? SubtitleLanguage.POB
+  const regionalLanguageName = REGIONAL_LANGUAGE_NAMES.get(languageCode);
+  return regionalLanguageName?.namePattern.test(
+    typeof name === 'string' ? name : '',
+  )
+    ? regionalLanguageName.languageCode
     : languageCode;
 }
 

@@ -56,9 +56,7 @@ const SUBSOURCE_LANGUAGE_WORDS = new Map([
       'chinese',
       'chinese_simplified',
       'chinese_traditional',
-      'chinese_cantonese',
       'chinese_bg_code',
-      'chinese_bilingual',
       'big_5_code',
     ],
   ],
@@ -161,12 +159,12 @@ function toLanguageCode(siteLanguage) {
     : null;
 }
 
-function toSiteWord(languageCode) {
-  return SUBSOURCE_LANGUAGE_WORDS.get(languageCode)?.[0] ?? null;
+function toSiteWordList(languageCode) {
+  return SUBSOURCE_LANGUAGE_WORDS.get(languageCode)?.join(',') ?? null;
 }
 
-function listSiteWords(languageCodes) {
-  return uniq(languageCodes.map(toSiteWord).filter(Boolean));
+function listSiteWordLists(languageCodes) {
+  return uniq(languageCodes.map(toSiteWordList).filter(Boolean));
 }
 
 function buildRequest(sitePath, searchParams, credential, requestOptions = {}) {
@@ -196,7 +194,7 @@ function buildMovieSearchRequest(searchQuery, credential) {
     !credential ||
     !searchQuery.imdbId ||
     (isSeriesQuery(searchQuery) && isNil(searchQuery.catalogSeason)) ||
-    listSiteWords(searchQuery.languageCodes).length === 0
+    listSiteWordLists(searchQuery.languageCodes).length === 0
   ) {
     return null;
   }
@@ -230,12 +228,12 @@ function findMovieId({status, body}, searchQuery) {
 }
 
 function buildSubtitlesRequests(movieId, {languageCodes}, credential) {
-  return listSiteWords(languageCodes).map(siteWord =>
+  return listSiteWordLists(languageCodes).map(siteWordList =>
     buildRequest(
       '/api/v1/subtitles',
       {
         movieId: String(movieId),
-        language: siteWord,
+        language: siteWordList,
         limit: String(SUBTITLES_PAGE_LIMIT),
         sort: SUBTITLES_SORT,
       },

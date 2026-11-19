@@ -490,6 +490,29 @@ describe('the AnimeTosho torrent detail', () => {
     ]);
   });
 
+  it('reads Latin American Spanish from the attachment name', () => {
+    const hits = toHitsOf(
+      [
+        makeAttachment(
+          {id: 9100002},
+          {language_code: 'spa', name: 'Latin_America_CR'},
+        ),
+        makeAttachment(
+          {id: 9100003},
+          {language_code: 'spa', name: 'Spanish (Latin America)'},
+        ),
+        makeAttachment({id: 9100004}, {language_code: 'spa', name: 'Spain_CR'}),
+      ],
+      ['spa', 'spl'],
+    );
+
+    expect(hits).toMatchObject([
+      {siteFileId: '9100002', languageCode: 'spl'},
+      {siteFileId: '9100003', languageCode: 'spl'},
+      {siteFileId: '9100004', languageCode: 'spa'},
+    ]);
+  });
+
   it('keeps only the asked languages', () => {
     const hits = toHitsOf(
       [

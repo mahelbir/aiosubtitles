@@ -41,15 +41,11 @@ export const gestdownClient = {
     }
     const settledResults = await Promise.allSettled(
       searchQuery.languageCodes
-        .map(languageCode => ({
-          languageCode,
-          subtitlesRequest: gestdownMapping.buildSubtitlesRequest(
-            showId,
-            searchQuery,
-            languageCode,
-          ),
-        }))
-        .filter(({subtitlesRequest}) => subtitlesRequest !== null)
+        .flatMap(languageCode =>
+          gestdownMapping
+            .buildSubtitlesRequests(showId, searchQuery, languageCode)
+            .map(subtitlesRequest => ({languageCode, subtitlesRequest})),
+        )
         .map(async ({languageCode, subtitlesRequest}) =>
           gestdownMapping.toSearchHits(
             await requestSubtitleSource({...subtitlesRequest, signal}),

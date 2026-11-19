@@ -284,19 +284,19 @@ describe('subsourceMapping.buildSubtitlesRequests', () => {
   });
 
   it.each([
-    ['pob', 'brazilian_portuguese'],
+    ['pob', 'brazilian_portuguese,brazillian_portuguese'],
     ['spl', 'spanish_latin_america'],
     ['fas', 'farsi_persian'],
-    ['spa', 'spanish'],
+    ['spa', 'spanish,spanish_spain'],
     ['khm', 'khmer'],
     ['heb', 'hebrew'],
-  ])('asks %s by the site word %s', (languageCode, languageWord) => {
-    expect(listAskedLanguageWords([languageCode])).toEqual([languageWord]);
+  ])('asks %s by the site words %s', (languageCode, languageWords) => {
+    expect(listAskedLanguageWords([languageCode])).toEqual([languageWords]);
   });
 
-  it('asks the regional languages each by their own word', () => {
+  it('asks the regional languages each by their own words', () => {
     expect(listAskedLanguageWords(['pob', 'spl', 'fas'])).toEqual([
-      'brazilian_portuguese',
+      'brazilian_portuguese,brazillian_portuguese',
       'spanish_latin_america',
       'farsi_persian',
     ]);
@@ -445,7 +445,7 @@ describe('subsourceMapping.toSearchHits', () => {
 
   it('reads a site word given in its label form', async () => {
     const hits = await toHitsOfItems([
-      {subtitleId: 1, language: 'Chinese (Cantonese)'},
+      {subtitleId: 1, language: 'Chinese (Traditional)'},
       {subtitleId: 2, language: 'brazillian portuguese'},
       {subtitleId: 3, language: 'Farsi/Persian'},
       {subtitleId: 4, language: 'big 5 code'},
@@ -460,11 +460,26 @@ describe('subsourceMapping.toSearchHits', () => {
     ]);
   });
 
-  it('asks a language of several site words by its one canonical word', () => {
-    expect(listAskedLanguageWords(['spa', 'zho'])).toEqual([
-      'spanish',
-      'chinese',
+  it('asks a language of several site words by all of them in one request', () => {
+    expect(listAskedLanguageWords(['spa', 'zho', 'fre'])).toEqual([
+      'spanish,spanish_spain',
+      'chinese,chinese_simplified,chinese_traditional,chinese_bg_code,big_5_code',
+      'french,french_france,french_canada',
     ]);
+  });
+
+  it('never asks Cantonese or bilingual Chinese, which have no language here', async () => {
+    expect(listAskedLanguageWords(['zho'])[0].split(',')).not.toEqual(
+      expect.arrayContaining(['chinese_cantonese']),
+    );
+    expect(listAskedLanguageWords(['zho'])[0].split(',')).not.toEqual(
+      expect.arrayContaining(['chinese_bilingual']),
+    );
+    const hits = await toHitsOfItems([
+      {subtitleId: 1, language: 'chinese_cantonese'},
+      {subtitleId: 2, language: 'Chinese Bilingual'},
+    ]);
+    expect(hits).toEqual([]);
   });
 
   it('never takes a url the site gives, even a private one', async () => {

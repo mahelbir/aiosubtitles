@@ -1,8 +1,9 @@
 import {load} from 'cheerio';
 import {StatusCodes} from 'http-status-codes';
+import {SubtitleLanguage} from '@repo/shared/constants/subtitle-language.js';
 import {SubtitleSource} from '@repo/shared/constants/subtitle-source.js';
-import {toSubtitleLanguageCode} from '@repo/shared/lib/subtitle-language.js';
 import {SubtitleFileExtension} from '@repo/subtitle-core/constants/subtitle-core-enums.js';
+import {fromSiteLanguageCode} from '../site-language-codes.js';
 import {toHitReleaseNames} from '../subtitle-source-contract.js';
 import {SourceUnavailableError} from '../subtitle-source-errors.js';
 import {
@@ -18,6 +19,10 @@ const YIFY_PAGE_TITLE_PATTERN = /YIFY subtitles/i;
 const SUBTITLE_PAGE_PATH_PREFIX = '/subtitles/';
 const SUBTITLE_SLUG_PATTERN = /^[a-z0-9-]+-yify-\d+$/;
 const RELEASE_NAME_SEPARATOR_PATTERN = /\r?\n/;
+const YIFY_LANGUAGE_NAMES = new Map([
+  ['big 5 code', SubtitleLanguage.ZHO],
+  ['spanish (latin america)', SubtitleLanguage.SPL],
+]);
 
 function toUnavailableError(message) {
   return new SourceUnavailableError({
@@ -90,8 +95,9 @@ function readSubtitleRow(row) {
 }
 
 function toSearchHit({row, releaseAnchor, siteFileId}) {
-  const languageCode = toSubtitleLanguageCode(
+  const languageCode = fromSiteLanguageCode(
     row.find('td.flag-cell .sub-lang').first().text(),
+    YIFY_LANGUAGE_NAMES,
   );
   if (languageCode === null) {
     return null;

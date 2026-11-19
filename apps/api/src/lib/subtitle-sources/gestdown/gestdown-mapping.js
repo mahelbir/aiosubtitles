@@ -20,21 +20,19 @@ import {
 
 const GESTDOWN_URL = 'https://api.gestdown.info';
 const GESTDOWN_LANGUAGE_CODES = new Map([
-  [SubtitleLanguage.POR, 'pt'],
-  [SubtitleLanguage.ZHO, 'zh-hans'],
-  [SubtitleLanguage.SPL, 'es-419'],
+  ['pt', SubtitleLanguage.POR],
+  ['pt-br', SubtitleLanguage.POB],
+  ['zh-hans', SubtitleLanguage.ZHO],
+  ['zh-hant', SubtitleLanguage.ZHO],
+  ['es', SubtitleLanguage.SPA],
+  ['es-es', SubtitleLanguage.SPA],
+  ['es-419', SubtitleLanguage.SPL],
+  ['fr', SubtitleLanguage.FRE],
+  ['fr-ca', SubtitleLanguage.FRE],
 ]);
 
 function toSiteId(siteId) {
   return typeof siteId === 'string' ? toHitSiteFileId(siteId) : null;
-}
-
-function toGestdownLanguageCode(languageCode) {
-  return (
-    GESTDOWN_LANGUAGE_CODES.get(languageCode) ??
-    toSiteLanguageCodes([languageCode], SiteLanguageCodeStyle.LOCALE)[0] ??
-    null
-  );
 }
 
 function buildRequest(url, requestOptions = {}) {
@@ -69,25 +67,27 @@ function findShowId({status, body}, {tvdbId}) {
   return toSiteId(matchingShow?.id);
 }
 
-function buildSubtitlesRequest(
+function buildSubtitlesRequests(
   showId,
   {catalogSeason, catalogEpisode},
   languageCode,
 ) {
-  const siteLanguageCode = toGestdownLanguageCode(languageCode);
-  if (siteLanguageCode === null) {
-    return null;
-  }
-  const pathSegments = [
-    showId,
-    catalogSeason,
-    catalogEpisode,
-    siteLanguageCode,
-  ].map(pathSegment => encodeURIComponent(pathSegment));
-  return buildRequest(
-    `${GESTDOWN_URL}/subtitles/get/${pathSegments.join('/')}`,
-    {acceptedStatuses: [StatusCodes.LOCKED]},
-  );
+  return toSiteLanguageCodes(
+    [languageCode],
+    SiteLanguageCodeStyle.LOCALE,
+    GESTDOWN_LANGUAGE_CODES,
+  ).map(siteLanguageCode => {
+    const pathSegments = [
+      showId,
+      catalogSeason,
+      catalogEpisode,
+      siteLanguageCode,
+    ].map(pathSegment => encodeURIComponent(pathSegment));
+    return buildRequest(
+      `${GESTDOWN_URL}/subtitles/get/${pathSegments.join('/')}`,
+      {acceptedStatuses: [StatusCodes.LOCKED]},
+    );
+  });
 }
 
 function toSearchHit(siteSubtitle, languageCode) {
@@ -157,7 +157,7 @@ function toDownload(response) {
 export const gestdownMapping = {
   buildShowRequest,
   findShowId,
-  buildSubtitlesRequest,
+  buildSubtitlesRequests,
   toSearchHits,
   buildDownloadRequest,
   toDownload,

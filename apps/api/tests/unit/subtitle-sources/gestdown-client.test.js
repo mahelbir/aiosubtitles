@@ -177,6 +177,29 @@ describe('gestdownClient', () => {
     expect(hits.every(hit => hit.languageCode === 'pob')).toBe(true);
   });
 
+  it('asks every culture name of a language and gives each hit that language', async () => {
+    const {showsBody, subtitlesBody} = await readBodies();
+    requestSubtitleSource.mockImplementation(async ({url}) => {
+      if (url.includes('/shows/')) {
+        return toOk(showsBody);
+      }
+      return url.endsWith('/es-es')
+        ? toOk(subtitlesBody)
+        : toOk({matchingSubtitles: []});
+    });
+    const hits = await gestdownClient.searchSubtitles(
+      {...episodeQuery, languageCodes: ['spa']},
+      null,
+    );
+    expect(
+      readRequestedUrls()
+        .filter(url => url.includes('/subtitles/get/'))
+        .map(url => url.split('/').at(-1)),
+    ).toEqual(['es', 'es-es']);
+    expect(hits).toHaveLength(4);
+    expect(hits.every(hit => hit.languageCode === 'spa')).toBe(true);
+  });
+
   it('downloads a season pack episode by the id the site gave, as one file', async () => {
     const fileBytes = Buffer.from('1\n00:00:01,000 --> 00:00:02,000\nOi\n');
     requestSubtitleSource.mockResolvedValueOnce({

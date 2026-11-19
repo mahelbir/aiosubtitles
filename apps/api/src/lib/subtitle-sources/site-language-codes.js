@@ -54,13 +54,41 @@ const siteLanguageCodesByStyledLanguage = groupBy(
     toStyledLanguageKey(SITE_LANGUAGE_CODES.get(siteLanguageCode)),
 );
 
-export function fromSiteLanguageCode(siteLanguageCode) {
+/**
+ * @param {string} siteLanguageCodeStyle
+ * @returns {Map<string, string>}
+ */
+export function readStyledSiteLanguageCodes(siteLanguageCodeStyle) {
+  return new Map(
+    [...SITE_LANGUAGE_CODES]
+      .filter(
+        ([, siteLanguage]) =>
+          siteLanguage.siteLanguageCodeStyle === siteLanguageCodeStyle,
+      )
+      .map(([siteLanguageCode, {languageCode}]) => [
+        siteLanguageCode,
+        languageCode,
+      ]),
+  );
+}
+
+/**
+ * @param {unknown} siteLanguageCode
+ * @param {Map<string, string>|null} [ownSiteLanguageCodes]
+ * @returns {string|null}
+ */
+export function fromSiteLanguageCode(
+  siteLanguageCode,
+  ownSiteLanguageCodes = null,
+) {
   if (typeof siteLanguageCode !== 'string') {
     return null;
   }
+  const normalizedSiteLanguageCode = siteLanguageCode.trim().toLowerCase();
   return (
-    SITE_LANGUAGE_CODES.get(siteLanguageCode.trim().toLowerCase())
-      ?.languageCode ?? toSubtitleLanguageCode(siteLanguageCode)
+    ownSiteLanguageCodes?.get(normalizedSiteLanguageCode) ??
+    SITE_LANGUAGE_CODES.get(normalizedSiteLanguageCode)?.languageCode ??
+    toSubtitleLanguageCode(siteLanguageCode)
   );
 }
 

@@ -61,7 +61,9 @@ BetaSeries, Stremio Community Subtitles and TVsubtitles. Every other site is ask
   is English even for a German show: Dark returned English files as VO.
 - **Content:** series only. The API has subtitle endpoints for episodes and shows, none for movies.
 - **How we ask:** gate on French or English. French is sent as VF and English as VO.
-- **Gaps:** rows that hold French and the original together (VOVF, one dual file per episode) are dropped.
+- **Gaps:** rows that hold French and the original together (VOVF, one dual file per episode) are dropped, by
+  choice. Such a row is one file that holds two languages, so labelling it French or English would put a mixed file
+  in a one-language list. A user who wants French already gets the VF rows.
 
 ### Stremio Community Subtitles
 
@@ -87,47 +89,50 @@ BetaSeries, Stremio Community Subtitles and TVsubtitles. Every other site is ask
   Chinese (`zh-tw`), Cantonese (`zh-ca`), bilingual Chinese (`ze`), Latin American Spanish (`ea`), Norwegian (`no`) and
   Azerbaijani (`az-az`).
 - **Content:** movies and series.
-- **How we ask:** locale codes. Chinese is sent as `zh-cn`, Portuguese as `pt-pt` and Brazilian Portuguese as `pt-br`;
-  every other language goes as its two-letter code.
+- **How we ask:** the site's own codes. Chinese is sent as `zh-cn` and `zh-tw`, Portuguese as `pt-pt`, Brazilian
+  Portuguese as `pt-br`, Latin American Spanish as `ea`, Azerbaijani as `az-az` and Norwegian as `no`; every other
+  language goes as its two-letter code. Every code sent reads back as the language that asked it.
 - **Gaps:**
-  - Latin American Spanish is never asked, though the site has it: 2 rows for The Matrix.
-  - Chinese asks only simplified. Traditional Chinese (4 rows for The Matrix), Cantonese and bilingual Chinese never
-    come.
-  - Norwegian is sent as `nb`, which the site does not know: 0 rows. The site uses `no`.
-  - Azerbaijani is sent as `az`, but the site uses `az-az` (_inferred_).
+  - Cantonese (`zh-ca`) and bilingual Chinese (`ze`) are never asked: AIOSubtitles has no such language.
+  - Norwegian Bokmål is still sent as `nb`, which the site does not know: 0 rows. Sending `no` would not help: a `no`
+    row reads back as Norwegian, the search keeps only rows in an asked language, and one stored file holds one
+    language, so a row cannot count as both.
 
 ### OpenSubtitles v3
 
 - **Languages:** every language, as three-letter codes. A title returns a capped set of rows; 39 languages were seen
   across three titles.
 - **Content:** movies and series.
-- **How we ask:** filtered after.
-- **Gaps:** the legacy codes `zht`, `zhe`, `spn`, `scc`, `mne` and `ast` would be dropped. None was seen (_inferred_).
+- **How we ask:** filtered after. The legacy codes read as follows: `zht` (traditional Chinese) as Chinese, and `scc`
+  and `mne` as Serbian, as subliminal's OpenSubtitles converter reads them; `spn` as Spanish, as the legacy partner of
+  the site's `sp` (Spanish, Europe) (_inferred_).
+- **Gaps:** `zhe` (bilingual Chinese) and `ast` (Asturian) are dropped: AIOSubtitles has no such language. None of
+  these codes was seen live (_inferred_).
 
 ### TheSubtitleDB
 
 - **Languages:** the OpenSubtitles set, with its two-letter regional codes. The site reads every traditional Chinese
   variant as `zt` and Latin American Spanish as `ea`.
 - **Content:** movies and series.
-- **How we ask:** two-letter codes, at most 16 per search. Chinese is sent as `zh` and `zt`, Portuguese as `pt` and
-  `pm`, Spanish as `es` and `sp`, Brazilian Portuguese as `pb` and Latin American Spanish as `ea`.
+- **How we ask:** two-letter codes, split into lookups of at most 16 codes each, so no language is dropped. Chinese is
+  sent as `zh` and `zt`, Portuguese as `pt` and `pm`, Spanish as `es` and `sp`, Brazilian Portuguese as `pb`, Latin
+  American Spanish as `ea` and Norwegian as `no`.
 - **Gaps:**
-  - A user with more than 16 languages loses the rest without notice.
-  - Bilingual Chinese (`ze`) and Cantonese (`zc`) are never asked.
-  - Norwegian is sent as `nb`, while the site's rows use `no` (_inferred_).
+  - Bilingual Chinese (`ze`) and Cantonese (`zc`) are never asked: AIOSubtitles has no such language.
+  - Norwegian Bokmål is still sent as `nb`, while the site's rows use `no` (_inferred_), for the same reason as on
+    OpenSubtitles.
 
 ### SubSource
 
 - **Languages:** about 120 word codes, such as `english`, `chinese_bg_code` and `spanish_spain`.
 - **Content:** movies and series, searched by season.
-- **How we ask:** any language, one word per language, and the site needs an exact match. When none of the user's
-  languages has a word, nothing is sent, not even the title lookup.
-- **Gaps:**
-  - Chinese is sent as `chinese`: 0 rows for The Matrix, while `chinese_bg_code` gave 3. Simplified, traditional, Big5,
-    Cantonese and bilingual Chinese are never asked.
-  - French misses `french_france` and `french_canada`; Spanish misses `spanish_spain` (_inferred_ from the same
-    exact-match rule).
-  - Brazilian Portuguese is sent as `brazilian_portuguese`, which works.
+- **How we ask:** any language, one request per language. The site needs an exact match, so each request lists every
+  word of that language, comma-separated: Chinese as `chinese`, `chinese_simplified`, `chinese_traditional`,
+  `chinese_bg_code` and `big_5_code`; French as `french`, `french_france` and `french_canada`; Spanish as `spanish`
+  and `spanish_spain`. A comma list costs one request: live, `chinese,chinese_bg_code` gave the same 3 rows as
+  `chinese_bg_code` alone. When none of the user's languages has a word, nothing is sent, not even the title lookup.
+- **Gaps:** Cantonese (`chinese_cantonese`) and bilingual Chinese (`chinese_bilingual`) are never asked, and such a
+  row is dropped: AIOSubtitles has no such language.
 
 ### SubDL
 
@@ -135,7 +140,8 @@ BetaSeries, Stremio Community Subtitles and TVsubtitles. Every other site is ask
   longer online.
 - **Content:** movies and series.
 - **How we ask:** upper-case two-letter codes; Brazilian Portuguese as `BR_PT`, Chinese as `ZH` and `ZH_BG`.
-- **Gaps:** Latin American Spanish is never asked. Not probed live, because a search spends quota.
+- **Gaps:** Latin American Spanish is never asked: the site's docs name no code for it. Not probed live, because a
+  search spends quota.
 
 ### Wyzie
 
@@ -143,44 +149,43 @@ BetaSeries, Stremio Community Subtitles and TVsubtitles. Every other site is ask
   holds Hebrew only. We leave out `quebec`, which serves many machine-translated languages.
 - **Content:** movies, series and anime.
 - **How we ask:** two-letter codes, Brazilian Portuguese as `pt-br`. `oscar` is added only when Hebrew is asked.
-- **Gaps:** Latin American Spanish is never asked. Whether Wyzie takes `es-419` or `zh-tw` is unknown. Not probed
-  live, because a search spends billed requests.
+- **Gaps:** Latin American Spanish is never asked: the docs name only ISO 639-1 codes plus AI codes such as `pt-br`,
+  and no code for it. Whether Wyzie takes `es-419` or `zh-tw` is unknown. Not probed live, because a search spends
+  billed requests.
 
 ### Gestdown
 
 - **Languages:** Addic7ed's languages, such as English, Spanish (Spain), Spanish (Latin America), Portuguese (Brazil),
   French (Canadian) and simplified and traditional Chinese. Any culture name is accepted; an unknown one is refused.
 - **Content:** series only.
-- **How we ask:** any language, one request per language, with locale codes. Portuguese is sent as `pt`, Chinese as
-  `zh-hans` and Latin American Spanish as `es-419`.
-- **Gaps:**
-  - A language the site does not know still costs one request, answered 423 and read as no rows.
-  - Spanish is sent as `es`: 0 rows for Breaking Bad S1E1, while `es-es` gave 2 Spanish (Spain) rows.
-  - Traditional Chinese (`zh-hant`) and Canadian French (`fr-ca`) are never asked.
+- **How we ask:** any language, one request per culture name, and each row takes the language that asked it. The
+  site matches the culture name exactly, so Spanish is sent as `es` and `es-es`, Chinese as `zh-hans` and `zh-hant`,
+  and French as `fr` and `fr-ca`. Portuguese is sent as `pt`, Brazilian Portuguese as `pt-br` and Latin American
+  Spanish as `es-419`; every other language goes as its two-letter code. Live, plain `es` gave "Spanish" rows for The
+  Office and Lost, and `es-es` gave "Spanish (Spain)" rows for Game of Thrones and Breaking Bad.
+- **Gaps:** a language the site does not know still costs one request, answered 423 and read as no rows.
 
 ### AnimeTosho
 
 - **Languages:** whatever subtitle tracks a release carries, as three-letter codes.
 - **Content:** anime, found by Kitsu id.
-- **How we ask:** filtered after. A Portuguese track whose name says Brazil becomes Brazilian Portuguese.
-- **Gaps:**
-  - A Latin American Spanish track carries the plain Spanish code with a name like "Latin_America_CR", and we label it
-    Spanish (Spain).
-  - Simplified and traditional Chinese tracks both become one Chinese.
+- **How we ask:** filtered after. A Portuguese track whose name says Brazil becomes Brazilian Portuguese, and a
+  Spanish track whose name says Latin America, such as "Latin_America_CR", becomes Latin American Spanish.
+- **Gaps:** none. Simplified and traditional Chinese tracks both become Chinese, the one Chinese AIOSubtitles has.
 
 ### YIFY
 
 - **Languages:** English language names on each movie page; 38 names were seen, and all of them map.
 - **Content:** movies only.
-- **How we ask:** filtered after.
-- **Gaps:** labels such as "Big 5 code" or "Spanish (Latin America)" would be dropped. None was seen (_inferred_).
+- **How we ask:** filtered after. "Big 5 code" reads as Chinese and "Spanish (Latin America)" as Latin American
+  Spanish.
+- **Gaps:** none. Neither of those two labels was seen live (_inferred_).
 
-## Shared causes
+## Where the mapping lives
 
-Several gaps share one cause in `apps/api/src/lib/subtitle-sources/site-language-codes.js`:
+Shared codes live in `apps/api/src/lib/subtitle-sources/site-language-codes.js`; a code only one site uses lives in
+that site's mapping file, which passes its own codes to the shared helpers. OpenSubtitles extends the shared locale
+codes with `zh-tw`, `ea` and `az-az`; Gestdown, SubSource, OpenSubtitles v3 and YIFY keep their own lists.
 
-- The locale style has no code for Latin American Spanish.
-- Chinese maps to simplified Chinese only.
-
-AIOSubtitles itself has a single Chinese and no traditional variant. Its only regional codes are Brazilian Portuguese
-and Latin American Spanish.
+AIOSubtitles itself has a single Chinese and no traditional variant, and no Cantonese or bilingual Chinese. Its only
+regional codes are Brazilian Portuguese and Latin American Spanish.

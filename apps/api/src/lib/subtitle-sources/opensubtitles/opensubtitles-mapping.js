@@ -4,12 +4,14 @@ import {
   CredentialKind,
   CredentialStatus,
 } from '@repo/shared/constants/credential.js';
+import {SubtitleLanguage} from '@repo/shared/constants/subtitle-language.js';
 import {SubtitleSource} from '@repo/shared/constants/subtitle-source.js';
 import {VideoType} from '@repo/shared/constants/video-type.js';
 import {dropFileExtension} from '@repo/subtitle-core/release-name/name-tokens.js';
 import {
   SiteLanguageCodeStyle,
   fromSiteLanguageCode,
+  readStyledSiteLanguageCodes,
   toSiteLanguageCodes,
 } from '../site-language-codes.js';
 import {SubtitleAliasSource} from '../subtitle-alias-source.js';
@@ -55,6 +57,12 @@ const QUOTA_ACCEPTED_STATUSES = [
   StatusCodes.FORBIDDEN,
   StatusCodes.INTERNAL_SERVER_ERROR,
 ];
+const OPENSUBTITLES_LANGUAGE_CODES = new Map([
+  ...readStyledSiteLanguageCodes(SiteLanguageCodeStyle.LOCALE),
+  ['zh-tw', SubtitleLanguage.ZHO],
+  ['ea', SubtitleLanguage.SPL],
+  ['az-az', SubtitleLanguage.AZE],
+]);
 const TOKEN_REJECTION_PATTERNS = new Map([
   [StatusCodes.NOT_ACCEPTABLE, INVALID_TOKEN_PATTERN],
   [StatusCodes.INTERNAL_SERVER_ERROR, INVALID_PATTERN],
@@ -181,6 +189,7 @@ function buildSearchRequest(searchQuery, searchCredential) {
   const siteLanguageCodes = toSiteLanguageCodes(
     searchQuery.languageCodes,
     SiteLanguageCodeStyle.LOCALE,
+    OPENSUBTITLES_LANGUAGE_CODES,
   ).toSorted();
   if (
     !isApiKeyCredential(searchCredential) ||
@@ -216,7 +225,10 @@ function toSubtitleAliases(legacySubtitleId) {
 function toSearchHit(siteSubtitle, {videoHash}) {
   const siteAttributes = siteSubtitle?.attributes;
   const siteFiles = siteAttributes?.files;
-  const languageCode = fromSiteLanguageCode(siteAttributes?.language);
+  const languageCode = fromSiteLanguageCode(
+    siteAttributes?.language,
+    OPENSUBTITLES_LANGUAGE_CODES,
+  );
   if (
     languageCode === null ||
     !Array.isArray(siteFiles) ||

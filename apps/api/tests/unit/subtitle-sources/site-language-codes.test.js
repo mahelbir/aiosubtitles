@@ -3,6 +3,7 @@ import {SubtitleLanguage} from '@repo/shared/constants/subtitle-language.js';
 import {
   SiteLanguageCodeStyle,
   fromSiteLanguageCode,
+  readStyledSiteLanguageCodes,
   toSiteLanguageCodes,
 } from '../../../src/lib/subtitle-sources/site-language-codes.js';
 
@@ -27,6 +28,16 @@ describe('toSiteLanguageCodes in the locale style', () => {
     expect(fromSiteLanguageCode('pt-pt')).toBe('por');
     expect(fromSiteLanguageCode('zh-cn')).toBe('zho');
     expect(fromSiteLanguageCode('zh-tw')).toBe('zho');
+  });
+
+  it('lists the shared locale tags for a site to extend', () => {
+    expect(readStyledSiteLanguageCodes(SiteLanguageCodeStyle.LOCALE)).toEqual(
+      new Map([
+        ['pt-br', 'pob'],
+        ['pt-pt', 'por'],
+        ['zh-cn', 'zho'],
+      ]),
+    );
   });
 
   it('round-trips the codes it sends for every subtitle language', () => {
@@ -58,6 +69,19 @@ describe('fromSiteLanguageCode', () => {
   it('reads a plain ISO 639-1 code through the shared language lookup', () => {
     expect(fromSiteLanguageCode('tr')).toBe('tur');
     expect(fromSiteLanguageCode('pt')).toBe('por');
+  });
+
+  it("reads a site's own code ahead of the shared lookup", () => {
+    const ownSiteLanguageCodes = new Map([
+      ['zht', SubtitleLanguage.ZHO],
+      ['big 5 code', SubtitleLanguage.ZHO],
+    ]);
+    expect(fromSiteLanguageCode(' ZHT ', ownSiteLanguageCodes)).toBe('zho');
+    expect(fromSiteLanguageCode('Big 5 code', ownSiteLanguageCodes)).toBe(
+      'zho',
+    );
+    expect(fromSiteLanguageCode('pb', ownSiteLanguageCodes)).toBe('pob');
+    expect(fromSiteLanguageCode('zht')).toBeNull();
   });
 
   it.each([null, undefined, 42])(

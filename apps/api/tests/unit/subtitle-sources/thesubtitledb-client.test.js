@@ -137,6 +137,68 @@ describe('thesubtitledbClient search', () => {
     const [[lookupRequest]] = requestSubtitleSource.mock.calls;
     expect(lookupRequest).toMatchObject({headers: {}, credentialId: null});
   });
+
+  it('runs one lookup per 16 site codes and joins their items', async () => {
+    const toLookupResponse = (siteFileId, language) => ({
+      status: StatusCodes.OK,
+      headers: {'content-type': 'application/json'},
+      body: {
+        subtitles: {
+          items: [{id: siteFileId, language, format: 'srt', release_name: ''}],
+        },
+      },
+    });
+    requestSubtitleSource
+      .mockResolvedValueOnce(toLookupResponse(1, 'es'))
+      .mockResolvedValueOnce(toLookupResponse(2, 'da'));
+
+    const hits = await thesubtitledbClient.searchSubtitles(
+      makeSearchQuery({
+        imdbId: 'tt0133093',
+        languageCodes: [
+          'spa',
+          'por',
+          'zho',
+          'tur',
+          'eng',
+          'fre',
+          'ger',
+          'ita',
+          'jpn',
+          'kor',
+          'rus',
+          'ara',
+          'pol',
+          'nld',
+          'swe',
+          'fin',
+          'dan',
+        ],
+      }),
+      null,
+    );
+    expect(requestSubtitleSource).toHaveBeenCalledTimes(2);
+    expect(hits.map(hit => [hit.siteFileId, hit.languageCode])).toEqual([
+      ['1', 'spa'],
+      ['2', 'dan'],
+    ]);
+  });
+
+  it('throws a rate limit from any lookup', async () => {
+    requestSubtitleSource.mockRejectedValue(
+      new SourceRateLimitError({
+        subtitleSource: SubtitleSource.THESUBTITLEDB,
+        retryAfterMs: 1000,
+      }),
+    );
+
+    await expect(
+      thesubtitledbClient.searchSubtitles(
+        makeSearchQuery({imdbId: 'tt0133093'}),
+        null,
+      ),
+    ).rejects.toBeInstanceOf(SourceRateLimitError);
+  });
 });
 
 describe('thesubtitledbClient download', () => {

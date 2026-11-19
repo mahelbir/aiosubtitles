@@ -32,16 +32,21 @@ async function readEpisodeHits() {
   });
 }
 
+function buildFirstSearchRequest(searchQuery, credential) {
+  const [searchRequest] = thesubtitledbMapping.buildSearchRequests(
+    searchQuery,
+    credential,
+  );
+  return searchRequest;
+}
+
 function findHit(hits, siteFileId) {
   return hits.find(hit => hit.siteFileId === siteFileId);
 }
 
-describe('thesubtitledbMapping.buildSearchRequest', () => {
+describe('thesubtitledbMapping.buildSearchRequests', () => {
   it('asks one episode in the user languages', () => {
-    const searchRequest = thesubtitledbMapping.buildSearchRequest(
-      episodeQuery,
-      keyCredential,
-    );
+    const searchRequest = buildFirstSearchRequest(episodeQuery, keyCredential);
     const searchUrl = new URL(searchRequest.url);
     expect(searchUrl.origin).toBe('https://api.thesubtitledb.org');
     expect(searchUrl.pathname).toBe('/v1/by-imdb/tt0944947/season/1/episode/1');
@@ -57,7 +62,7 @@ describe('thesubtitledbMapping.buildSearchRequest', () => {
   });
 
   it('asks a movie by its imdb id alone', () => {
-    const searchRequest = thesubtitledbMapping.buildSearchRequest(
+    const searchRequest = buildFirstSearchRequest(
       makeSearchQuery({imdbId: 'tt0111161', languageCodes: ['eng']}),
       keyCredential,
     );
@@ -68,10 +73,7 @@ describe('thesubtitledbMapping.buildSearchRequest', () => {
   });
 
   it('sends the key as a bearer token, never in the url, and leaves the app User-Agent to the shared default', () => {
-    const searchRequest = thesubtitledbMapping.buildSearchRequest(
-      episodeQuery,
-      keyCredential,
-    );
+    const searchRequest = buildFirstSearchRequest(episodeQuery, keyCredential);
     expect(searchRequest.headers).toEqual({
       Authorization: `Bearer ${API_KEY}`,
     });
@@ -80,20 +82,17 @@ describe('thesubtitledbMapping.buildSearchRequest', () => {
   });
 
   it('asks without a key header and names no credential when there is no key', () => {
-    const searchRequest = thesubtitledbMapping.buildSearchRequest(
-      episodeQuery,
-      null,
-    );
+    const searchRequest = buildFirstSearchRequest(episodeQuery, null);
     expect(searchRequest.headers).toEqual({});
     expect(searchRequest.credentialId).toBeNull();
     expect(searchRequest.url).toBe(
-      thesubtitledbMapping.buildSearchRequest(episodeQuery, keyCredential).url,
+      buildFirstSearchRequest(episodeQuery, keyCredential).url,
     );
   });
 
   it('asks a regional language by its site code', () => {
     const searchUrl = new URL(
-      thesubtitledbMapping.buildSearchRequest(
+      buildFirstSearchRequest(
         makeSearchQuery({languageCodes: ['pob', 'spa']}),
         keyCredential,
       ).url,
@@ -101,37 +100,73 @@ describe('thesubtitledbMapping.buildSearchRequest', () => {
     expect(searchUrl.searchParams.get('lang')).toBe('pb,es,sp');
   });
 
-  it('asks at most the 16 languages the site takes', () => {
-    const searchUrl = new URL(
-      thesubtitledbMapping.buildSearchRequest(
-        makeSearchQuery({
-          languageCodes: [
-            'spa',
-            'por',
-            'zho',
-            'tur',
-            'eng',
-            'fre',
-            'ger',
-            'ita',
-            'jpn',
-            'kor',
-            'rus',
-            'ara',
-            'pol',
-            'nld',
-            'swe',
-          ],
-        }),
-        keyCredential,
-      ).url,
+  it('splits the site codes into lookups of at most 16 and drops none', () => {
+    const searchRequests = thesubtitledbMapping.buildSearchRequests(
+      makeSearchQuery({
+        languageCodes: [
+          'spa',
+          'por',
+          'zho',
+          'tur',
+          'eng',
+          'fre',
+          'ger',
+          'ita',
+          'jpn',
+          'kor',
+          'rus',
+          'ara',
+          'pol',
+          'nld',
+          'swe',
+          'fin',
+          'dan',
+        ],
+      }),
+      keyCredential,
     );
-    expect(searchUrl.searchParams.get('lang').split(',')).toHaveLength(16);
+    const siteLanguageCodeLists = searchRequests.map(searchRequest =>
+      new URL(searchRequest.url).searchParams.get('lang').split(','),
+    );
+    expect(siteLanguageCodeLists.map(codes => codes.length)).toEqual([16, 4]);
+    expect(siteLanguageCodeLists.flat()).toEqual([
+      'es',
+      'sp',
+      'pt',
+      'pm',
+      'zh',
+      'zt',
+      'tr',
+      'en',
+      'fr',
+      'de',
+      'it',
+      'ja',
+      'ko',
+      'ru',
+      'ar',
+      'pl',
+      'nl',
+      'sv',
+      'fi',
+      'da',
+    ]);
+  });
+
+  it('asks Norwegian by the code the site uses', () => {
+    expect(
+      new URL(
+        buildFirstSearchRequest(
+          makeSearchQuery({languageCodes: ['nor']}),
+          keyCredential,
+        ).url,
+      ).searchParams.get('lang'),
+    ).toBe('no');
   });
 
   it('asks nothing for a series query without its episode', () => {
     expect(
-      thesubtitledbMapping.buildSearchRequest(
+      thesubtitledbMapping.buildSearchRequests(
         {...episodeQuery, catalogEpisode: null},
         keyCredential,
       ),
@@ -140,7 +175,7 @@ describe('thesubtitledbMapping.buildSearchRequest', () => {
 
   it('asks nothing without an imdb id', () => {
     expect(
-      thesubtitledbMapping.buildSearchRequest(
+      thesubtitledbMapping.buildSearchRequests(
         makeSearchQuery({
           videoId: 'kitsu:1:1',
           videoType: 'series',
