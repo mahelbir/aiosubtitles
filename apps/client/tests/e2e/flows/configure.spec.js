@@ -483,7 +483,7 @@ test.describe('configure', () => {
   }
 
   test.describe('a stored secret', () => {
-    test('an untouched stored key is sent blank beside its credentialId', async ({
+    test('an untouched stored key is sent back as it is and keeps its status', async ({
       page,
       request,
       userConfigs,
@@ -516,8 +516,20 @@ test.describe('configure', () => {
       const [credential] = patch.postDataJSON().credentials;
       expect(credential).toMatchObject({
         credentialId: storedCredentials[0].credentialId,
-        credentialSecret: {apiKey: ''},
+        credentialSecret: {apiKey: THESUBTITLEDB_VALID_API_KEY},
       });
+      const {credentials: savedCredentials} = await callApi(
+        request,
+        'GET',
+        getUserConfigPath(userConfig.userConfigId),
+        {sessionToken: userConfig.sessionToken},
+      );
+      expect(savedCredentials).toMatchObject([
+        {
+          credentialStatus: CredentialStatus.VALID,
+          credentialCheckedAt: storedCredentials[0].credentialCheckedAt,
+        },
+      ]);
     });
   });
 });

@@ -450,6 +450,11 @@ test.describe('sources', () => {
     const reloadedSwitch = getSourceSwitch(reloadedPanel, THESUBTITLEDB);
     await expect(reloadedSwitch).toBeChecked();
     await expect(reloadedSwitch).toBeEnabled();
+    const reloadedApiKeyField = reloadedPanel.getByLabel(API_KEY, {
+      exact: true,
+    });
+    await expect(reloadedApiKeyField).toHaveValue(THESUBTITLEDB_VALID_API_KEY);
+    await expect(reloadedApiKeyField).toHaveAttribute('type', 'password');
     await expect(
       reloadedPanel.getByText(CredentialStatus.label(CredentialStatus.VALID), {
         exact: true,
@@ -835,7 +840,7 @@ test.describe('sources', () => {
         credentialId: expect.any(String),
         subtitleSource: SubtitleSource.THESUBTITLEDB,
         credentialKind: CredentialKind.API_KEY,
-        credentialSecret: {apiKey: ''},
+        credentialSecret: {apiKey: THESUBTITLEDB_VALID_API_KEY},
       },
     ]);
   });

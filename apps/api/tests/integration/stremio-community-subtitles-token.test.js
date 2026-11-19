@@ -136,10 +136,9 @@ async function expectStoredToken({userConfigId, sessionToken}, accessToken) {
   expect(readEnvelope(read).data.credentials).toEqual([
     expect.objectContaining({
       subtitleSource: COMMUNITY,
-      maskedSecret: `••••${accessToken.slice(-4)}`,
+      credentialSecret: {accessToken},
     }),
   ]);
-  expect(read.body).not.toContain(accessToken);
 }
 
 describe('saving a Community Subtitles token', () => {

@@ -8,7 +8,7 @@ import {
   FilteredArrayInput,
 } from '@/components/form/array-input';
 import {FormField} from '@/components/form/form-field';
-import {TextInput} from '@/components/form/text-input';
+import {PasswordInput, TextInput} from '@/components/form/text-input';
 import {FieldLegend, FieldSet} from '@/components/ui/field';
 import {useFormContext} from '@/lib/form-context';
 import {useStoredCredential} from '../../hooks/use-stored-credentials';
@@ -27,7 +27,7 @@ const CREDENTIAL_LISTS = Object.freeze({
 });
 
 const KEY_SECRET_INPUT = Object.freeze({
-  type: 'password',
+  Input: PasswordInput,
   autoComplete: 'off',
   'data-1p-ignore': true,
   'data-lpignore': 'true',
@@ -38,8 +38,17 @@ const CREDENTIAL_SECRET_PART_INPUTS = Object.freeze({
     ...KEY_SECRET_INPUT,
     label: CredentialKind.label(CredentialKind.API_KEY),
   },
-  username: {label: 'Username', type: 'text', autoComplete: 'off'},
-  password: {label: 'Password', type: 'password', autoComplete: 'new-password'},
+  username: {
+    Input: TextInput,
+    label: 'Username',
+    type: 'text',
+    autoComplete: 'off',
+  },
+  password: {
+    Input: PasswordInput,
+    label: 'Password',
+    autoComplete: 'new-password',
+  },
   accessToken: {
     ...KEY_SECRET_INPUT,
     label: CredentialKind.label(CredentialKind.ACCESS_TOKEN),
@@ -52,16 +61,6 @@ function CredentialItem({name, index, credentialKind}) {
     get(state.values, `${name}.credentialId`),
   );
   const storedCredential = useStoredCredential(credentialId);
-  const [firstSecretPart, ...otherSecretParts] =
-    CredentialKind.item(credentialKind).credentialSecretParts;
-  const placeholders = storedCredential
-    ? {
-        [firstSecretPart]: storedCredential.maskedSecret,
-        ...Object.fromEntries(
-          otherSecretParts.map(secretPart => [secretPart, '••••']),
-        ),
-      }
-    : {};
 
   return (
     <FieldSet className="gap-2">
@@ -69,18 +68,21 @@ function CredentialItem({name, index, credentialKind}) {
         {`${CredentialKind.label(credentialKind)} ${index + 1}`}
       </FieldLegend>
       <div className="flex items-end gap-2">
-        {[firstSecretPart, ...otherSecretParts].map(secretPart => (
-          <FormField
-            key={secretPart}
-            name={`${name}.credentialSecret.${secretPart}`}
-            className="min-w-0 flex-1"
-          >
-            <TextInput
-              {...CREDENTIAL_SECRET_PART_INPUTS[secretPart]}
-              placeholder={placeholders[secretPart]}
-            />
-          </FormField>
-        ))}
+        {CredentialKind.item(credentialKind).credentialSecretParts.map(
+          secretPart => {
+            const {Input, ...inputProps} =
+              CREDENTIAL_SECRET_PART_INPUTS[secretPart];
+            return (
+              <FormField
+                key={secretPart}
+                name={`${name}.credentialSecret.${secretPart}`}
+                className="min-w-0 flex-1"
+              >
+                <Input {...inputProps} />
+              </FormField>
+            );
+          },
+        )}
         <ArrayItemActions />
       </div>
       {storedCredential && (

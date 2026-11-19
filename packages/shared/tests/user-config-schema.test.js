@@ -924,7 +924,7 @@ describe('response schemas', () => {
     credentialId: UUID,
     subtitleSource: 'opensubtitles',
     credentialKind: 'api-key',
-    maskedSecret: '••••abcd',
+    credentialSecret: {apiKey: 'osk_fixture_abcd'},
     credentialStatus: 'valid',
     credentialCheckedAt: '2026-11-18T10:00:00.000Z',
     quotaRemainingCount: 20,

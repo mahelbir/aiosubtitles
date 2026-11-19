@@ -589,13 +589,13 @@ describe('OpenSubtitles with server app keys', () => {
         'subtitleSourceSwitchStates',
         'listImprovementSwitchStates',
       ]),
-      credentials: maskedUserConfig.credentials.map(
-        ({credentialId, subtitleSource, credentialKind}) => ({
-          credentialId,
-          subtitleSource,
-          credentialKind,
-          credentialSecret: {username: '', password: ''},
-        }),
+      credentials: maskedUserConfig.credentials.map(credential =>
+        pick(credential, [
+          'credentialId',
+          'subtitleSource',
+          'credentialKind',
+          'credentialSecret',
+        ]),
       ),
     };
   }
@@ -762,7 +762,7 @@ describe('OpenSubtitles with server app keys', () => {
       expect.objectContaining({
         subtitleSource: SubtitleSource.OPENSUBTITLES,
         credentialKind: CredentialKind.ACCOUNT,
-        maskedSecret: OPENSUBTITLES_ACCOUNT.username,
+        credentialSecret: {...OPENSUBTITLES_ACCOUNT},
       }),
     ]);
     expect(

@@ -8,7 +8,7 @@ import {Form} from '@/components/form/form';
 import {FormField} from '@/components/form/form-field';
 import {FormGrid} from '@/components/form/form-grid';
 import {SelectInput} from '@/components/form/select-input';
-import {TextInput} from '@/components/form/text-input';
+import {PasswordInput, TextInput} from '@/components/form/text-input';
 import {useAppForm} from '@/lib/form';
 import {optionSource} from '@/lib/option-source';
 import {
@@ -59,6 +59,7 @@ const USER_TOTAL = 150;
 
 const CONTROLS = [
   {name: 'name', Control: TextInput, label: 'Ad'},
+  {name: 'secret', Control: PasswordInput, label: 'Şifre'},
   {
     name: 'city',
     Control: SelectInput,
@@ -97,6 +98,7 @@ export function FormControlsFixture() {
   const form = useAppForm({
     defaultValues: {
       name: '',
+      secret: '',
       city: null,
       country: null,
       department: null,

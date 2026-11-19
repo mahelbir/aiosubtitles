@@ -729,6 +729,13 @@ exports[`OpenAPI document > matches the recorded contract 1`] = `
                                 ],
                                 "type": "string",
                               },
+                              "credentialSecret": {
+                                "additionalProperties": {
+                                  "type": "string",
+                                },
+                                "nullable": true,
+                                "type": "object",
+                              },
                               "credentialStatus": {
                                 "enum": [
                                   "unchecked",
@@ -736,9 +743,6 @@ exports[`OpenAPI document > matches the recorded contract 1`] = `
                                   "invalid",
                                   "limited",
                                 ],
-                                "type": "string",
-                              },
-                              "maskedSecret": {
                                 "type": "string",
                               },
                               "quotaRemainingCount": {
@@ -778,7 +782,7 @@ exports[`OpenAPI document > matches the recorded contract 1`] = `
                               "credentialId",
                               "subtitleSource",
                               "credentialKind",
-                              "maskedSecret",
+                              "credentialSecret",
                               "credentialStatus",
                               "credentialCheckedAt",
                               "quotaRemainingCount",
@@ -1527,6 +1531,13 @@ exports[`OpenAPI document > matches the recorded contract 1`] = `
                                 ],
                                 "type": "string",
                               },
+                              "credentialSecret": {
+                                "additionalProperties": {
+                                  "type": "string",
+                                },
+                                "nullable": true,
+                                "type": "object",
+                              },
                               "credentialStatus": {
                                 "enum": [
                                   "unchecked",
@@ -1534,9 +1545,6 @@ exports[`OpenAPI document > matches the recorded contract 1`] = `
                                   "invalid",
                                   "limited",
                                 ],
-                                "type": "string",
-                              },
-                              "maskedSecret": {
                                 "type": "string",
                               },
                               "quotaRemainingCount": {
@@ -1576,7 +1584,7 @@ exports[`OpenAPI document > matches the recorded contract 1`] = `
                               "credentialId",
                               "subtitleSource",
                               "credentialKind",
-                              "maskedSecret",
+                              "credentialSecret",
                               "credentialStatus",
                               "credentialCheckedAt",
                               "quotaRemainingCount",
@@ -1927,6 +1935,13 @@ exports[`OpenAPI document > matches the recorded contract 1`] = `
                                 ],
                                 "type": "string",
                               },
+                              "credentialSecret": {
+                                "additionalProperties": {
+                                  "type": "string",
+                                },
+                                "nullable": true,
+                                "type": "object",
+                              },
                               "credentialStatus": {
                                 "enum": [
                                   "unchecked",
@@ -1934,9 +1949,6 @@ exports[`OpenAPI document > matches the recorded contract 1`] = `
                                   "invalid",
                                   "limited",
                                 ],
-                                "type": "string",
-                              },
-                              "maskedSecret": {
                                 "type": "string",
                               },
                               "quotaRemainingCount": {
@@ -1976,7 +1988,7 @@ exports[`OpenAPI document > matches the recorded contract 1`] = `
                               "credentialId",
                               "subtitleSource",
                               "credentialKind",
-                              "maskedSecret",
+                              "credentialSecret",
                               "credentialStatus",
                               "credentialCheckedAt",
                               "quotaRemainingCount",

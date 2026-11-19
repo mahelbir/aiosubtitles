@@ -228,7 +228,7 @@ describe('opening a session', () => {
 });
 
 describe('reading a configuration', () => {
-  it('masks keys and never returns a password', async () => {
+  it('returns every credential secret whole, but never the configuration password', async () => {
     const {userConfig, userConfigCredentials} = await seedUserConfig([
       apiKeyCredential(API_KEY),
       {
@@ -260,11 +260,11 @@ describe('reading a configuration', () => {
       listImprovementSwitchStates: LIST_IMPROVEMENT_DEFAULTS,
       credentials: expect.any(Array),
     });
-    const masked = (credential, maskedSecret) => ({
+    const shown = (credential, credentialSecret) => ({
       credentialId: credential.id,
       subtitleSource: credential.subtitleSource,
       credentialKind: credential.credentialKind,
-      maskedSecret,
+      credentialSecret,
       credentialStatus: CredentialStatus.UNCHECKED,
       credentialCheckedAt: null,
       quotaRemainingCount: null,
@@ -274,16 +274,16 @@ describe('reading a configuration', () => {
     expect(data.credentials).toHaveLength(3);
     expect(data.credentials).toEqual(
       expect.arrayContaining([
-        masked(apiKey, '••••1234'),
-        masked(account, ACCOUNT_USERNAME),
-        masked(shortKey, '••••'),
+        shown(apiKey, {apiKey: API_KEY}),
+        shown(account, {
+          username: ACCOUNT_USERNAME,
+          password: ACCOUNT_PASSWORD,
+        }),
+        shown(shortKey, {apiKey: 'short12'}),
       ]),
     );
-    for (const secret of [API_KEY, ACCOUNT_PASSWORD, 'short12', PASSWORD]) {
-      expect(response.body).not.toContain(secret);
-    }
+    expect(response.body).not.toContain(PASSWORD);
     expect(response.body).not.toContain('passwordHash');
-    expect(response.body).not.toContain('credentialSecret');
   });
 });
 
@@ -434,11 +434,40 @@ describe('updating a configuration', () => {
     expect(readEnvelope(response).data.credentials).toEqual([
       expect.objectContaining({
         credentialId: credential.id,
-        maskedSecret: '••••1234',
+        credentialSecret: {apiKey: API_KEY},
       }),
     ]);
     const [stored] = await readStoredCredentials(userConfig.id);
     expect(stored.id).toBe(credential.id);
+    expect(stored.credentialSecret).toBe(credential.credentialSecret);
+    expect(checkThesubtitledbCredential).not.toHaveBeenCalled();
+  });
+
+  it('keeps a stored key and its status when the patch sends it back unchanged', async () => {
+    const {userConfig, userConfigCredentials} = await seedUserConfig([
+      apiKeyCredential(API_KEY),
+    ]);
+    const [credential] = userConfigCredentials;
+    await credential.update({credentialStatus: CredentialStatus.VALID});
+    const sessionToken = await openSession(userConfig.id);
+
+    const response = await patchCredentials({
+      userConfigId: userConfig.id,
+      sessionToken,
+      credentials: [
+        {credentialId: credential.id, ...apiKeyCredential(API_KEY)},
+      ],
+    });
+
+    expect(response.statusCode).toBe(StatusCodes.OK);
+    expect(readEnvelope(response).data.credentials).toEqual([
+      expect.objectContaining({
+        credentialId: credential.id,
+        credentialSecret: {apiKey: API_KEY},
+        credentialStatus: CredentialStatus.VALID,
+      }),
+    ]);
+    const [stored] = await readStoredCredentials(userConfig.id);
     expect(stored.credentialSecret).toBe(credential.credentialSecret);
     expect(checkThesubtitledbCredential).not.toHaveBeenCalled();
   });
@@ -461,7 +490,7 @@ describe('updating a configuration', () => {
     expect(response.statusCode).toBe(StatusCodes.OK);
     expect(readEnvelope(response).data.credentials).toEqual([
       expect.objectContaining({
-        maskedSecret: '••••5678',
+        credentialSecret: {apiKey: 'sdb_rejectedkey5678'},
         credentialStatus: CredentialStatus.INVALID,
         credentialCheckedAt: expect.any(String),
       }),
@@ -545,7 +574,7 @@ describe('updating a configuration', () => {
     expect(readEnvelope(response).data.credentials).toEqual([
       expect.objectContaining({
         credentialId: credential.id,
-        maskedSecret: ACCOUNT_USERNAME,
+        credentialSecret: {username: ACCOUNT_USERNAME, password: newPassword},
       }),
     ]);
     expect(checkOpensubtitlesCredential).toHaveBeenCalledWith(

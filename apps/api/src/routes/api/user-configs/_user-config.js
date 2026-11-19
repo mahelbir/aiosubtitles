@@ -1,9 +1,6 @@
 import {withTimeout} from 'es-toolkit';
 import {z} from 'zod';
-import {
-  CredentialKind,
-  CredentialStatus,
-} from '@repo/shared/constants/credential.js';
+import {CredentialStatus} from '@repo/shared/constants/credential.js';
 import {ErrorCode} from '@repo/shared/constants/error-code.js';
 import {SubtitleSource} from '@repo/shared/constants/subtitle-source.js';
 import {
@@ -41,12 +38,6 @@ const SUBTITLE_SOURCE_UNREGISTERED_REFUSAL =
 const PASSWORD_RATE_LIMIT_GROUP = 'user-config-password';
 
 const DUMMY_PASSWORD_HASH = hashPassword('user-config-dummy-password');
-
-const MASK = '••••';
-
-const MASK_VISIBLE_LENGTH = 4;
-
-const MASK_REVEAL_LENGTH_MIN = 8;
 
 export const USER_CONFIG_API_ROUTE_CONFIG = {
   rateLimitGroup: 'user-config-api',
@@ -265,37 +256,17 @@ function toMaskedUserConfig(request, userConfig) {
       credentialId: credential.id,
       subtitleSource: credential.subtitleSource,
       credentialKind: credential.credentialKind,
-      maskedSecret: toMaskedSecret(userConfig.id, credential),
+      credentialSecret: openCredentialSecret({
+        userConfigId: userConfig.id,
+        subtitleSource: credential.subtitleSource,
+        sealedSecret: credential.credentialSecret,
+      }),
       credentialStatus: credential.credentialStatus,
       credentialCheckedAt: toIsoString(credential.credentialCheckedAt),
       quotaRemainingCount: credential.quotaRemainingCount,
       quotaResetAt: toIsoString(credential.quotaResetAt),
     })),
   };
-}
-
-function toMaskedSecret(userConfigId, credential) {
-  const credentialSecret = openCredentialSecret({
-    userConfigId,
-    subtitleSource: credential.subtitleSource,
-    sealedSecret: credential.credentialSecret,
-  });
-  if (credentialSecret === null) {
-    return MASK;
-  }
-  if (credential.credentialKind === CredentialKind.ACCOUNT) {
-    return credentialSecret.username;
-  }
-  const [credentialSecretPart] = CredentialKind.item(
-    credential.credentialKind,
-  ).credentialSecretParts;
-  return maskSecretPart(credentialSecret[credentialSecretPart]);
-}
-
-function maskSecretPart(secretPart = '') {
-  return secretPart.length < MASK_REVEAL_LENGTH_MIN
-    ? MASK
-    : `${MASK}${secretPart.slice(-MASK_VISIBLE_LENGTH)}`;
 }
 
 function toIsoString(date) {

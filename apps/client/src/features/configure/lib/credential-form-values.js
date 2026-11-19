@@ -21,11 +21,15 @@ export function toCredentialFormValues({
   credentialId,
   subtitleSource,
   credentialKind,
+  credentialSecret,
 }) {
   return {
     ...(credentialId && {credentialId}),
     subtitleSource,
     credentialKind,
-    credentialSecret: toBlankCredentialSecret(credentialKind),
+    credentialSecret: {
+      ...toBlankCredentialSecret(credentialKind),
+      ...credentialSecret,
+    },
   };
 }

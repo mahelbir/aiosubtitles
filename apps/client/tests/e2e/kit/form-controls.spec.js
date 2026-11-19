@@ -95,6 +95,30 @@ test.describe('form controls', () => {
     }
   });
 
+  test('a password control hides what it holds until its show toggle is pressed', async ({
+    page,
+  }) => {
+    const control = getControl(page, 'Şifre');
+    const toggle = page.getByRole('button', {name: 'Show', exact: true});
+
+    await control.pressSequentially('gizli');
+
+    await expect(control).toHaveAttribute('type', 'password');
+    await expect(toggle).toHaveAttribute('aria-pressed', 'false');
+
+    await toggle.click();
+
+    await expect(control).toHaveAttribute('type', 'text');
+    await expect(toggle).toHaveAttribute('aria-pressed', 'true');
+    await expectFixtureState(page).toMatchObject({
+      fields: {secret: {value: 'gizli'}},
+    });
+
+    await toggle.click();
+
+    await expect(control).toHaveAttribute('type', 'password');
+  });
+
   test('an emptied text control stores an empty string', async ({page}) => {
     const control = getControl(page, 'Ad');
 

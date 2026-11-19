@@ -1,4 +1,4 @@
-import {isNil} from 'es-toolkit';
+import {isNil, uniq} from 'es-toolkit';
 import {z} from 'zod';
 import {CredentialKind, CredentialStatus} from '../constants/credential.js';
 import {
@@ -51,6 +51,10 @@ const UNREAD_ACCESS_TOKEN_MESSAGE = 'Paste your install link or its token';
 const subtitleSourceField = z.enum(SubtitleSource.values);
 
 const credentialKindField = z.enum(CredentialKind.values);
+
+const credentialSecretPartNameField = z.enum(
+  uniq(CredentialKind.values.flatMap(getCredentialSecretParts)),
+);
 
 const uuidField = getUuidField();
 
@@ -355,7 +359,9 @@ export const maskedCredentialSchema = z.object({
   credentialId: uuidField,
   subtitleSource: subtitleSourceField,
   credentialKind: credentialKindField,
-  maskedSecret: z.string(),
+  credentialSecret: z
+    .partialRecord(credentialSecretPartNameField, z.string())
+    .nullable(),
   credentialStatus: z.enum(CredentialStatus.values),
   credentialCheckedAt: isoDateTimeField.nullable(),
   quotaRemainingCount: z.int().nonnegative().nullable(),

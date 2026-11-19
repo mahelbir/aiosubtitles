@@ -1,4 +1,4 @@
-import {omitBy, pick} from 'es-toolkit';
+import {isEmptyObject, isEqual, omitBy, pick} from 'es-toolkit';
 import {StatusCodes} from 'http-status-codes';
 import {ZodError} from 'zod';
 import {CredentialStatus} from '@repo/shared/constants/credential.js';
@@ -139,7 +139,7 @@ async function replaceCredentials({userConfigId, credentials, transaction}) {
   return [...changedKept.filter(Boolean), ...created];
 }
 
-function mergeStoredCredentialSecret({
+function readChangedCredentialSecret({
   userConfigId,
   stored,
   credentialSecret,
@@ -149,18 +149,21 @@ function mergeStoredCredentialSecret({
     credentialSecret,
     credentialSecretPart => credentialSecretPart === '',
   );
+  if (isEmptyObject(enteredCredentialSecret)) {
+    return null;
+  }
   const blankCredentialSecretParts = Object.keys(credentialSecret).filter(
     credentialSecretPart => !(credentialSecretPart in enteredCredentialSecret),
   );
-  if (blankCredentialSecretParts.length === 0) {
-    return enteredCredentialSecret;
-  }
   const storedCredentialSecret = openCredentialSecret({
     userConfigId,
     subtitleSource: stored.subtitleSource,
     sealedSecret: stored.credentialSecret,
   });
-  if (storedCredentialSecret === null) {
+  if (
+    storedCredentialSecret === null &&
+    blankCredentialSecretParts.length > 0
+  ) {
     throw new ZodError(
       blankCredentialSecretParts.map(credentialSecretPart => ({
         code: 'custom',
@@ -170,10 +173,13 @@ function mergeStoredCredentialSecret({
       })),
     );
   }
-  return {
-    ...pick(storedCredentialSecret, blankCredentialSecretParts),
+  const mergedCredentialSecret = {
+    ...pick(storedCredentialSecret ?? {}, blankCredentialSecretParts),
     ...enteredCredentialSecret,
   };
+  return isEqual(mergedCredentialSecret, storedCredentialSecret)
+    ? null
+    : mergedCredentialSecret;
 }
 
 async function updateKeptCredential({
@@ -184,27 +190,25 @@ async function updateKeptCredential({
   index,
   transaction,
 }) {
-  const isSecretChanged = Object.values(credential.credentialSecret).some(
-    credentialSecretPart => credentialSecretPart !== '',
-  );
+  const changedCredentialSecret = readChangedCredentialSecret({
+    userConfigId,
+    stored,
+    credentialSecret: credential.credentialSecret,
+    index,
+  });
   await stored.update(
     {
       credentialPosition,
-      ...(isSecretChanged && {
+      ...(changedCredentialSecret && {
         ...UNCHECKED_CREDENTIAL_VALUES,
         credentialSecret: sealCredentialSecret({
           userConfigId,
           subtitleSource: credential.subtitleSource,
-          credentialSecret: mergeStoredCredentialSecret({
-            userConfigId,
-            stored,
-            credentialSecret: credential.credentialSecret,
-            index,
-          }),
+          credentialSecret: changedCredentialSecret,
         }),
       }),
     },
     {transaction},
   );
-  return isSecretChanged ? stored : null;
+  return changedCredentialSecret ? stored : null;
 }
