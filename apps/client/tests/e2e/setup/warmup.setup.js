@@ -10,6 +10,7 @@ warmup(
     const requestRoute = route => request.get(route, {timeout: 0});
     const publicThemeRoute = `${PUBLIC_FIXTURES_PATH}/theme`;
     const routes = [
+      '/',
       '/configure',
       PUBLIC_FIXTURES_PATH,
       ...FIXTURES.map(({slug}) => `${PUBLIC_FIXTURES_PATH}/${slug}`),
