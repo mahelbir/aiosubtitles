@@ -51,6 +51,7 @@ describe('the configuration cache', () => {
   it('caches a configuration with sealed secrets', async () => {
     const {userConfig, userConfigCredentials} = await createUserConfig({
       subtitleSourceSwitchStates: {[SubtitleSource.ALTYAZIDB]: true},
+      listImprovementSwitchStates: {[SubtitleSource.ALTYAZIDB]: false},
       credentials: [altyazidbCredential],
     });
     const [credential] = userConfigCredentials;
@@ -63,6 +64,7 @@ describe('the configuration cache', () => {
       languageCodes: DEFAULT_LANGUAGE_CODES,
       subtitleLanguageLimit: 10,
       subtitleSourceSwitchStates: {[SubtitleSource.ALTYAZIDB]: true},
+      listImprovementSwitchStates: {[SubtitleSource.ALTYAZIDB]: false},
       credentials: [
         {
           credentialId: credential.id,

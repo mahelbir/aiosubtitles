@@ -18,7 +18,10 @@ import {
   toBudgetRecoveryWindowMs,
   trySpendSubtitleSourceBudget,
 } from '../subtitle-search/subtitle-source-budget.js';
-import {readDownloadCredentials} from '../subtitle-source-credentials.js';
+import {
+  applyListImprovementSwitch,
+  readDownloadCredentials,
+} from '../subtitle-source-credentials.js';
 import {SubtitleAliasSource} from '../subtitle-sources/subtitle-alias-source.js';
 import {SourceUnavailableError} from '../subtitle-sources/subtitle-source-errors.js';
 import {isPrivateSubtitleSourceUrl} from '../subtitle-sources/subtitle-source-request.js';
@@ -198,11 +201,18 @@ async function downloadFromSources({
   if (!client || !subtitleRef) {
     return DOWNLOAD_FAILED;
   }
-  const candidateCredentials = await readDownloadCredentials({
+  const sourceCredentials = await readDownloadCredentials({
     client,
     cachedUserConfig,
     isBackground,
   });
+  const candidateCredentials = isBackground
+    ? applyListImprovementSwitch({
+        cachedUserConfig,
+        subtitleSource,
+        credentials: sourceCredentials,
+      })
+    : sourceCredentials;
   if (candidateCredentials.length === 0) {
     return cachedUserConfig ? DOWNLOAD_FAILED : USER_CONFIG_DELETED;
   }

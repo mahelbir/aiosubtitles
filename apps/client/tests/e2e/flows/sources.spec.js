@@ -1,3 +1,4 @@
+import {escapeRegExp} from 'es-toolkit';
 import {StatusCodes} from 'http-status-codes';
 import {
   CredentialKind,
@@ -146,8 +147,83 @@ const SOURCE_HELP = [
   },
 ];
 
+const IMPROVE_THE_LIST = 'Improve the list';
+const IMPROVE_THE_LIST_TEXT =
+  'Checks a few subtitles ahead of time so the best ones rise to the top.';
+const IMPROVE_THE_LIST_ALLOWANCE_TEXT = `${IMPROVE_THE_LIST_TEXT} This source's daily allowance is large, so it uses only a little.`;
+const ADD_ACCOUNT = 'Add account';
+const ADD_ACCESS_TOKEN = 'Add access token';
+
+const LIST_IMPROVEMENT_SOURCES = [
+  {
+    subtitleSource: SubtitleSource.WYZIE,
+    isOnByDefault: true,
+    description: IMPROVE_THE_LIST_ALLOWANCE_TEXT,
+  },
+  {
+    subtitleSource: SubtitleSource.THESUBTITLEDB,
+    isOnByDefault: true,
+    description: IMPROVE_THE_LIST_ALLOWANCE_TEXT,
+  },
+  {
+    subtitleSource: SubtitleSource.SUBSOURCE,
+    isOnByDefault: true,
+    description: IMPROVE_THE_LIST_ALLOWANCE_TEXT,
+  },
+  {
+    subtitleSource: SubtitleSource.ALTYAZIDB,
+    isOnByDefault: true,
+    description: IMPROVE_THE_LIST_ALLOWANCE_TEXT,
+  },
+  {
+    subtitleSource: SubtitleSource.STREMIO_COMMUNITY_SUBTITLES,
+    isOnByDefault: true,
+    description: IMPROVE_THE_LIST_TEXT,
+    addLabel: ADD_ACCESS_TOKEN,
+    secretLabels: [CredentialKind.label(CredentialKind.ACCESS_TOKEN)],
+  },
+  {
+    subtitleSource: SubtitleSource.OPENSUBTITLES,
+    isOnByDefault: false,
+    description: IMPROVE_THE_LIST_TEXT,
+    addLabel: ADD_ACCOUNT,
+    secretLabels: ['Username', 'Password'],
+  },
+  {
+    subtitleSource: SubtitleSource.SUBDL,
+    isOnByDefault: false,
+    description: IMPROVE_THE_LIST_TEXT,
+  },
+];
+
+const SWITCHLESS_SOURCES = [
+  SubtitleSource.ANISUB,
+  SubtitleSource.JIMAKU,
+  SubtitleSource.BETASERIES,
+];
+
 function getSourceSwitch(panel, label) {
   return panel.getByRole('switch', {name: label, exact: true});
+}
+
+function getImproveSwitch(panel) {
+  return getSourceSwitch(panel, IMPROVE_THE_LIST);
+}
+
+function toExactPattern(text) {
+  return new RegExp(`^${escapeRegExp(text)}$`);
+}
+
+async function enterCredential(
+  panel,
+  {addLabel = ADD_API_KEY, secretLabels = [API_KEY]},
+) {
+  await panel.getByRole('button', {name: addLabel, exact: true}).click();
+  for (const secretLabel of secretLabels) {
+    await panel
+      .getByLabel(secretLabel, {exact: true})
+      .fill('typed-fixture-secret');
+  }
 }
 
 test.describe('sources', () => {
@@ -362,6 +438,166 @@ test.describe('sources', () => {
     expect(patch.postDataJSON().subtitleSourceSwitchStates).toMatchObject({
       [SubtitleSource.THESUBTITLEDB]: true,
     });
+  });
+
+  test('Improve the list shows under the credential fields only once a credential is entered', async ({
+    page,
+  }) => {
+    await openConfigure(page);
+    const panel = await openTabMenuItem(page, THESUBTITLEDB);
+    const improveSwitch = getImproveSwitch(panel);
+    await expect(improveSwitch).toHaveCount(0);
+
+    await panel.getByRole('button', {name: ADD_API_KEY, exact: true}).click();
+    await expect(improveSwitch).toHaveCount(0);
+    const apiKeyField = panel.getByLabel(API_KEY, {exact: true});
+    await apiKeyField.fill(THESUBTITLEDB_VALID_API_KEY);
+
+    await expect(improveSwitch).toBeVisible();
+    await expect
+      .poll(async () => {
+        const [fieldBox, switchBox] = await Promise.all([
+          apiKeyField.boundingBox(),
+          improveSwitch.boundingBox(),
+        ]);
+        return switchBox.y - (fieldBox.y + fieldBox.height);
+      })
+      .toBeGreaterThan(0);
+
+    await panel.getByRole('button', {name: 'Remove', exact: true}).click();
+    await expect(improveSwitch).toHaveCount(0);
+  });
+
+  test('Improve the list starts at each source default with its exact text', async ({
+    page,
+  }) => {
+    await openConfigure(page);
+
+    for (const listImprovementSource of LIST_IMPROVEMENT_SOURCES) {
+      const label = SubtitleSource.label(listImprovementSource.subtitleSource);
+      const panel = await openTabMenuItem(page, label);
+      await enterCredential(panel, listImprovementSource);
+
+      const improveSwitch = getImproveSwitch(panel);
+      await expect(improveSwitch, label).toBeEnabled();
+      if (listImprovementSource.isOnByDefault) {
+        await expect(improveSwitch, label).toBeChecked();
+      } else {
+        await expect(improveSwitch, label).not.toBeChecked();
+      }
+      await expect(improveSwitch, label).toHaveAccessibleDescription(
+        toExactPattern(listImprovementSource.description),
+      );
+    }
+  });
+
+  test('OpenSubtitles shows Improve the list only once an account has both its username and password', async ({
+    page,
+  }) => {
+    await openConfigure(page);
+    const panel = await openTabMenuItem(page, OPENSUBTITLES);
+    const improveSwitch = getImproveSwitch(panel);
+
+    await enterCredential(panel, {});
+    await expect(improveSwitch).toHaveCount(0);
+
+    await panel.getByRole('button', {name: ADD_ACCOUNT, exact: true}).click();
+    await panel.getByLabel('Username', {exact: true}).fill('typed-user');
+    await expect(improveSwitch).toHaveCount(0);
+
+    await panel.getByLabel('Password', {exact: true}).fill('typed-password');
+    await expect(improveSwitch).toBeVisible();
+  });
+
+  test('a source the server keys alone shows no Improve the list switch', async ({
+    page,
+  }) => {
+    await openConfigure(page);
+
+    for (const subtitleSource of SWITCHLESS_SOURCES) {
+      const label = SubtitleSource.label(subtitleSource);
+      const panel = await openTabMenuItem(page, label);
+      await enterCredential(panel, {
+        addLabel:
+          subtitleSource === SubtitleSource.ANISUB
+            ? ADD_ACCESS_TOKEN
+            : ADD_API_KEY,
+        secretLabels: [
+          subtitleSource === SubtitleSource.ANISUB
+            ? CredentialKind.label(CredentialKind.ACCESS_TOKEN)
+            : API_KEY,
+        ],
+      });
+
+      await expect(getImproveSwitch(panel), label).toHaveCount(0);
+    }
+  });
+
+  test('a stored key shows Improve the list, which saves off and stays off after a reload', async ({
+    page,
+    userConfigs,
+  }) => {
+    const userConfig = await userConfigs.create({
+      password: PASSWORD,
+      languageCodes: STORED_LANGUAGE_CODES,
+      credentials: [
+        {
+          subtitleSource: SubtitleSource.THESUBTITLEDB,
+          credentialKind: CredentialKind.API_KEY,
+          credentialSecret: {apiKey: THESUBTITLEDB_VALID_API_KEY},
+        },
+      ],
+    });
+    await openSignedIn(page, userConfig);
+    const panel = await openTabMenuItem(page, THESUBTITLEDB);
+    const improveSwitch = getImproveSwitch(panel);
+    await expect(improveSwitch).toBeChecked();
+
+    await improveSwitch.click();
+
+    await expect(improveSwitch).not.toBeChecked();
+    await expect(getUnsavedNotice(page)).toBeVisible();
+    const patch = await saveAndSettle(page, userConfig);
+    expect(patch.postDataJSON().listImprovementSwitchStates).toMatchObject({
+      [SubtitleSource.THESUBTITLEDB]: false,
+    });
+
+    await page.reload();
+
+    const reloadedPanel = await openTabMenuItem(page, THESUBTITLEDB);
+    await expect(getImproveSwitch(reloadedPanel)).not.toBeChecked();
+  });
+
+  test('an OpenSubtitles account turns Improve the list on, which stays on after a reload', async ({
+    page,
+    userConfigs,
+  }) => {
+    const userConfig = await userConfigs.create({
+      password: PASSWORD,
+      languageCodes: STORED_LANGUAGE_CODES,
+      credentials: [
+        {
+          subtitleSource: SubtitleSource.OPENSUBTITLES,
+          credentialKind: CredentialKind.ACCOUNT,
+          credentialSecret: {...OPENSUBTITLES_VALID_ACCOUNT},
+        },
+      ],
+    });
+    await openSignedIn(page, userConfig);
+    const panel = await openTabMenuItem(page, OPENSUBTITLES);
+    const improveSwitch = getImproveSwitch(panel);
+    await expect(improveSwitch).not.toBeChecked();
+
+    await improveSwitch.click();
+    const patch = await saveAndSettle(page, userConfig);
+    expect(patch.postDataJSON().listImprovementSwitchStates).toMatchObject({
+      [SubtitleSource.OPENSUBTITLES]: true,
+    });
+
+    await page.reload();
+
+    const reloadedPanel = await openTabMenuItem(page, OPENSUBTITLES);
+    await expect(getImproveSwitch(reloadedPanel)).toBeChecked();
   });
 
   test('Check again re-checks a key the first check missed', async ({

@@ -85,8 +85,8 @@ export const config = deepFreeze({
   userConfigCacheTtl: env.USER_CONFIG_CACHE_TTL,
   userConfigSessionTtl: env.USER_CONFIG_SESSION_TTL,
   subtitleSourceBackgroundShare: env.SUBTITLE_SOURCE_BACKGROUND_SHARE,
-  opensubtitlesQuotaCandidateMax: env.OPENSUBTITLES_QUOTA_CANDIDATE_MAX,
-  opensubtitlesQuotaViewerShare: env.OPENSUBTITLES_QUOTA_VIEWER_SHARE,
+  listImprovementCandidateMax: env.LIST_IMPROVEMENT_CANDIDATE_MAX,
+  listImprovementViewerShare: env.LIST_IMPROVEMENT_VIEWER_SHARE,
   subtitleListRateLimitIpMax: env.SUBTITLE_LIST_RATE_LIMIT_IP_MAX,
   subtitleListRateLimitUserConfigMax:
     env.SUBTITLE_LIST_RATE_LIMIT_USER_CONFIG_MAX,

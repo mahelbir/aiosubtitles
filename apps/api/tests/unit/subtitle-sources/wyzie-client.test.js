@@ -109,6 +109,9 @@ function createStoreSpy() {
     set: (key, storedValue) => {
       storedEntries.set(key, storedValue);
     },
+    delete: key => {
+      storedEntries.delete(key);
+    },
   };
 }
 
@@ -128,6 +131,7 @@ function createTestClient(requestSubtitleSource) {
     client: createWyzieClient({
       requestSubtitleSource,
       availableCodenamesStore,
+      quotaStore: createStoreSpy(),
       logger,
     }),
     availableCodenamesStore,
@@ -477,6 +481,51 @@ describe('wyzieClient credential check and quota', () => {
     const [quotaUrl] = listRequestUrls(requestSubtitleSource);
     expect(quotaUrl.pathname).toBe('/usage');
     expect(quotaUrl.searchParams.get('key')).toBe(API_KEY_A);
+  });
+
+  it('reads /usage once per key within the quota window', async () => {
+    const usageBody = await readFixture(USAGE_FIXTURE);
+    const requestSubtitleSource = vi.fn(async () =>
+      toJsonResponse(StatusCodes.OK, usageBody),
+    );
+    const {client} = createTestClient(requestSubtitleSource);
+
+    await client.readQuota(credentialA);
+    await expect(client.readQuota(credentialA)).resolves.toMatchObject({
+      quotaRemainingCount: 812,
+      quotaAllowedCount: 1000,
+    });
+
+    expect(
+      listRequestUrls(requestSubtitleSource).map(({pathname}) => pathname),
+    ).toEqual(['/usage']);
+  });
+
+  it('reads /usage again for a key once a download spends from it', async () => {
+    const [fakeSite, usageBody] = await Promise.all([
+      createFakeSite(),
+      readFixture(USAGE_FIXTURE),
+    ]);
+    const requestSubtitleSource = vi.fn(async request =>
+      new URL(request.url).pathname === '/usage'
+        ? toJsonResponse(StatusCodes.OK, usageBody)
+        : fakeSite(request),
+    );
+    const {client} = createTestClient(requestSubtitleSource);
+    const hits = await client.searchSubtitles(movieQuery, credentialA);
+    const subtitleRef = toSubtitleRef(
+      hits.find(hit => hit.siteFileId === SITE_FILE_ID),
+    );
+
+    await client.readQuota(credentialA);
+    await client.downloadSubtitle(subtitleRef, credentialA);
+    await client.readQuota(credentialA);
+
+    expect(
+      listRequestUrls(requestSubtitleSource).filter(
+        ({pathname}) => pathname === '/usage',
+      ),
+    ).toHaveLength(2);
   });
 });
 

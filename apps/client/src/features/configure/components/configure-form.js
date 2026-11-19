@@ -40,12 +40,17 @@ const NEW_USER_CONFIG_VALUES = {
   languageCodes: [],
   subtitleLanguageLimit: SUBTITLE_LANGUAGE_LIMIT_DEFAULT,
   subtitleSourceSwitchStates: {},
+  listImprovementSwitchStates: {},
   credentials: [],
 };
 
 function toFormValues(userConfig) {
   return {
-    ...pick(userConfig, ['languageCodes', 'subtitleLanguageLimit']),
+    ...pick(userConfig, [
+      'languageCodes',
+      'subtitleLanguageLimit',
+      'listImprovementSwitchStates',
+    ]),
     subtitleSourceSwitchStates: applySubtitleSourceSwitchLocks({
       switchStates: userConfig.subtitleSourceSwitchStates,
       credentials: userConfig.credentials,

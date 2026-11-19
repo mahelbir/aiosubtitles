@@ -1,6 +1,10 @@
 import {uniq} from 'es-toolkit';
 import {CredentialKind} from '@repo/shared/constants/credential.js';
 import {SubtitleSource} from '@repo/shared/constants/subtitle-source.js';
+import {
+  hasListImprovementSwitch,
+  isListImprovementOn,
+} from '@repo/shared/lib/list-improvement-switch.js';
 import {groupDuplicates} from '@repo/subtitle-core/deduplication/group-duplicates.js';
 import {
   COMPARISON_METHOD_VERSION,
@@ -10,6 +14,7 @@ import {SubtitleHashMatch} from '../../db/models/subtitle-hash-match.js';
 import {SubtitleReferenceComparison} from '../../db/models/subtitle-reference-comparison.js';
 import {Subtitle} from '../../db/models/subtitle.js';
 import {
+  applyListImprovementSwitch,
   readDownloadCredentials,
   readUsableCredentials,
 } from '../subtitle-source-credentials.js';
@@ -20,11 +25,16 @@ import {
 } from '../subtitle-store/read-video-candidates.js';
 import {
   downloadCandidate,
+  isCandidateStored,
   isDownloadStored,
+  limitPerLanguage,
   orderByNameScore,
 } from './background-downloads.js';
 import {enqueueBackgroundJob} from './background-queues.js';
 import {
+  combineSpendChecks,
+  createListImprovementCheck,
+  createViewerShareCheck,
   listVideoReferences,
   spendOpensubtitlesQuota,
 } from './quota-spending.js';
@@ -64,13 +74,18 @@ export function scheduleListBackgroundWork({
   for (const client of subtitleSourceRegistry.listSubtitleSourceClients()) {
     const {subtitleSource} = client;
     const credentials = credentialsBySource[subtitleSource];
-    const sourceCandidates = unstoredCandidates.filter(
-      candidate => candidate.subtitleSource === subtitleSource,
+    const sourceCandidates = wantedCandidates.filter(
+      candidate =>
+        candidate.subtitleSource === subtitleSource &&
+        (isCandidateStored(candidate) ||
+          unstoredCandidates.includes(candidate)),
     );
     if (
       subtitleSource === SubtitleSource.OPENSUBTITLES ||
       !credentials?.length ||
-      sourceCandidates.length === 0
+      !sourceCandidates.some(candidate =>
+        unstoredCandidates.includes(candidate),
+      )
     ) {
       continue;
     }
@@ -128,14 +143,20 @@ export function scheduleListBackgroundWork({
       if (!jobUserConfig) {
         return;
       }
-      const downloadedIds = await spendOpensubtitlesQuota({
-        candidates: wantedCandidates,
-        videoContext,
-        accounts: readOpensubtitlesAccounts(jobUserConfig),
-        cachedUserConfig: jobUserConfig,
-        subtitleSourceRegistry,
-        signal,
+      const canSpendQuota = isListImprovementOn({
+        listImprovementSwitchStates: jobUserConfig.listImprovementSwitchStates,
+        subtitleSource: SubtitleSource.OPENSUBTITLES,
       });
+      const downloadedIds = canSpendQuota
+        ? await spendOpensubtitlesQuota({
+            candidates: wantedCandidates,
+            videoContext,
+            accounts: readOpensubtitlesAccounts(jobUserConfig),
+            cachedUserConfig: jobUserConfig,
+            subtitleSourceRegistry,
+            signal,
+          })
+        : [];
       await compareWithReferences({
         videoContext,
         candidateSubtitleIds: uniq([
@@ -158,18 +179,48 @@ export async function downloadFreeCandidates({
   subtitleSourceRegistry,
   signal,
 }) {
+  const {subtitleSource} = client;
+  const switchedCredentials = applyListImprovementSwitch({
+    cachedUserConfig,
+    subtitleSource,
+    credentials,
+  });
   if (
-    credentials.length === 0 ||
-    client.subtitleSource === SubtitleSource.OPENSUBTITLES
+    switchedCredentials.length === 0 ||
+    subtitleSource === SubtitleSource.OPENSUBTITLES
   ) {
     return [];
   }
-  const isUserQuotaKept = client.canUseSharedCredential === true;
+  const canDownloadQuotaCostly =
+    client.canUseSharedCredential === true ||
+    isListImprovementOn({
+      listImprovementSwitchStates: cachedUserConfig.listImprovementSwitchStates,
+      subtitleSource,
+    });
+  const hasSwitch = hasListImprovementSwitch(subtitleSource);
+  const userCredentials = switchedCredentials.filter(Boolean);
+  const spendChecks = [
+    ...(hasSwitch
+      ? [
+          createListImprovementCheck({
+            userConfigId: cachedUserConfig.userConfigId,
+            subtitleSource,
+          }),
+        ]
+      : []),
+    ...(client.readQuota &&
+    client.canUseSharedCredential !== true &&
+    userCredentials.length > 0
+      ? [createViewerShareCheck({client, credentials: userCredentials, signal})]
+      : []),
+  ];
+  const canSpendCredential =
+    spendChecks.length > 0 ? combineSpendChecks(spendChecks) : undefined;
   const freeCandidates = candidates.filter(
     candidate =>
-      candidate.subtitleSource === client.subtitleSource &&
+      candidate.subtitleSource === subtitleSource &&
       candidate.archiveEntryPath === '' &&
-      (isUserQuotaKept || candidate.isQuotaCostly !== true),
+      (canDownloadQuotaCostly || candidate.isQuotaCostly !== true),
   );
   const groupIndexes = new Map();
   readDuplicateGroups(freeCandidates).forEach(({members}, groupIndex) => {
@@ -178,7 +229,7 @@ export async function downloadFreeCandidates({
     }
   });
   const pickedGroupIndexes = new Set();
-  const downloadTargets = orderByNameScore({
+  const uniqueTargets = orderByNameScore({
     candidates: freeCandidates,
     videoContext,
   }).filter(candidate => {
@@ -189,6 +240,16 @@ export async function downloadFreeCandidates({
     pickedGroupIndexes.add(groupIndex);
     return true;
   });
+  const downloadTargets = hasSwitch
+    ? limitPerLanguage(
+        uniqueTargets,
+        candidates.filter(
+          candidate =>
+            candidate.subtitleSource === subtitleSource &&
+            isCandidateStored(candidate),
+        ),
+      )
+    : uniqueTargets;
   const downloadedIds = [];
   for (const candidate of downloadTargets) {
     if (signal?.aborted) {
@@ -199,6 +260,7 @@ export async function downloadFreeCandidates({
       videoContext,
       cachedUserConfig,
       subtitleSourceRegistry,
+      canSpendCredential,
     });
     if (subtitleDownload.isBudgetRefused) {
       break;
@@ -236,7 +298,7 @@ function readDuplicateGroups(candidates) {
 }
 
 function hasStoredMember(members) {
-  return members.some(({fileFacts}) => fileFacts !== null);
+  return members.some(isCandidateStored);
 }
 
 function toJobKey({subtitleSource, cachedUserConfig, videoContext}) {

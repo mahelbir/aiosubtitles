@@ -6,7 +6,11 @@ export const ConfigureSection = Enum({
     value: 'sources',
     label: 'Sources',
     icon: LayersIcon,
-    fieldNames: ['subtitleSourceSwitchStates', 'credentials'],
+    fieldNames: [
+      'subtitleSourceSwitchStates',
+      'listImprovementSwitchStates',
+      'credentials',
+    ],
   },
   LANGUAGES: {
     value: 'languages',

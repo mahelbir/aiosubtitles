@@ -44,6 +44,7 @@ export async function createUserConfig({credentials = [], ...values} = {}) {
     passwordHash: hashPassword(values.password ?? DEFAULT_USER_CONFIG_PASSWORD),
     languageCodes: values.languageCodes ?? DEFAULT_LANGUAGE_CODES,
     subtitleSourceSwitchStates: values.subtitleSourceSwitchStates ?? {},
+    listImprovementSwitchStates: values.listImprovementSwitchStates ?? {},
     ...(values.subtitleLanguageLimit !== undefined && {
       subtitleLanguageLimit: values.subtitleLanguageLimit,
     }),

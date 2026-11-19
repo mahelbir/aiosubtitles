@@ -508,6 +508,13 @@ exports[`OpenAPI document > matches the recorded contract 1`] = `
                     "minItems": 1,
                     "type": "array",
                   },
+                  "listImprovementSwitchStates": {
+                    "additionalProperties": {
+                      "type": "boolean",
+                    },
+                    "default": {},
+                    "type": "object",
+                  },
                   "password": {
                     "maxLength": 255,
                     "minLength": 8,
@@ -977,6 +984,21 @@ exports[`OpenAPI document > matches the recorded contract 1`] = `
                           "minItems": 1,
                           "type": "array",
                         },
+                        "listImprovementSwitchStates": {
+                          "additionalProperties": {
+                            "type": "boolean",
+                          },
+                          "required": [
+                            "opensubtitles",
+                            "altyazidb",
+                            "thesubtitledb",
+                            "subsource",
+                            "subdl",
+                            "wyzie",
+                            "stremio-community-subtitles",
+                          ],
+                          "type": "object",
+                        },
                         "manifestUrl": {
                           "format": "uri",
                           "maxLength": 2048,
@@ -1023,6 +1045,7 @@ exports[`OpenAPI document > matches the recorded contract 1`] = `
                         "languageCodes",
                         "subtitleLanguageLimit",
                         "subtitleSourceSwitchStates",
+                        "listImprovementSwitchStates",
                         "credentials",
                       ],
                       "type": "object",
@@ -1447,6 +1470,12 @@ exports[`OpenAPI document > matches the recorded contract 1`] = `
                     "minItems": 1,
                     "type": "array",
                   },
+                  "listImprovementSwitchStates": {
+                    "additionalProperties": {
+                      "type": "boolean",
+                    },
+                    "type": "object",
+                  },
                   "subtitleLanguageLimit": {
                     "maximum": 30,
                     "minimum": 1,
@@ -1753,6 +1782,21 @@ exports[`OpenAPI document > matches the recorded contract 1`] = `
                           "minItems": 1,
                           "type": "array",
                         },
+                        "listImprovementSwitchStates": {
+                          "additionalProperties": {
+                            "type": "boolean",
+                          },
+                          "required": [
+                            "opensubtitles",
+                            "altyazidb",
+                            "thesubtitledb",
+                            "subsource",
+                            "subdl",
+                            "wyzie",
+                            "stremio-community-subtitles",
+                          ],
+                          "type": "object",
+                        },
                         "manifestUrl": {
                           "format": "uri",
                           "maxLength": 2048,
@@ -1799,6 +1843,7 @@ exports[`OpenAPI document > matches the recorded contract 1`] = `
                         "languageCodes",
                         "subtitleLanguageLimit",
                         "subtitleSourceSwitchStates",
+                        "listImprovementSwitchStates",
                         "credentials",
                       ],
                       "type": "object",
@@ -2137,6 +2182,21 @@ exports[`OpenAPI document > matches the recorded contract 1`] = `
                           "minItems": 1,
                           "type": "array",
                         },
+                        "listImprovementSwitchStates": {
+                          "additionalProperties": {
+                            "type": "boolean",
+                          },
+                          "required": [
+                            "opensubtitles",
+                            "altyazidb",
+                            "thesubtitledb",
+                            "subsource",
+                            "subdl",
+                            "wyzie",
+                            "stremio-community-subtitles",
+                          ],
+                          "type": "object",
+                        },
                         "manifestUrl": {
                           "format": "uri",
                           "maxLength": 2048,
@@ -2183,6 +2243,7 @@ exports[`OpenAPI document > matches the recorded contract 1`] = `
                         "languageCodes",
                         "subtitleLanguageLimit",
                         "subtitleSourceSwitchStates",
+                        "listImprovementSwitchStates",
                         "credentials",
                       ],
                       "type": "object",

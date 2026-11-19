@@ -105,12 +105,12 @@ async function storeCandidates({videoId, readSearchHits}, videoContext) {
   return readVideoCandidates({videoId, videoContext});
 }
 
-async function readKeyedUserConfig({
-  shippedClient,
-  credentialKind,
-  credentialSecret,
-}) {
+async function readKeyedUserConfig(
+  {shippedClient, credentialKind, credentialSecret},
+  listImprovementSwitchStates,
+) {
   const {userConfig} = await createUserConfig({
+    listImprovementSwitchStates,
     credentials: [
       {
         subtitleSource: shippedClient.subtitleSource,
@@ -122,7 +122,10 @@ async function readKeyedUserConfig({
   return userConfigCache.get(userConfig.id);
 }
 
-async function runBackgroundDownloads(userQuotaSource) {
+async function runBackgroundDownloads(
+  userQuotaSource,
+  listImprovementSwitchStates = {},
+) {
   const fixtureClient = createFixtureSubtitleSourceClient({
     ...pick(userQuotaSource.shippedClient, SHIPPED_CLIENT_FIELDS),
     downloadSubtitle: vi.fn(async () => {
@@ -131,7 +134,10 @@ async function runBackgroundDownloads(userQuotaSource) {
   });
   const subtitleSourceRegistry = createSubtitleSourceRegistry([fixtureClient]);
   const videoContext = makeVideoContext(userQuotaSource.videoId);
-  const cachedUserConfig = await readKeyedUserConfig(userQuotaSource);
+  const cachedUserConfig = await readKeyedUserConfig(
+    userQuotaSource,
+    listImprovementSwitchStates,
+  );
   const candidates = await storeCandidates(userQuotaSource, videoContext);
   const [foregroundCredentials, backgroundCredentials] = await Promise.all([
     readDownloadCredentials({cachedUserConfig, client: fixtureClient}),
@@ -180,13 +186,57 @@ describe('background downloads on the user quota', () => {
       ),
     ),
   )(
-    "never spends a user's own %s key from background work",
+    "never spends a user's own %s key from background work once the switch is off",
     async (_, userQuotaSource) => {
-      const downloadSubtitle = await runBackgroundDownloads(userQuotaSource);
+      const downloadSubtitle = await runBackgroundDownloads(userQuotaSource, {
+        [userQuotaSource.shippedClient.subtitleSource]: false,
+      });
 
       expect(downloadSubtitle).not.toHaveBeenCalled();
     },
   );
+
+  it.each(
+    toSourceCases(
+      USER_QUOTA_SOURCES.filter(
+        ({shippedClient}) => !shippedClient.canUseSharedCredential,
+      ),
+    ),
+  )(
+    "spends a user's own %s key from background work once the switch is on",
+    async (_, userQuotaSource) => {
+      const downloadSubtitle = await runBackgroundDownloads(userQuotaSource, {
+        [userQuotaSource.shippedClient.subtitleSource]: true,
+      });
+
+      expect(downloadSubtitle).toHaveBeenCalled();
+      for (const [, credential] of downloadSubtitle.mock.calls) {
+        expect(credential).toEqual(
+          expect.objectContaining(userQuotaSource.credentialSecret),
+        );
+      }
+    },
+  );
+
+  it("never spends a user's own SubDL key while its switch is off by default", async () => {
+    const downloadSubtitle = await runBackgroundDownloads(
+      USER_QUOTA_SOURCES.find(
+        ({shippedClient}) => shippedClient === subdlClient,
+      ),
+    );
+
+    expect(downloadSubtitle).not.toHaveBeenCalled();
+  });
+
+  it("spends a user's own TheSubtitleDB key while its switch is on by default", async () => {
+    const downloadSubtitle = await runBackgroundDownloads(
+      USER_QUOTA_SOURCES.find(
+        ({shippedClient}) => shippedClient === thesubtitledbClient,
+      ),
+    );
+
+    expect(downloadSubtitle).toHaveBeenCalled();
+  });
 
   it.each(
     toSourceCases(

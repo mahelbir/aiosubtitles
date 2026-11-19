@@ -8,6 +8,15 @@ export function toBlankCredentialSecret(credentialKind) {
   );
 }
 
+export function isCredentialEntered({credentialId, credentialSecret}) {
+  return (
+    credentialId !== undefined ||
+    Object.values(credentialSecret).every(
+      credentialSecretPart => credentialSecretPart.trim() !== '',
+    )
+  );
+}
+
 export function toCredentialFormValues({
   credentialId,
   subtitleSource,

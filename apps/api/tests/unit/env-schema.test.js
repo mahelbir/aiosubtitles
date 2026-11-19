@@ -124,8 +124,8 @@ describe('the subtitle service keys', () => {
       USER_CONFIG_CACHE_TTL: 60,
       USER_CONFIG_SESSION_TTL: 1800,
       SUBTITLE_SOURCE_BACKGROUND_SHARE: 0.5,
-      OPENSUBTITLES_QUOTA_CANDIDATE_MAX: 3,
-      OPENSUBTITLES_QUOTA_VIEWER_SHARE: 0.5,
+      LIST_IMPROVEMENT_CANDIDATE_MAX: 3,
+      LIST_IMPROVEMENT_VIEWER_SHARE: 0.5,
       SUBTITLE_LIST_RATE_LIMIT_IP_MAX: 60,
       SUBTITLE_LIST_RATE_LIMIT_USER_CONFIG_MAX: 30,
       SUBTITLE_FILE_RATE_LIMIT_IP_MAX: 60,
@@ -198,6 +198,20 @@ describe('the subtitle service keys', () => {
     });
   });
 
+  it('read no OpenSubtitles-only list improvement key, keeping the defaults', () => {
+    const {data} = parseEnv({
+      OPENSUBTITLES_QUOTA_CANDIDATE_MAX: '9',
+      OPENSUBTITLES_QUOTA_VIEWER_SHARE: '0.12',
+    });
+
+    expect(data).toMatchObject({
+      LIST_IMPROVEMENT_CANDIDATE_MAX: 3,
+      LIST_IMPROVEMENT_VIEWER_SHARE: 0.5,
+    });
+    expect(data).not.toHaveProperty('OPENSUBTITLES_QUOTA_CANDIDATE_MAX');
+    expect(data).not.toHaveProperty('OPENSUBTITLES_QUOTA_VIEWER_SHARE');
+  });
+
   it('reach the config object under their camelCase names', () => {
     expect(Object.keys(config)).toEqual(
       expect.arrayContaining([
@@ -208,8 +222,8 @@ describe('the subtitle service keys', () => {
         'userConfigCacheTtl',
         'userConfigSessionTtl',
         'subtitleSourceBackgroundShare',
-        'opensubtitlesQuotaCandidateMax',
-        'opensubtitlesQuotaViewerShare',
+        'listImprovementCandidateMax',
+        'listImprovementViewerShare',
         'subtitleListRateLimitIpMax',
         'subtitleListRateLimitUserConfigMax',
         'subtitleFileRateLimitIpMax',
@@ -230,8 +244,8 @@ describe('the subtitle service keys', () => {
       USER_CONFIG_CACHE_TTL: '1004',
       USER_CONFIG_SESSION_TTL: '1005',
       SUBTITLE_SOURCE_BACKGROUND_SHARE: '0.11',
-      OPENSUBTITLES_QUOTA_CANDIDATE_MAX: '1006',
-      OPENSUBTITLES_QUOTA_VIEWER_SHARE: '0.12',
+      LIST_IMPROVEMENT_CANDIDATE_MAX: '1006',
+      LIST_IMPROVEMENT_VIEWER_SHARE: '0.12',
       SUBTITLE_LIST_RATE_LIMIT_IP_MAX: '1007',
       SUBTITLE_LIST_RATE_LIMIT_USER_CONFIG_MAX: '1008',
       SUBTITLE_FILE_RATE_LIMIT_IP_MAX: '1009',
@@ -263,8 +277,8 @@ describe('the subtitle service keys', () => {
         userConfigCacheTtl: 1004,
         userConfigSessionTtl: 1005,
         subtitleSourceBackgroundShare: 0.11,
-        opensubtitlesQuotaCandidateMax: 1006,
-        opensubtitlesQuotaViewerShare: 0.12,
+        listImprovementCandidateMax: 1006,
+        listImprovementViewerShare: 0.12,
         subtitleListRateLimitIpMax: 1007,
         subtitleListRateLimitUserConfigMax: 1008,
         subtitleFileRateLimitIpMax: 1009,

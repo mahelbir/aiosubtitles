@@ -22,6 +22,7 @@ import {
   getCredentialLimitCheck,
   getCredentialSecretField,
   languageCodesField,
+  listImprovementSwitchStatesField,
   maskedCredentialSchema,
   subtitleLanguageLimitField,
   subtitleSourceOptionSchema,
@@ -203,6 +204,70 @@ describe('subtitleSourceSwitchStatesField', () => {
     expect(
       getIssuePaths(subtitleSourceSwitchStatesField, {anisub: 'on'}),
     ).toEqual([['anisub']]);
+  });
+});
+
+describe('listImprovementSwitchStatesField', () => {
+  it('accepts a partial record of the sources that carry the switch', () => {
+    expect(
+      listImprovementSwitchStatesField.parse({
+        opensubtitles: true,
+        wyzie: false,
+      }),
+    ).toEqual({opensubtitles: true, wyzie: false});
+  });
+
+  it.each(['anisub', 'jimaku', 'betaseries', 'yify', 'not-a-source'])(
+    'refuses the source %s, which carries no switch',
+    subtitleSource => {
+      expect(
+        listImprovementSwitchStatesField.safeParse({[subtitleSource]: true})
+          .success,
+      ).toBe(false);
+    },
+  );
+
+  it('refuses a state that is not a boolean', () => {
+    expect(
+      getIssuePaths(listImprovementSwitchStatesField, {subdl: 'on'}),
+    ).toEqual([['subdl']]);
+  });
+
+  it('leaves a new configuration without states to the defaults', () => {
+    expect(
+      createUserConfigSchema.parse(getNewConfig()).listImprovementSwitchStates,
+    ).toEqual({});
+  });
+
+  it('keeps the states a new configuration sends', () => {
+    expect(
+      createUserConfigSchema.parse(
+        getNewConfig({listImprovementSwitchStates: {subdl: true}}),
+      ).listImprovementSwitchStates,
+    ).toEqual({subdl: true});
+  });
+
+  it('leaves the states out of a patch that does not send them', () => {
+    expect(updateUserConfigSchema.parse({})).toEqual({});
+  });
+
+  it('keeps only the states that differ from their source default', () => {
+    expect(
+      listImprovementSwitchStatesField.parse({
+        opensubtitles: false,
+        subdl: true,
+        wyzie: true,
+        subsource: false,
+      }),
+    ).toEqual({subdl: true, subsource: false});
+  });
+
+  it('takes the states in a patch', () => {
+    expect(
+      updateUserConfigSchema.parse({
+        listImprovementSwitchStates: {opensubtitles: true},
+      }),
+    ).toEqual({listImprovementSwitchStates: {opensubtitles: true}});
   });
 });
 
@@ -839,6 +904,15 @@ describe('user config edge cases', () => {
         subtitleSourceSwitchStates: Object.fromEntries(
           SubtitleSource.values.map(subtitleSource => [subtitleSource, true]),
         ),
+        listImprovementSwitchStates: {
+          opensubtitles: false,
+          altyazidb: true,
+          thesubtitledb: true,
+          subsource: true,
+          subdl: false,
+          wyzie: true,
+          'stremio-community-subtitles': true,
+        },
         credentials: [],
       }),
     ).toEqual([['subtitleLanguageLimit']]);
@@ -859,6 +933,15 @@ describe('response schemas', () => {
   const fullSwitchStates = Object.fromEntries(
     SubtitleSource.values.map(subtitleSource => [subtitleSource, true]),
   );
+  const fullListImprovementSwitchStates = {
+    opensubtitles: false,
+    altyazidb: true,
+    thesubtitledb: true,
+    subsource: true,
+    subdl: false,
+    wyzie: true,
+    'stremio-community-subtitles': true,
+  };
 
   it('describes a masked credential', () => {
     expect(maskedCredentialSchema.parse(maskedCredential)).toEqual(
@@ -886,9 +969,27 @@ describe('response schemas', () => {
       languageCodes: ['tur', 'eng'],
       subtitleLanguageLimit: 10,
       subtitleSourceSwitchStates: fullSwitchStates,
+      listImprovementSwitchStates: fullListImprovementSwitchStates,
       credentials: [maskedCredential],
     };
     expect(userConfigSchema.parse(userConfig)).toEqual(userConfig);
+  });
+
+  it('refuses a saved configuration missing a list improvement state', () => {
+    const {subdl: _subdl, ...partialStates} = fullListImprovementSwitchStates;
+    expect(
+      userConfigSchema
+        .safeParse({
+          userConfigId: UUID,
+          manifestUrl: `https://aiosubtitles.example/${UUID}/manifest.json`,
+          languageCodes: ['tur'],
+          subtitleLanguageLimit: 10,
+          subtitleSourceSwitchStates: fullSwitchStates,
+          listImprovementSwitchStates: partialStates,
+          credentials: [],
+        })
+        .error?.issues[0]?.path.slice(0, 1),
+    ).toEqual(['listImprovementSwitchStates']);
   });
 
   it('refuses a saved configuration missing a source switch state', () => {

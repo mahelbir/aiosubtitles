@@ -17,14 +17,17 @@ export const SubtitleSource = Enum({
   OPENSUBTITLES: {
     value: 'opensubtitles',
     label: 'OpenSubtitles',
+    isListImprovementOnByDefault: false,
     subtitleSourcePhase: 1,
     credentialRequirement: CredentialRequirement.OPTIONAL,
     credentialKinds: [CredentialKind.ACCOUNT, CredentialKind.API_KEY],
+    downloadCredentialKinds: [CredentialKind.ACCOUNT],
     credentialLimit: 10,
   },
   OPENSUBTITLES_V3: {
     value: 'opensubtitles-v3',
     label: 'OpenSubtitles v3',
+    isListImprovementOnByDefault: null,
     subtitleSourcePhase: 1,
     credentialRequirement: CredentialRequirement.NONE,
     credentialKinds: [],
@@ -33,6 +36,7 @@ export const SubtitleSource = Enum({
   ALTYAZIDB: {
     value: 'altyazidb',
     label: 'AltyazıDB',
+    isListImprovementOnByDefault: true,
     subtitleSourcePhase: 1,
     credentialRequirement: CredentialRequirement.REQUIRED,
     credentialKinds: [CredentialKind.API_KEY],
@@ -41,6 +45,7 @@ export const SubtitleSource = Enum({
   THESUBTITLEDB: {
     value: 'thesubtitledb',
     label: 'TheSubtitleDB',
+    isListImprovementOnByDefault: true,
     subtitleSourcePhase: 1,
     credentialRequirement: CredentialRequirement.REQUIRED,
     credentialKinds: [CredentialKind.API_KEY],
@@ -49,6 +54,7 @@ export const SubtitleSource = Enum({
   SUBSOURCE: {
     value: 'subsource',
     label: 'SubSource',
+    isListImprovementOnByDefault: true,
     subtitleSourcePhase: 1,
     credentialRequirement: CredentialRequirement.REQUIRED,
     credentialKinds: [CredentialKind.API_KEY],
@@ -57,6 +63,7 @@ export const SubtitleSource = Enum({
   ANISUB: {
     value: 'anisub',
     label: 'AniSub',
+    isListImprovementOnByDefault: null,
     subtitleSourcePhase: 1,
     credentialRequirement: CredentialRequirement.OPTIONAL,
     credentialKinds: [CredentialKind.ACCESS_TOKEN],
@@ -65,6 +72,7 @@ export const SubtitleSource = Enum({
   SUBDL: {
     value: 'subdl',
     label: 'SubDL',
+    isListImprovementOnByDefault: false,
     subtitleSourcePhase: 2,
     credentialRequirement: CredentialRequirement.REQUIRED,
     credentialKinds: [CredentialKind.API_KEY],
@@ -73,6 +81,7 @@ export const SubtitleSource = Enum({
   WYZIE: {
     value: 'wyzie',
     label: 'Wyzie',
+    isListImprovementOnByDefault: true,
     subtitleSourcePhase: 2,
     credentialRequirement: CredentialRequirement.REQUIRED,
     credentialKinds: [CredentialKind.API_KEY],
@@ -81,6 +90,7 @@ export const SubtitleSource = Enum({
   JIMAKU: {
     value: 'jimaku',
     label: 'Jimaku',
+    isListImprovementOnByDefault: null,
     subtitleSourcePhase: 2,
     credentialRequirement: CredentialRequirement.OPTIONAL,
     credentialKinds: [CredentialKind.API_KEY],
@@ -89,6 +99,7 @@ export const SubtitleSource = Enum({
   STREMIO_COMMUNITY_SUBTITLES: {
     value: 'stremio-community-subtitles',
     label: 'Community Subtitles',
+    isListImprovementOnByDefault: true,
     subtitleSourcePhase: 2,
     credentialRequirement: CredentialRequirement.REQUIRED,
     credentialKinds: [CredentialKind.ACCESS_TOKEN],
@@ -97,6 +108,7 @@ export const SubtitleSource = Enum({
   GESTDOWN: {
     value: 'gestdown',
     label: 'Gestdown',
+    isListImprovementOnByDefault: null,
     subtitleSourcePhase: 2,
     credentialRequirement: CredentialRequirement.NONE,
     credentialKinds: [],
@@ -105,6 +117,7 @@ export const SubtitleSource = Enum({
   ANIMETOSHO: {
     value: 'animetosho',
     label: 'AnimeTosho',
+    isListImprovementOnByDefault: null,
     subtitleSourcePhase: 2,
     credentialRequirement: CredentialRequirement.NONE,
     credentialKinds: [],
@@ -113,6 +126,7 @@ export const SubtitleSource = Enum({
   YIFY: {
     value: 'yify',
     label: 'YIFY',
+    isListImprovementOnByDefault: null,
     subtitleSourcePhase: 2,
     credentialRequirement: CredentialRequirement.NONE,
     credentialKinds: [],
@@ -121,6 +135,7 @@ export const SubtitleSource = Enum({
   TVSUBTITLES: {
     value: 'tvsubtitles',
     label: 'TVsubtitles',
+    isListImprovementOnByDefault: null,
     subtitleSourcePhase: 2,
     credentialRequirement: CredentialRequirement.NONE,
     credentialKinds: [],
@@ -129,6 +144,7 @@ export const SubtitleSource = Enum({
   BETASERIES: {
     value: 'betaseries',
     label: 'BetaSeries',
+    isListImprovementOnByDefault: null,
     subtitleSourcePhase: 2,
     credentialRequirement: CredentialRequirement.OPTIONAL,
     credentialKinds: [CredentialKind.API_KEY],

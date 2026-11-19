@@ -60,6 +60,9 @@ const STRONG_NAME = 'Fixture.Movie.2024.1080p.BluRay.x264-GROUPA';
 const WEAK_NAME = 'Fixture.Movie.2024.720p.HDTV.x265-OTHER';
 const V3_FILE_URL = 'https://subs5.strem.io/en/download/file/123456';
 const USER_CONFIG_CACHE_PREFIX = 'user-config-cache:';
+const OPENSUBTITLES_IMPROVEMENT_ON = Object.freeze({
+  [SubtitleSource.OPENSUBTITLES]: true,
+});
 
 const MOVIE_SRT = [
   '1\n00:00:01,000 --> 00:00:03,000\nMerhaba dünya.\n',
@@ -240,6 +243,14 @@ function makeAccountCredential(username) {
   };
 }
 
+function makeCommunityCredential(accessToken) {
+  return {
+    subtitleSource: SubtitleSource.STREMIO_COMMUNITY_SUBTITLES,
+    credentialKind: CredentialKind.ACCESS_TOKEN,
+    credentialSecret: {accessToken},
+  };
+}
+
 function makeApiKeyCredential(subtitleSource, apiKey) {
   return {
     subtitleSource,
@@ -316,9 +327,14 @@ async function storeReference(hitOverrides = {}) {
   return reference;
 }
 
-async function readJobUser(userConfigOptions = {}) {
-  const {userConfig, userConfigCredentials} =
-    await createUserConfig(userConfigOptions);
+async function readJobUser({
+  listImprovementSwitchStates = OPENSUBTITLES_IMPROVEMENT_ON,
+  ...userConfigOptions
+} = {}) {
+  const {userConfig, userConfigCredentials} = await createUserConfig({
+    ...userConfigOptions,
+    listImprovementSwitchStates,
+  });
   return {
     userConfig,
     userConfigCredentials,
@@ -367,7 +383,11 @@ async function readCredentialsBySource(cachedUserConfig) {
     await Promise.all(
       fixtureClients.map(async client => [
         client.subtitleSource,
-        await readDownloadCredentials({cachedUserConfig, client}),
+        await readDownloadCredentials({
+          cachedUserConfig,
+          client,
+          isBackground: true,
+        }),
       ]),
     ),
   );
@@ -686,9 +706,10 @@ describe('free background downloads', () => {
     expect(altyazidbClient.downloadSubtitle).not.toHaveBeenCalled();
   });
 
-  it('never downloads a Community Subtitles row in the background for a user with a token', async () => {
+  async function readCommunityUser(listImprovementSwitchStates) {
     const accessToken = 'scs-fixture_token-0001-abcdEFGH';
-    const {cachedUserConfig} = await readJobUser({
+    const {userConfigCredentials, cachedUserConfig} = await readJobUser({
+      listImprovementSwitchStates,
       credentials: [
         {
           subtitleSource: SubtitleSource.STREMIO_COMMUNITY_SUBTITLES,
@@ -720,6 +741,132 @@ describe('free background downloads', () => {
     expect(
       candidatesOf(candidates, SubtitleSource.STREMIO_COMMUNITY_SUBTITLES),
     ).toEqual([expect.objectContaining({isQuotaCostly: true})]);
+    return {userConfigCredentials, cachedUserConfig, candidates};
+  }
+
+  it("downloads a Community Subtitles row in the background with the user's token while its switch is on by default", async () => {
+    const {userConfigCredentials, cachedUserConfig, candidates} =
+      await readCommunityUser({});
+
+    await runFreeDownloads({
+      client: communityClient,
+      candidates,
+      cachedUserConfig,
+    });
+
+    expect(downloadCredentialIds(communityClient)).toEqual([
+      userConfigCredentials[0].id,
+    ]);
+  });
+
+  it('downloads at most three rows per language from a keyed source whose switch is on', async () => {
+    const {cachedUserConfig} = await readJobUser({
+      credentials: [
+        {
+          subtitleSource: SubtitleSource.STREMIO_COMMUNITY_SUBTITLES,
+          credentialKind: CredentialKind.ACCESS_TOKEN,
+          credentialSecret: {accessToken: 'scs-fixture_token-0002-abcdEFGH'},
+        },
+      ],
+    });
+    const makeCommunityHit = languageCode =>
+      makeSubtitleSourceHit({
+        subtitleSource: SubtitleSource.STREMIO_COMMUNITY_SUBTITLES,
+        isQuotaCostly: true,
+        releaseNames: [STRONG_NAME],
+        languageCode,
+      });
+    const turkishHits = Array.from({length: 4}, () => makeCommunityHit('tur'));
+    const englishHit = makeCommunityHit('eng');
+    const candidates = await storeCandidates([...turkishHits, englishHit]);
+
+    await runFreeDownloads({
+      client: communityClient,
+      candidates,
+      cachedUserConfig,
+    });
+
+    const downloadedIds = downloadedSiteFileIds(communityClient);
+    expect(downloadedIds).toHaveLength(4);
+    expect(
+      downloadedIds.filter(siteFileId =>
+        siteFileIdsOf(turkishHits).includes(siteFileId),
+      ),
+    ).toHaveLength(3);
+    expect(downloadedIds).toContain(englishHit.siteFileId);
+  });
+
+  it('never stores more than three rows per language for a title reopened again and again', async () => {
+    const {cachedUserConfig} = await readJobUser({
+      credentials: [makeCommunityCredential('scs-fixture_token-0003-abcdEFGH')],
+    });
+    const communityHits = Array.from({length: 5}, () =>
+      makeSubtitleSourceHit({
+        subtitleSource: SubtitleSource.STREMIO_COMMUNITY_SUBTITLES,
+        isQuotaCostly: true,
+        releaseNames: [STRONG_NAME],
+        languageCode: 'tur',
+      }),
+    );
+    await storeCandidates(communityHits);
+
+    for (let listIndex = 0; listIndex < 3; listIndex += 1) {
+      await runListBackgroundWork({
+        candidates: await readVideoCandidates({
+          videoId: MOVIE_ID,
+          videoContext: makeVideoContext(),
+        }),
+        cachedUserConfig,
+      });
+    }
+
+    expect(communityClient.downloadSubtitle).toHaveBeenCalledTimes(3);
+    const candidates = await readVideoCandidates({
+      videoId: MOVIE_ID,
+      videoContext: makeVideoContext(),
+    });
+    expect(
+      await readStoredSubtitleIds(
+        communityHits.map(hit => findCandidate(candidates, hit).subtitleId),
+      ),
+    ).toHaveLength(3);
+  });
+
+  it('stops spending the user token once the switch is turned off while the job runs', async () => {
+    const {userConfig, cachedUserConfig} = await readJobUser({
+      credentials: [makeCommunityCredential('scs-fixture_token-0004-abcdEFGH')],
+    });
+    const candidates = await storeCandidates(
+      Array.from({length: 3}, () =>
+        makeSubtitleSourceHit({
+          subtitleSource: SubtitleSource.STREMIO_COMMUNITY_SUBTITLES,
+          isQuotaCostly: true,
+          releaseNames: [STRONG_NAME],
+          languageCode: 'tur',
+        }),
+      ),
+    );
+    communityClient.downloadSubtitle.mockImplementation(async () => {
+      await UserConfig.update(
+        {
+          listImprovementSwitchStates: {
+            [SubtitleSource.STREMIO_COMMUNITY_SUBTITLES]: false,
+          },
+        },
+        {where: {id: userConfig.id}, individualHooks: true},
+      );
+      return toDownload(MOVIE_SRT);
+    });
+
+    await runListBackgroundWork({candidates, cachedUserConfig});
+
+    expect(communityClient.downloadSubtitle).toHaveBeenCalledTimes(1);
+  });
+
+  it('never downloads a Community Subtitles row in the background once its switch is off', async () => {
+    const {cachedUserConfig, candidates} = await readCommunityUser({
+      [SubtitleSource.STREMIO_COMMUNITY_SUBTITLES]: false,
+    });
 
     const downloadedIds = await runFreeDownloads({
       client: communityClient,
@@ -784,6 +931,310 @@ describe('a queued background job', () => {
     await drainBackgroundQueues();
 
     expect(yifyClient.downloadSubtitle).not.toHaveBeenCalled();
+  });
+});
+
+describe('the list improvement switch through the subtitle list route', () => {
+  const ALTYAZIDB_API_KEY = 'altyazidb-improvement-key';
+
+  async function createAltyazidbUser(listImprovementSwitchStates) {
+    return createUserConfig({
+      subtitleSourceSwitchStates: makeSwitchStatesOnly([
+        SubtitleSource.ALTYAZIDB,
+      ]),
+      listImprovementSwitchStates,
+      credentials: [
+        makeApiKeyCredential(SubtitleSource.ALTYAZIDB, ALTYAZIDB_API_KEY),
+      ],
+    });
+  }
+
+  async function requestAltyazidbList(userConfigId) {
+    const searchHit = makeSubtitleSourceHit({
+      subtitleSource: SubtitleSource.ALTYAZIDB,
+      releaseNames: [STRONG_NAME],
+    });
+    altyazidbClient.searchSubtitles.mockResolvedValueOnce([searchHit]);
+    const app = await getTestApp();
+    const response = await app.inject({
+      method: 'GET',
+      url: `${getTestAppBasePath()}/${userConfigId}/subtitles/movie/${MOVIE_ID}.json`,
+    });
+    expect(response.statusCode).toBe(StatusCodes.OK);
+    return searchHit;
+  }
+
+  function holdAltyazidbQueue() {
+    const {gate, openGate} = createGate();
+    enqueueBackgroundJob({
+      subtitleSource: SubtitleSource.ALTYAZIDB,
+      runJob: () => gate,
+    });
+    return openGate;
+  }
+
+  function updateListImprovement(userConfigId, listImprovementSwitchStates) {
+    return UserConfig.update(
+      {listImprovementSwitchStates},
+      {where: {id: userConfigId}, individualHooks: true},
+    );
+  }
+
+  it("downloads with the user's key while the switch is on by default", async () => {
+    const {userConfig, userConfigCredentials} = await createAltyazidbUser({});
+
+    const searchHit = await requestAltyazidbList(userConfig.id);
+    await drainBackgroundQueues();
+
+    expect(downloadedSiteFileIds(altyazidbClient)).toEqual([
+      searchHit.siteFileId,
+    ]);
+    expect(downloadCredentialIds(altyazidbClient)).toEqual([
+      userConfigCredentials[0].id,
+    ]);
+  });
+
+  it("never downloads with the user's key while the switch is off", async () => {
+    const {userConfig} = await createAltyazidbUser({
+      [SubtitleSource.ALTYAZIDB]: false,
+    });
+
+    await requestAltyazidbList(userConfig.id);
+    await drainBackgroundQueues();
+
+    expect(altyazidbClient.downloadSubtitle).not.toHaveBeenCalled();
+  });
+
+  it('downloads nothing once the switch is turned off while the job waits', async () => {
+    const {userConfig} = await createAltyazidbUser({});
+    const openGate = holdAltyazidbQueue();
+    try {
+      await requestAltyazidbList(userConfig.id);
+      await updateListImprovement(userConfig.id, {
+        [SubtitleSource.ALTYAZIDB]: false,
+      });
+    } finally {
+      openGate();
+    }
+    await drainBackgroundQueues();
+
+    expect(altyazidbClient.downloadSubtitle).not.toHaveBeenCalled();
+  });
+
+  it('downloads once the switch is turned on while the job waits', async () => {
+    const {userConfig} = await createAltyazidbUser({
+      [SubtitleSource.ALTYAZIDB]: false,
+    });
+    const openGate = holdAltyazidbQueue();
+    let searchHit;
+    try {
+      searchHit = await requestAltyazidbList(userConfig.id);
+      await updateListImprovement(userConfig.id, {
+        [SubtitleSource.ALTYAZIDB]: true,
+      });
+    } finally {
+      openGate();
+    }
+    await drainBackgroundQueues();
+
+    expect(downloadedSiteFileIds(altyazidbClient)).toEqual([
+      searchHit.siteFileId,
+    ]);
+  });
+});
+
+describe('the OpenSubtitles list improvement switch', () => {
+  function holdOpensubtitlesQueue() {
+    const {gate, openGate} = createGate();
+    enqueueBackgroundJob({
+      subtitleSource: SubtitleSource.OPENSUBTITLES,
+      runJob: () => gate,
+    });
+    return openGate;
+  }
+
+  async function storeQuotaCandidates() {
+    await storeReference();
+    return storeCandidates([makeOpensubtitlesHit()]);
+  }
+
+  it('spends no quota while the switch is off by default', async () => {
+    const {cachedUserConfig} = await readJobUser({
+      listImprovementSwitchStates: {},
+      credentials: [makeAccountCredential('default-off-user')],
+    });
+    const candidates = await storeQuotaCandidates();
+
+    await runListBackgroundWork({candidates, cachedUserConfig});
+
+    expect(opensubtitlesClient.downloadSubtitle).not.toHaveBeenCalled();
+    expect(opensubtitlesClient.readQuota).not.toHaveBeenCalled();
+  });
+
+  it('still compares stored files with the reference while the switch is off', async () => {
+    const {cachedUserConfig} = await readJobUser({
+      listImprovementSwitchStates: {},
+      credentials: [makeAccountCredential('compare-only-user')],
+    });
+    const reference = await storeReference();
+    const storedHit = makeOpensubtitlesHit();
+    const storedCandidates = await storeCandidates([storedHit]);
+    const storedSubtitleId = findCandidate(
+      storedCandidates,
+      storedHit,
+    ).subtitleId;
+    await storeFile(storedSubtitleId, toTimedSrt(REFERENCE_CUE_STARTS_MS));
+    const candidates = await readVideoCandidates({
+      videoId: MOVIE_ID,
+      videoContext: makeVideoContext(),
+    });
+
+    await runListBackgroundWork({candidates, cachedUserConfig});
+
+    expect(opensubtitlesClient.readQuota).not.toHaveBeenCalled();
+    expect(opensubtitlesClient.downloadSubtitle).not.toHaveBeenCalled();
+    const comparisons = await SubtitleReferenceComparison.findAll({
+      attributes: ['candidateSubtitleId', 'referenceSubtitleId'],
+      where: {candidateSubtitleId: storedSubtitleId},
+      raw: true,
+    });
+    expect(comparisons).toEqual([
+      {
+        candidateSubtitleId: storedSubtitleId,
+        referenceSubtitleId: reference.subtitleId,
+      },
+    ]);
+  });
+
+  it('never stores more than three files per language for a title reopened again and again', async () => {
+    const {cachedUserConfig} = await readJobUser({
+      credentials: [makeAccountCredential('reopen-user')],
+    });
+    await storeReference();
+    await storeCandidates(
+      Array.from({length: 5}, () => makeOpensubtitlesHit()),
+    );
+
+    for (let listIndex = 0; listIndex < 3; listIndex += 1) {
+      await runListBackgroundWork({
+        candidates: await readVideoCandidates({
+          videoId: MOVIE_ID,
+          videoContext: makeVideoContext(),
+        }),
+        cachedUserConfig,
+      });
+    }
+
+    expect(opensubtitlesClient.downloadSubtitle).toHaveBeenCalledTimes(3);
+  });
+
+  it('counts a stored file of the language against the cap', async () => {
+    const {cachedUserConfig} = await readJobUser({
+      credentials: [makeAccountCredential('stored-cap-user')],
+    });
+    await storeReference();
+    const weakHit = makeOpensubtitlesHit({releaseNames: [WEAK_NAME]});
+    const storedCandidates = await storeCandidates([
+      weakHit,
+      ...Array.from({length: 4}, () => makeOpensubtitlesHit()),
+    ]);
+    await storeFile(findCandidate(storedCandidates, weakHit).subtitleId);
+
+    await runListBackgroundWork({
+      candidates: await readVideoCandidates({
+        videoId: MOVIE_ID,
+        videoContext: makeVideoContext(),
+      }),
+      cachedUserConfig,
+    });
+
+    expect(opensubtitlesClient.downloadSubtitle).toHaveBeenCalledTimes(2);
+  });
+
+  it('stops spending quota once the switch is turned off while the job runs', async () => {
+    const {userConfig, cachedUserConfig} = await readJobUser({
+      credentials: [makeAccountCredential('mid-job-user')],
+    });
+    await storeReference();
+    const candidates = await storeCandidates(
+      Array.from({length: 2}, () => makeOpensubtitlesHit()),
+    );
+    opensubtitlesClient.downloadSubtitle.mockImplementation(async () => {
+      await UserConfig.update(
+        {listImprovementSwitchStates: {}},
+        {where: {id: userConfig.id}, individualHooks: true},
+      );
+      return toDownload(MOVIE_SRT);
+    });
+
+    await runListBackgroundWork({candidates, cachedUserConfig});
+
+    expect(opensubtitlesClient.downloadSubtitle).toHaveBeenCalledTimes(1);
+  });
+
+  it('spends quota within the viewer share once the switch is on', async () => {
+    const {cachedUserConfig} = await readJobUser({
+      credentials: [makeAccountCredential('switched-on-user')],
+    });
+    const candidates = await storeQuotaCandidates();
+
+    await runListBackgroundWork({candidates, cachedUserConfig});
+
+    expect(opensubtitlesClient.readQuota).toHaveBeenCalled();
+    expect(opensubtitlesClient.downloadSubtitle).toHaveBeenCalledTimes(1);
+  });
+
+  it('spends no quota once the switch is turned off while the job waits', async () => {
+    const {userConfig, cachedUserConfig} = await readJobUser({
+      credentials: [makeAccountCredential('turned-off-user')],
+    });
+    const candidates = await storeQuotaCandidates();
+    const openGate = holdOpensubtitlesQueue();
+    try {
+      scheduleListBackgroundWork({
+        cachedUserConfig,
+        videoContext: makeVideoContext(),
+        candidates,
+        credentialsBySource: await readCredentialsBySource(cachedUserConfig),
+        subtitleSourceRegistry,
+      });
+      await UserConfig.update(
+        {listImprovementSwitchStates: {}},
+        {where: {id: userConfig.id}, individualHooks: true},
+      );
+    } finally {
+      openGate();
+    }
+    await drainBackgroundQueues();
+
+    expect(opensubtitlesClient.downloadSubtitle).not.toHaveBeenCalled();
+  });
+
+  it('spends quota once the switch is turned on while the job waits', async () => {
+    const {userConfig, cachedUserConfig} = await readJobUser({
+      listImprovementSwitchStates: {},
+      credentials: [makeAccountCredential('turned-on-user')],
+    });
+    const candidates = await storeQuotaCandidates();
+    const openGate = holdOpensubtitlesQueue();
+    try {
+      scheduleListBackgroundWork({
+        cachedUserConfig,
+        videoContext: makeVideoContext(),
+        candidates,
+        credentialsBySource: await readCredentialsBySource(cachedUserConfig),
+        subtitleSourceRegistry,
+      });
+      await UserConfig.update(
+        {listImprovementSwitchStates: OPENSUBTITLES_IMPROVEMENT_ON},
+        {where: {id: userConfig.id}, individualHooks: true},
+      );
+    } finally {
+      openGate();
+    }
+    await drainBackgroundQueues();
+
+    expect(opensubtitlesClient.downloadSubtitle).toHaveBeenCalledTimes(1);
   });
 });
 

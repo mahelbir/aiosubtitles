@@ -6,6 +6,10 @@ import {
 } from '@repo/shared/constants/credential.js';
 import {ErrorCode} from '@repo/shared/constants/error-code.js';
 import {SubtitleSource} from '@repo/shared/constants/subtitle-source.js';
+import {
+  LIST_IMPROVEMENT_SUBTITLE_SOURCES,
+  isListImprovementOn,
+} from '@repo/shared/lib/list-improvement-switch.js';
 import {getUuidField} from '@repo/shared/schemas/common.js';
 import {config} from '../../../config/index.js';
 import {UserConfig} from '../../../db/models/user-config.js';
@@ -243,6 +247,15 @@ function toMaskedUserConfig(request, userConfig) {
       SubtitleSource.values.map(subtitleSource => [
         subtitleSource,
         userConfig.subtitleSourceSwitchStates[subtitleSource] ?? true,
+      ]),
+    ),
+    listImprovementSwitchStates: Object.fromEntries(
+      LIST_IMPROVEMENT_SUBTITLE_SOURCES.map(subtitleSource => [
+        subtitleSource,
+        isListImprovementOn({
+          listImprovementSwitchStates: userConfig.listImprovementSwitchStates,
+          subtitleSource,
+        }),
       ]),
     ),
     credentials: userConfig.credentials.map(credential => ({

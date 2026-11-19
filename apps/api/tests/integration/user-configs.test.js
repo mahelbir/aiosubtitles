@@ -74,6 +74,16 @@ const SWITCH_STATES = makeSwitchStatesOnly([
   SubtitleSource.OPENSUBTITLES,
 ]);
 
+const LIST_IMPROVEMENT_DEFAULTS = {
+  [SubtitleSource.OPENSUBTITLES]: false,
+  [SubtitleSource.ALTYAZIDB]: true,
+  [SubtitleSource.THESUBTITLEDB]: true,
+  [SubtitleSource.SUBSOURCE]: true,
+  [SubtitleSource.SUBDL]: false,
+  [SubtitleSource.WYZIE]: true,
+  [SubtitleSource.STREMIO_COMMUNITY_SUBTITLES]: true,
+};
+
 const apiKeyCredential = apiKey => ({
   subtitleSource: SubtitleSource.THESUBTITLEDB,
   credentialKind: CredentialKind.API_KEY,
@@ -246,6 +256,7 @@ describe('reading a configuration', () => {
       languageCodes: ['tur'],
       subtitleLanguageLimit: userConfig.subtitleLanguageLimit,
       subtitleSourceSwitchStates: SWITCH_STATES,
+      listImprovementSwitchStates: LIST_IMPROVEMENT_DEFAULTS,
       credentials: expect.any(Array),
     });
     const masked = (credential, maskedSecret) => ({
@@ -294,6 +305,113 @@ describe('reading switch states', () => {
       ...makeSwitchStatesOnly(SubtitleSource.values),
       [SubtitleSource.THESUBTITLEDB]: false,
     });
+  });
+});
+
+describe('list improvement switch states', () => {
+  async function readListImprovement(userConfigId, sessionToken) {
+    const response = await callUserConfigApi({
+      method: 'GET',
+      url: `${USER_CONFIGS_URL}/${userConfigId}`,
+      sessionToken,
+    });
+    expect(response.statusCode).toBe(StatusCodes.OK);
+    return readEnvelope(response).data.listImprovementSwitchStates;
+  }
+
+  it('stores the states a new configuration sends and fills the rest from the defaults', async () => {
+    const response = await callUserConfigApi({
+      method: 'POST',
+      url: USER_CONFIGS_URL,
+      payload: {
+        password: PASSWORD,
+        languageCodes: ['tur'],
+        subtitleSourceSwitchStates: SWITCH_STATES,
+        listImprovementSwitchStates: {
+          [SubtitleSource.OPENSUBTITLES]: true,
+          [SubtitleSource.WYZIE]: false,
+        },
+        credentials: [],
+      },
+    });
+    expect(response.statusCode).toBe(StatusCodes.CREATED);
+    const {userConfigId, sessionToken} = readEnvelope(response).data;
+
+    await expect(
+      readListImprovement(userConfigId, sessionToken),
+    ).resolves.toEqual({
+      ...LIST_IMPROVEMENT_DEFAULTS,
+      [SubtitleSource.OPENSUBTITLES]: true,
+      [SubtitleSource.WYZIE]: false,
+    });
+    const stored = await UserConfig.findByPk(userConfigId, {
+      attributes: ['listImprovementSwitchStates'],
+    });
+    expect(stored.listImprovementSwitchStates).toEqual({
+      [SubtitleSource.OPENSUBTITLES]: true,
+      [SubtitleSource.WYZIE]: false,
+    });
+  });
+
+  it('reads the defaults for a configuration created without states', async () => {
+    const response = await callUserConfigApi({
+      method: 'POST',
+      url: USER_CONFIGS_URL,
+      payload: {
+        password: PASSWORD,
+        languageCodes: ['tur'],
+        subtitleSourceSwitchStates: SWITCH_STATES,
+        credentials: [],
+      },
+    });
+    expect(response.statusCode).toBe(StatusCodes.CREATED);
+    const {userConfigId, sessionToken} = readEnvelope(response).data;
+
+    await expect(
+      readListImprovement(userConfigId, sessionToken),
+    ).resolves.toEqual(LIST_IMPROVEMENT_DEFAULTS);
+  });
+
+  it('saves a patched state and keeps it on the next read', async () => {
+    const {userConfig} = await seedUserConfig();
+    const sessionToken = await openSession(userConfig.id);
+
+    const response = await callUserConfigApi({
+      method: 'PATCH',
+      url: `${USER_CONFIGS_URL}/${userConfig.id}`,
+      payload: {
+        listImprovementSwitchStates: {[SubtitleSource.SUBDL]: true},
+      },
+      sessionToken,
+    });
+
+    expect(response.statusCode).toBe(StatusCodes.OK);
+    expect(readEnvelope(response).data.listImprovementSwitchStates).toEqual({
+      ...LIST_IMPROVEMENT_DEFAULTS,
+      [SubtitleSource.SUBDL]: true,
+    });
+    await expect(
+      readListImprovement(userConfig.id, sessionToken),
+    ).resolves.toEqual({
+      ...LIST_IMPROVEMENT_DEFAULTS,
+      [SubtitleSource.SUBDL]: true,
+    });
+  });
+
+  it('refuses a state for a source that carries no switch', async () => {
+    const {userConfig} = await seedUserConfig();
+    const sessionToken = await openSession(userConfig.id);
+
+    const response = await callUserConfigApi({
+      method: 'PATCH',
+      url: `${USER_CONFIGS_URL}/${userConfig.id}`,
+      payload: {
+        listImprovementSwitchStates: {[SubtitleSource.JIMAKU]: true},
+      },
+      sessionToken,
+    });
+
+    expect(response.statusCode).toBe(StatusCodes.UNPROCESSABLE_ENTITY);
   });
 });
 

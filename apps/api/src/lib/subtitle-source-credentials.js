@@ -3,6 +3,11 @@ import {
   CredentialStatus,
 } from '@repo/shared/constants/credential.js';
 import {SubtitleSource} from '@repo/shared/constants/subtitle-source.js';
+import {listDownloadCredentialKinds} from '@repo/shared/lib/download-credential-kinds.js';
+import {
+  hasListImprovementSwitch,
+  isListImprovementOn,
+} from '@repo/shared/lib/list-improvement-switch.js';
 import {openCredentialSecret} from './credential-secret.js';
 
 const SEARCH_CREDENTIAL_KIND_TIERS = Object.freeze({
@@ -10,10 +15,6 @@ const SEARCH_CREDENTIAL_KIND_TIERS = Object.freeze({
     [CredentialKind.API_KEY],
     [CredentialKind.ACCOUNT],
   ],
-});
-
-const DOWNLOAD_CREDENTIAL_KIND_TIERS = Object.freeze({
-  [SubtitleSource.OPENSUBTITLES]: [[CredentialKind.ACCOUNT]],
 });
 
 function openSecret({userConfigId, subtitleSource, sealedSecret}) {
@@ -50,12 +51,33 @@ export async function readDownloadCredentials({
     ...readSourceCredentials({
       cachedUserConfig,
       subtitleSource: client.subtitleSource,
-      credentialKindTiers: DOWNLOAD_CREDENTIAL_KIND_TIERS[
-        client.subtitleSource
-      ] ?? [client.credentialKinds],
+      credentialKindTiers: [
+        client.credentialKinds.filter(credentialKind =>
+          listDownloadCredentialKinds(client.subtitleSource).includes(
+            credentialKind,
+          ),
+        ),
+      ],
     }),
     canUseWithoutCredential,
   });
+}
+
+export function applyListImprovementSwitch({
+  cachedUserConfig,
+  subtitleSource,
+  credentials,
+}) {
+  const canUseUserCredential =
+    !hasListImprovementSwitch(subtitleSource) ||
+    isListImprovementOn({
+      listImprovementSwitchStates:
+        cachedUserConfig?.listImprovementSwitchStates,
+      subtitleSource,
+    });
+  return canUseUserCredential
+    ? credentials
+    : credentials.filter(credential => credential === null);
 }
 
 function readSourceCredentials({

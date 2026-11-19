@@ -3,18 +3,54 @@
 import {useId} from 'react';
 import {useSelector} from '@tanstack/react-form';
 import {ExternalLinkIcon} from 'lucide-react';
+import {
+  hasListImprovementSwitch,
+  isListImprovementCredential,
+  isListImprovementOn,
+} from '@repo/shared/lib/list-improvement-switch.js';
 import {isSubtitleSourceSwitchLocked} from '@repo/shared/lib/subtitle-source-switch.js';
 import {LinkButton} from '@/components/common/link-button';
-import {Field, FieldGroup, FieldLabel} from '@/components/ui/field';
+import {
+  Field,
+  FieldContent,
+  FieldDescription,
+  FieldGroup,
+  FieldLabel,
+} from '@/components/ui/field';
 import {Switch} from '@/components/ui/switch';
 import {useFormContext} from '@/lib/form-context';
 import {SUBTITLE_SOURCE_DESCRIPTIONS} from '../../config/subtitle-source-descriptions';
+import {isCredentialEntered} from '../../lib/credential-form-values';
 import {CheckCredentialsButton} from './check-credentials-button';
 import {CredentialList} from './credential-list';
 
+function SwitchField({label, description, ...switchProps}) {
+  const switchId = useId();
+  const descriptionId = useId();
+
+  return (
+    <Field orientation="horizontal">
+      <Switch
+        {...switchProps}
+        id={switchId}
+        nativeButton
+        render={<button type="button" />}
+        aria-describedby={description ? descriptionId : undefined}
+      />
+      {description ? (
+        <FieldContent>
+          <FieldLabel htmlFor={switchId}>{label}</FieldLabel>
+          <FieldDescription id={descriptionId}>{description}</FieldDescription>
+        </FieldContent>
+      ) : (
+        <FieldLabel htmlFor={switchId}>{label}</FieldLabel>
+      )}
+    </Field>
+  );
+}
+
 function SourceSwitch({subtitleSource, label}) {
   const form = useFormContext();
-  const switchId = useId();
   const isOn = useSelector(
     form.store,
     state => state.values.subtitleSourceSwitchStates[subtitleSource] ?? true,
@@ -28,22 +64,53 @@ function SourceSwitch({subtitleSource, label}) {
   );
 
   return (
-    <Field orientation="horizontal">
-      <Switch
-        id={switchId}
-        nativeButton
-        render={<button type="button" />}
-        checked={isLocked || isOn}
-        disabled={isLocked}
-        onCheckedChange={isChecked =>
-          form.setFieldValue('subtitleSourceSwitchStates', switchStates => ({
-            ...switchStates,
-            [subtitleSource]: isChecked,
-          }))
-        }
-      />
-      <FieldLabel htmlFor={switchId}>{label}</FieldLabel>
-    </Field>
+    <SwitchField
+      label={label}
+      checked={isLocked || isOn}
+      disabled={isLocked}
+      onCheckedChange={isChecked =>
+        form.setFieldValue('subtitleSourceSwitchStates', switchStates => ({
+          ...switchStates,
+          [subtitleSource]: isChecked,
+        }))
+      }
+    />
+  );
+}
+
+function ListImprovementSwitch({subtitleSource, description}) {
+  const form = useFormContext();
+  const hasEnteredCredential = useSelector(form.store, state =>
+    state.values.credentials.some(
+      credential =>
+        credential.subtitleSource === subtitleSource &&
+        isListImprovementCredential(credential) &&
+        isCredentialEntered(credential),
+    ),
+  );
+  const isOn = useSelector(form.store, state =>
+    isListImprovementOn({
+      listImprovementSwitchStates: state.values.listImprovementSwitchStates,
+      subtitleSource,
+    }),
+  );
+
+  if (!hasEnteredCredential) {
+    return null;
+  }
+
+  return (
+    <SwitchField
+      label="Improve the list"
+      description={description}
+      checked={isOn}
+      onCheckedChange={isChecked =>
+        form.setFieldValue('listImprovementSwitchStates', switchStates => ({
+          ...switchStates,
+          [subtitleSource]: isChecked,
+        }))
+      }
+    />
   );
 }
 
@@ -90,6 +157,12 @@ export function SourcePanel({subtitleSourceOption}) {
           label={description?.credentialListLabels?.[credentialKind]}
         />
       ))}
+      {hasListImprovementSwitch(subtitleSource) && (
+        <ListImprovementSwitch
+          subtitleSource={subtitleSource}
+          description={description?.listImprovementText}
+        />
+      )}
       <CheckCredentialsButton subtitleSource={subtitleSource} />
     </FieldGroup>
   );

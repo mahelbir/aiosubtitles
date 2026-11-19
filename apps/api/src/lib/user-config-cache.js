@@ -18,6 +18,7 @@ function toCachedUserConfig(userConfig) {
     languageCodes: userConfig.languageCodes,
     subtitleLanguageLimit: userConfig.subtitleLanguageLimit,
     subtitleSourceSwitchStates: userConfig.subtitleSourceSwitchStates,
+    listImprovementSwitchStates: userConfig.listImprovementSwitchStates,
     credentials: userConfig.credentials.map(credential => ({
       credentialId: credential.id,
       subtitleSource: credential.subtitleSource,

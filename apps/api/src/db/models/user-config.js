@@ -34,6 +34,11 @@ UserConfig.init(
       type: DataTypes.JSONB,
       allowNull: false,
     },
+    listImprovementSwitchStates: {
+      type: DataTypes.JSONB,
+      allowNull: false,
+      defaultValue: {},
+    },
   },
   {
     sequelize,

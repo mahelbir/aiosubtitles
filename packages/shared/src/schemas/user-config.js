@@ -17,6 +17,10 @@ import {
   USER_CONFIG_PASSWORD_LENGTH_MIN,
 } from '../constants/user-config.js';
 import {readAccessToken} from '../lib/access-token.js';
+import {
+  LIST_IMPROVEMENT_SUBTITLE_SOURCES,
+  omitDefaultListImprovementStates,
+} from '../lib/list-improvement-switch.js';
 import {toPatchSchema} from '../lib/schema.js';
 import {
   baseUrlField,
@@ -92,6 +96,15 @@ export const subtitleSourceSwitchStatesField = z.partialRecord(
   subtitleSourceField,
   z.boolean(),
 );
+
+const listImprovementSubtitleSourceField = z.enum(
+  LIST_IMPROVEMENT_SUBTITLE_SOURCES,
+);
+
+export const listImprovementSwitchStatesField = z
+  .partialRecord(listImprovementSubtitleSourceField, z.boolean())
+  .overwrite(omitDefaultListImprovementStates)
+  .default({});
 
 function getCredentialSecretParts(credentialKind) {
   return CredentialKind.item(credentialKind).credentialSecretParts;
@@ -309,6 +322,7 @@ const userConfigPreferenceFields = {
   languageCodes: languageCodesField,
   subtitleLanguageLimit: subtitleLanguageLimitField,
   subtitleSourceSwitchStates: subtitleSourceSwitchStatesField,
+  listImprovementSwitchStates: listImprovementSwitchStatesField,
 };
 
 export const createUserConfigSchema = z.strictObject({
@@ -363,6 +377,10 @@ export const userConfigSchema = z.object({
   languageCodes: languageCodesField,
   subtitleLanguageLimit: subtitleLanguageLimitField.unwrap(),
   subtitleSourceSwitchStates: z.record(subtitleSourceField, z.boolean()),
+  listImprovementSwitchStates: z.record(
+    listImprovementSubtitleSourceField,
+    z.boolean(),
+  ),
   credentials: z.array(maskedCredentialSchema),
 });
 

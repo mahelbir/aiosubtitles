@@ -1,7 +1,10 @@
 import {pick} from 'es-toolkit';
 import {StatusCodes} from 'http-status-codes';
 import {describe, expect, it, vi} from 'vitest';
-import {CredentialKind} from '@repo/shared/constants/credential.js';
+import {
+  CredentialKind,
+  CredentialStatus,
+} from '@repo/shared/constants/credential.js';
 import {SubtitleSource} from '@repo/shared/constants/subtitle-source.js';
 import {computeUrlCode} from '@repo/subtitle-core/stremio-row/url-code.js';
 import {parseReleaseName} from '@repo/subtitle-core/release-name/parse-release-name.js';
@@ -64,8 +67,22 @@ const wyzieFixtureClient = createFixtureSubtitleSourceClient({
     'canSearchWithoutCredential',
     'canDownloadWithoutCredential',
   ]),
-  downloadSubtitle: vi.fn(),
+  downloadSubtitle: vi.fn(async () => ({
+    fileBytes: new TextEncoder().encode(FILE_TEXT),
+    fileNameHint: null,
+    extractedEntryPath: null,
+  })),
+  readQuota: vi.fn(),
 });
+
+function setWyzieQuota(quotaRemainingCount) {
+  wyzieFixtureClient.readQuota.mockReset().mockResolvedValue({
+    credentialStatus: CredentialStatus.VALID,
+    quotaRemainingCount,
+    quotaAllowedCount: 20,
+    quotaResetAt: null,
+  });
+}
 
 function makeWyzieCredentialValues(apiKey) {
   return {
@@ -75,9 +92,10 @@ function makeWyzieCredentialValues(apiKey) {
   };
 }
 
-async function readKeyedUserConfig(apiKey) {
+async function readKeyedUserConfig(apiKey, listImprovementSwitchStates = {}) {
   const {userConfig} = await createUserConfig({
     credentials: [makeWyzieCredentialValues(apiKey)],
+    listImprovementSwitchStates,
   });
   return userConfigCache.get(userConfig.id);
 }
@@ -117,8 +135,12 @@ async function createFakeWyzieSite() {
 }
 
 describe('Wyzie background downloads', () => {
-  it("never spends a user's Wyzie key from background work", async () => {
-    const cachedUserConfig = await readKeyedUserConfig('wyzie-background-key');
+  async function runWyzieBackgroundWork(listImprovementSwitchStates) {
+    wyzieFixtureClient.downloadSubtitle.mockClear();
+    const cachedUserConfig = await readKeyedUserConfig(
+      'wyzie-background-key',
+      listImprovementSwitchStates,
+    );
     await persistSearchHits({
       videoId: VIDEO_ID,
       searchHits: wyzieMapping.toSearchHits(
@@ -140,6 +162,7 @@ describe('Wyzie background downloads', () => {
     const credentials = await readDownloadCredentials({
       cachedUserConfig,
       client: wyzieFixtureClient,
+      isBackground: true,
     });
     const subtitleSourceRegistry = createSubtitleSourceRegistry([
       wyzieFixtureClient,
@@ -163,7 +186,35 @@ describe('Wyzie background downloads', () => {
       subtitleSourceRegistry,
     });
     await drainBackgroundQueues();
+    return credentials;
+  }
 
+  it("never spends a user's Wyzie key from background work once the switch is off", async () => {
+    setWyzieQuota(20);
+
+    await runWyzieBackgroundWork({[SubtitleSource.WYZIE]: false});
+
+    expect(wyzieFixtureClient.downloadSubtitle).not.toHaveBeenCalled();
+  });
+
+  it("downloads with the user's Wyzie key while the switch is on by default", async () => {
+    setWyzieQuota(20);
+
+    const [credential] = await runWyzieBackgroundWork({});
+
+    expect(wyzieFixtureClient.downloadSubtitle).toHaveBeenCalled();
+    for (const [, downloadCredential] of wyzieFixtureClient.downloadSubtitle
+      .mock.calls) {
+      expect(downloadCredential).toEqual(credential);
+    }
+  });
+
+  it('keeps the viewer share of the Wyzie daily allowance', async () => {
+    setWyzieQuota(10);
+
+    await runWyzieBackgroundWork({});
+
+    expect(wyzieFixtureClient.readQuota).toHaveBeenCalled();
     expect(wyzieFixtureClient.downloadSubtitle).not.toHaveBeenCalled();
   });
 });

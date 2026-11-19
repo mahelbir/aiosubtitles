@@ -1,15 +1,19 @@
-import {delay, groupBy, isNil, sumBy} from 'es-toolkit';
+import {delay, isNil, partition, sumBy} from 'es-toolkit';
 import {CredentialStatus} from '@repo/shared/constants/credential.js';
 import {SubtitleSource} from '@repo/shared/constants/subtitle-source.js';
+import {isListImprovementOn} from '@repo/shared/lib/list-improvement-switch.js';
 import {config} from '../../config/index.js';
 import {createLogger} from '../logger.js';
+import {userConfigCache} from '../user-config-cache.js';
 import {
   hasFreeDownloadPath,
   hasVerifiedHashMatch,
 } from '../subtitle-store/read-video-candidates.js';
 import {
   downloadCandidate,
+  isCandidateStored,
   isDownloadStored,
+  limitPerLanguage,
   orderByNameScore,
 } from './background-downloads.js';
 
@@ -31,6 +35,37 @@ export function isQuotaSpendAllowed({quotaChecks, viewerShare}) {
     sumBy(quotaChecks, ({quotaRemainingCount}) => quotaRemainingCount) >
     viewerShare * sumBy(quotaChecks, ({quotaAllowedCount}) => quotaAllowedCount)
   );
+}
+
+export function createViewerShareCheck({client, credentials, signal}) {
+  return async () =>
+    !signal?.aborted &&
+    isQuotaSpendAllowed({
+      quotaChecks: await readQuotaChecks(client, credentials),
+      viewerShare: config.listImprovementViewerShare,
+    });
+}
+
+export function createListImprovementCheck({userConfigId, subtitleSource}) {
+  return async () => {
+    const currentUserConfig = await userConfigCache.get(userConfigId);
+    return isListImprovementOn({
+      listImprovementSwitchStates:
+        currentUserConfig?.listImprovementSwitchStates,
+      subtitleSource,
+    });
+  };
+}
+
+export function combineSpendChecks(spendChecks) {
+  return async () => {
+    for (const spendCheck of spendChecks) {
+      if (!(await spendCheck())) {
+        return false;
+      }
+    }
+    return true;
+  };
 }
 
 export function listVideoReferences({candidates, videoContext}) {
@@ -61,12 +96,13 @@ export async function spendOpensubtitlesQuota({
     cachedUserConfig,
     subtitleSourceRegistry,
     signal,
-    canSpendCredential: async () =>
-      !signal?.aborted &&
-      isQuotaSpendAllowed({
-        quotaChecks: await readQuotaChecks(client, accounts),
-        viewerShare: config.opensubtitlesQuotaViewerShare,
+    canSpendCredential: combineSpendChecks([
+      createListImprovementCheck({
+        userConfigId: cachedUserConfig.userConfigId,
+        subtitleSource: SubtitleSource.OPENSUBTITLES,
       }),
+      createViewerShareCheck({client, credentials: accounts, signal}),
+    ]),
   };
   const downloadedIds = [];
   if (!references.some(hasStoredFile)) {
@@ -89,23 +125,19 @@ export async function spendOpensubtitlesQuota({
     downloadedIds.push(reference.subtitleId);
   }
   const referenceIds = new Set(references.map(({subtitleId}) => subtitleId));
-  const languageCandidates = groupBy(
+  const [storedCandidates, unstoredCandidates] = partition(
     candidates.filter(
       candidate =>
         candidate.subtitleSource === SubtitleSource.OPENSUBTITLES &&
         candidate.archiveEntryPath === '' &&
         !referenceIds.has(candidate.subtitleId),
     ),
-    ({languageCode}) => languageCode,
+    isCandidateStored,
   );
-  const quotaCandidates = Object.values(languageCandidates)
-    .flatMap(sameLanguageCandidates =>
-      orderByNameScore({
-        candidates: sameLanguageCandidates,
-        videoContext,
-      }).slice(0, config.opensubtitlesQuotaCandidateMax),
-    )
-    .filter(candidate => !hasFreeDownloadPath(candidate));
+  const quotaCandidates = limitPerLanguage(
+    orderByNameScore({candidates: unstoredCandidates, videoContext}),
+    storedCandidates,
+  ).filter(candidate => !hasFreeDownloadPath(candidate));
   for (const candidate of quotaCandidates) {
     const {isStored, isStopped} = await downloadWithinWindows({
       candidate,
@@ -155,10 +187,10 @@ async function downloadWithinWindows({signal, ...downloadOptions}) {
   return STOPPED_DOWNLOAD;
 }
 
-async function readQuotaChecks(client, accounts) {
+async function readQuotaChecks(client, credentials) {
   const quotaChecks = await Promise.all(
-    accounts.map(account =>
-      client.readQuota(account).catch(error => {
+    credentials.map(credential =>
+      client.readQuota(credential).catch(error => {
         logger.warn(
           {subtitleSource: client.subtitleSource, errorName: error?.name},
           'Quota could not be read.',

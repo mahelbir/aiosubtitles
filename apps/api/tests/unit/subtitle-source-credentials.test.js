@@ -7,6 +7,7 @@ import {
 import {SubtitleSource} from '@repo/shared/constants/subtitle-source.js';
 import {sealCredentialSecret} from '../../src/lib/credential-secret.js';
 import {
+  applyListImprovementSwitch,
   readDownloadCredentials,
   toCandidateCredentials,
 } from '../../src/lib/subtitle-source-credentials.js';
@@ -130,6 +131,106 @@ describe('readDownloadCredentials', () => {
           canUseSharedCredential: false,
           hasServerPath: false,
         }),
+        isBackground: true,
+      }),
+    ).resolves.toEqual([expect.objectContaining({apiKey: USER_KEY})]);
+  });
+});
+
+describe('applyListImprovementSwitch', () => {
+  function makeSwitchedUserConfig(subtitleSource, listImprovementSwitchStates) {
+    return {
+      userConfigId,
+      listImprovementSwitchStates,
+      credentials: [
+        {
+          credentialId: crypto.randomUUID(),
+          subtitleSource,
+          credentialKind: CredentialKind.API_KEY,
+          credentialStatus: CredentialStatus.VALID,
+          credentialPosition: 0,
+          sealedSecret: sealCredentialSecret({
+            userConfigId,
+            subtitleSource,
+            credentialSecret: {apiKey: USER_KEY},
+          }),
+        },
+      ],
+    };
+  }
+
+  const userCredential = {credentialId: 'fixture-credential', apiKey: USER_KEY};
+
+  function applySwitch(subtitleSource, listImprovementSwitchStates) {
+    return applyListImprovementSwitch({
+      cachedUserConfig: {userConfigId, listImprovementSwitchStates},
+      subtitleSource,
+      credentials: [userCredential],
+    });
+  }
+
+  it.each([SubtitleSource.SUBSOURCE, SubtitleSource.WYZIE])(
+    "keeps the user's key for %s while its switch is on by default",
+    subtitleSource => {
+      expect(applySwitch(subtitleSource, {})).toEqual([userCredential]);
+    },
+  );
+
+  it.each([SubtitleSource.SUBSOURCE, SubtitleSource.ALTYAZIDB])(
+    "drops the user's key for %s once its switch is off",
+    subtitleSource => {
+      expect(applySwitch(subtitleSource, {[subtitleSource]: false})).toEqual(
+        [],
+      );
+    },
+  );
+
+  it("drops the user's SubDL key while its switch is off by default", () => {
+    expect(applySwitch(SubtitleSource.SUBDL, {})).toEqual([]);
+  });
+
+  it("keeps the user's SubDL key once its switch is turned on", () => {
+    expect(
+      applySwitch(SubtitleSource.SUBDL, {[SubtitleSource.SUBDL]: true}),
+    ).toEqual([userCredential]);
+  });
+
+  it("drops the user's OpenSubtitles account while its switch is off by default", () => {
+    expect(applySwitch(SubtitleSource.OPENSUBTITLES, {})).toEqual([]);
+  });
+
+  it('keeps a keyless path while the switch is off', () => {
+    expect(
+      applyListImprovementSwitch({
+        cachedUserConfig: {
+          userConfigId,
+          listImprovementSwitchStates: {
+            [SubtitleSource.SUBSOURCE]: false,
+          },
+        },
+        subtitleSource: SubtitleSource.SUBSOURCE,
+        credentials: [null, userCredential],
+      }),
+    ).toEqual([null]);
+  });
+
+  it("keeps the user's key for a source without a switch", () => {
+    expect(
+      applySwitch(SubtitleSource.JIMAKU, {[SubtitleSource.JIMAKU]: false}),
+    ).toEqual([userCredential]);
+  });
+
+  it("leaves the background credential read to the job, keeping the user's key with the switch off", async () => {
+    await expect(
+      readDownloadCredentials({
+        cachedUserConfig: makeSwitchedUserConfig(SubtitleSource.SUBSOURCE, {
+          [SubtitleSource.SUBSOURCE]: false,
+        }),
+        client: {
+          subtitleSource: SubtitleSource.SUBSOURCE,
+          credentialKinds: [CredentialKind.API_KEY],
+          canDownloadWithoutCredential: () => false,
+        },
         isBackground: true,
       }),
     ).resolves.toEqual([expect.objectContaining({apiKey: USER_KEY})]);

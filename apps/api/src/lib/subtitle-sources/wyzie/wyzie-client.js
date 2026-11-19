@@ -3,6 +3,7 @@ import {SubtitleSource} from '@repo/shared/constants/subtitle-source.js';
 import {deriveSecretKey, fingerprintSecret} from '../../crypto.js';
 import {createLogger} from '../../logger.js';
 import {MemoryStore} from '../../memory-store.js';
+import {createCredentialQuotaReader} from '../credential-quota-store.js';
 import {SubtitleSourceBudgetScope} from '../subtitle-source-contract.js';
 import {
   SourceCredentialError,
@@ -27,8 +28,22 @@ function toKeyPlanKey(credential) {
 export function createWyzieClient({
   requestSubtitleSource,
   availableCodenamesStore = new MemoryStore({ttl: () => KEY_PLAN_TTL}),
+  quotaStore,
   logger = createLogger('wyzie'),
 }) {
+  const {readQuota, dropQuota} = createCredentialQuotaReader({
+    subtitleSource: SubtitleSource.WYZIE,
+    quotaStore,
+    logger,
+    fetchQuota: async (credential, signal) =>
+      wyzieMapping.toQuota(
+        await requestSubtitleSource({
+          ...wyzieMapping.buildQuotaRequest(credential),
+          signal,
+        }),
+      ),
+  });
+
   async function fetchAvailableCodenames(credential, signal) {
     try {
       return wyzieMapping.toKeyScope(
@@ -145,11 +160,15 @@ export function createWyzieClient({
         subtitleRef,
         {credential},
       );
-      return wyzieMapping.toDownload(
+      const download = wyzieMapping.toDownload(
         await requestFile(downloadUrl, credential, signal),
         credential,
         {languageCode: wyzieMapping.readRecipeLanguageCode(subtitleRef)},
       );
+      if (credential) {
+        await dropQuota(credential);
+      }
+      return download;
     },
     async checkCredential(credential, {signal} = {}) {
       return wyzieMapping.toCredentialCheck(
@@ -160,14 +179,7 @@ export function createWyzieClient({
         credential,
       );
     },
-    async readQuota(credential, {signal} = {}) {
-      return wyzieMapping.toQuota(
-        await requestSubtitleSource({
-          ...wyzieMapping.buildQuotaRequest(credential),
-          signal,
-        }),
-      );
-    },
+    readQuota,
   };
 }
 

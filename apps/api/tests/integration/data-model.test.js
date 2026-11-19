@@ -10,6 +10,7 @@ import {UserConfigCredential} from '../../src/db/models/user-config-credential.j
 import {VideoVariant} from '../../src/db/models/video-variant.js';
 import {createSubtitle, createUserConfig} from '../helpers/factories.js';
 import {
+  insertLegacyRow,
   roundTripMigration,
   withMigrationRolledBack,
 } from '../helpers/migrations.js';
@@ -243,6 +244,55 @@ describe('a reference comparison', () => {
     expect(stored.timingOffsetMs).toBeNull();
     expect(stored.timingFpsRatio).toBeNull();
     expect(stored.matchedCueShare).toBe(0.12);
+  });
+});
+
+describe('the list improvement switch migration', () => {
+  const MIGRATION_NAME = 'add-list-improvement-switch-states';
+
+  async function hasSwitchColumn() {
+    const columns = await sequelize
+      .getQueryInterface()
+      .describeTable('user_configs');
+    return 'list_improvement_switch_states' in columns;
+  }
+
+  it('drops the column on the way down and adds it again on the way up', async () => {
+    await withMigrationRolledBack(MIGRATION_NAME, async () => {
+      expect(await hasSwitchColumn()).toBe(false);
+    });
+
+    expect(await hasSwitchColumn()).toBe(true);
+  });
+
+  it('gives a configuration stored before it no states, leaving it to the defaults', async () => {
+    let userConfigId;
+    await withMigrationRolledBack(MIGRATION_NAME, async () => {
+      userConfigId = await insertLegacyRow('user_configs', {
+        id: crypto.randomUUID(),
+        passwordHash: 'legacy-password-hash',
+        languageCodes: ['tur'],
+        subtitleSourceSwitchStates: {},
+      });
+    });
+
+    const userConfig = await UserConfig.findByPk(userConfigId, {
+      attributes: ['listImprovementSwitchStates'],
+    });
+    expect(userConfig.listImprovementSwitchStates).toEqual({});
+  });
+
+  it('refuses to roll back while a configuration stores a state', async () => {
+    await createUserConfig({
+      listImprovementSwitchStates: {[SubtitleSource.OPENSUBTITLES]: true},
+    });
+
+    await expect(
+      withMigrationRolledBack(MIGRATION_NAME, async () => {}),
+    ).rejects.toThrow(
+      'Refusing to roll back: 1 row(s) hold a list improvement switch state.',
+    );
+    expect(await hasSwitchColumn()).toBe(true);
   });
 });
 

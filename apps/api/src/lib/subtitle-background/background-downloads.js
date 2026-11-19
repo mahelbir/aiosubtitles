@@ -4,6 +4,7 @@ import {
   SignalState,
 } from '@repo/subtitle-core/constants/subtitle-core-enums.js';
 import {extractCandidateSignals} from '@repo/subtitle-core/scoring/extract-signals.js';
+import {config} from '../../config/index.js';
 import {downloadSubtitleFile} from '../subtitle-store/download-subtitle-file.js';
 import {scoreVideoCandidate} from '../subtitle-store/score-video-candidate.js';
 
@@ -31,6 +32,25 @@ export function orderByNameScore({candidates, videoContext}) {
     ['totalScore', 'hasCueShapeMatch'],
     ['desc', 'desc'],
   ).map(({candidate}) => candidate);
+}
+
+export function isCandidateStored({fileFacts}) {
+  return fileFacts !== null;
+}
+
+export function limitPerLanguage(orderedCandidates, storedCandidates = []) {
+  const languageCounts = new Map();
+  for (const {languageCode} of storedCandidates) {
+    languageCounts.set(
+      languageCode,
+      (languageCounts.get(languageCode) ?? 0) + 1,
+    );
+  }
+  return orderedCandidates.filter(({languageCode}) => {
+    const languageCount = languageCounts.get(languageCode) ?? 0;
+    languageCounts.set(languageCode, languageCount + 1);
+    return languageCount < config.listImprovementCandidateMax;
+  });
 }
 
 export function downloadCandidate({
