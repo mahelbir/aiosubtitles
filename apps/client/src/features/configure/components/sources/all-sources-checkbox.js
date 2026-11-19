@@ -11,26 +11,22 @@ import {Checkbox} from '@/components/ui/checkbox';
 import {Field, FieldLabel} from '@/components/ui/field';
 import {useFormContext} from '@/lib/form-context';
 
-export function AllSourcesCheckbox({subtitleSources, lockedSubtitleSources}) {
+export function AllSourcesCheckbox({subtitleSources}) {
   const form = useFormContext();
   const checkboxId = useId();
   const switchStates = useSelector(
     form.store,
     state => state.values.subtitleSourceSwitchStates,
   );
-  const switches = {switchStates, lockedSubtitleSources, subtitleSources};
+  const switches = {switchStates, subtitleSources};
   const globalSwitchState = readGlobalSwitchState(switches);
-  const isEverySourceLocked = subtitleSources.every(subtitleSource =>
-    lockedSubtitleSources.includes(subtitleSource),
-  );
 
   return (
-    <Field orientation="horizontal" data-disabled={isEverySourceLocked}>
+    <Field orientation="horizontal">
       <Checkbox
         id={checkboxId}
         checked={globalSwitchState === GlobalSwitchState.ON}
         indeterminate={globalSwitchState === GlobalSwitchState.MIXED}
-        disabled={isEverySourceLocked}
         onCheckedChange={() =>
           form.setFieldValue(
             'subtitleSourceSwitchStates',

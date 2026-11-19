@@ -1,18 +1,15 @@
 'use client';
 
-import {useSelector} from '@tanstack/react-form';
 import {sortBy, uniq} from 'es-toolkit';
 import {CredentialStatus} from '@repo/shared/constants/credential.js';
 import {
   CredentialRequirement,
   SubtitleSource,
 } from '@repo/shared/constants/subtitle-source.js';
-import {isSubtitleSourceSwitchLocked} from '@repo/shared/lib/subtitle-source-switch.js';
 import {PageSection} from '@/components/common/page-section';
 import {QueryBoundary} from '@/components/common/query-boundary';
 import {TabMenuCard} from '@/components/common/tab-menu';
 import {useTabQuery} from '@/hooks/use-tab-query';
-import {useFormContext} from '@/lib/form-context';
 import {useSubtitleSources} from '../../api';
 import {SUBTITLE_SOURCE_TAB_URL_KEY} from '../../config/configure-sections';
 import {useStoredCredentials} from '../../hooks/use-stored-credentials';
@@ -50,11 +47,6 @@ function sortSubtitleSourceOptions(subtitleSourceOptions) {
 }
 
 function SourceTabs({subtitleSourceOptions}) {
-  const form = useFormContext();
-  const credentials = useSelector(
-    form.store,
-    state => state.values.credentials,
-  );
   const storedCredentials = useStoredCredentials();
   const items = subtitleSourceOptions.map(({subtitleSource, label}) => ({
     value: subtitleSource,
@@ -66,13 +58,6 @@ function SourceTabs({subtitleSourceOptions}) {
   const subtitleSources = subtitleSourceOptions.map(
     ({subtitleSource}) => subtitleSource,
   );
-  const lockedSubtitleSources = subtitleSources.filter(subtitleSource =>
-    isSubtitleSourceSwitchLocked({
-      credentials: credentials.filter(
-        credential => credential.subtitleSource === subtitleSource,
-      ),
-    }),
-  );
   const invalidSubtitleSources = uniq(
     storedCredentials
       .filter(
@@ -83,10 +68,7 @@ function SourceTabs({subtitleSourceOptions}) {
 
   return (
     <>
-      <AllSourcesCheckbox
-        subtitleSources={subtitleSources}
-        lockedSubtitleSources={lockedSubtitleSources}
-      />
+      <AllSourcesCheckbox subtitleSources={subtitleSources} />
       <TabMenuCard
         items={items}
         value={subtitleSourceTab}

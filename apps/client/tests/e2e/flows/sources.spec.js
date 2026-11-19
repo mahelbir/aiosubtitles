@@ -429,7 +429,7 @@ test.describe('sources', () => {
     }
   });
 
-  test('a saved TheSubtitleDB key locks its switch on', async ({
+  test('a saved TheSubtitleDB key keeps its switch usable, so the source saves off', async ({
     page,
     userConfigs,
   }) => {
@@ -439,9 +439,6 @@ test.describe('sources', () => {
     });
     await openSignedIn(page, userConfig);
     const panel = await openTabMenuItem(page, THESUBTITLEDB);
-    const sourceSwitch = getSourceSwitch(panel, THESUBTITLEDB);
-    await expect(sourceSwitch).toBeEnabled();
-
     await panel.getByRole('button', {name: ADD_API_KEY, exact: true}).click();
     const apiKeyField = panel.getByLabel(API_KEY, {exact: true});
     await expect(apiKeyField).toHaveAttribute('type', 'password');
@@ -452,41 +449,23 @@ test.describe('sources', () => {
     const reloadedPanel = await openTabMenuItem(page, THESUBTITLEDB);
     const reloadedSwitch = getSourceSwitch(reloadedPanel, THESUBTITLEDB);
     await expect(reloadedSwitch).toBeChecked();
-    await expect(reloadedSwitch).toBeDisabled();
+    await expect(reloadedSwitch).toBeEnabled();
     await expect(
       reloadedPanel.getByText(CredentialStatus.label(CredentialStatus.VALID), {
         exact: true,
       }),
     ).toBeVisible();
-  });
 
-  test('a row added and removed again leaves a switched-off source off', async ({
-    page,
-    userConfigs,
-  }) => {
-    const userConfig = await userConfigs.create({
-      password: PASSWORD,
-      languageCodes: STORED_LANGUAGE_CODES,
-    });
-    await openSignedIn(page, userConfig);
-    const panel = await openTabMenuItem(page, THESUBTITLEDB);
-    const sourceSwitch = getSourceSwitch(panel, THESUBTITLEDB);
-    await sourceSwitch.click();
-    await expect(sourceSwitch).not.toBeChecked();
+    await reloadedSwitch.click();
 
-    await panel.getByRole('button', {name: ADD_API_KEY, exact: true}).click();
-    await expect(sourceSwitch).toBeChecked();
-    await panel.getByRole('button', {name: 'Remove', exact: true}).click();
-
-    await expect(sourceSwitch).not.toBeChecked();
-    await expect(sourceSwitch).toBeEnabled();
+    await expect(reloadedSwitch).not.toBeChecked();
     const patch = await saveAndSettle(page, userConfig);
     expect(patch.postDataJSON().subtitleSourceSwitchStates).toMatchObject({
       [SubtitleSource.THESUBTITLEDB]: false,
     });
   });
 
-  test('a failed save leaves a switched-off source off once its blank row is removed', async ({
+  test('adding a key row switches a switched-off source on, and it still switches off', async ({
     page,
     userConfigs,
   }) => {
@@ -498,16 +477,16 @@ test.describe('sources', () => {
     const panel = await openTabMenuItem(page, THESUBTITLEDB);
     const sourceSwitch = getSourceSwitch(panel, THESUBTITLEDB);
     await sourceSwitch.click();
+    await expect(sourceSwitch).not.toBeChecked();
+
     await panel.getByRole('button', {name: ADD_API_KEY, exact: true}).click();
 
-    await getVisibleSaveButton(page).click();
-
-    const apiKeyField = panel.getByLabel(API_KEY, {exact: true});
-    await expect(apiKeyField).toHaveAttribute('aria-invalid', 'true');
-    await panel.getByRole('button', {name: 'Remove', exact: true}).click();
-    await expect(apiKeyField).toHaveCount(0);
-    await expect(sourceSwitch).not.toBeChecked();
+    await expect(sourceSwitch).toBeChecked();
     await expect(sourceSwitch).toBeEnabled();
+
+    await sourceSwitch.click();
+
+    await expect(sourceSwitch).not.toBeChecked();
   });
 
   test('a key saved on a switched-off source sends the source on', async ({
@@ -1027,43 +1006,6 @@ test.describe('sources', () => {
     expect(savedValues.listImprovementSwitchStates).toHaveProperty(
       SubtitleSource.OPENSUBTITLES,
     );
-  });
-
-  test('the global control is disabled while every listed source is locked', async ({
-    page,
-    userConfigs,
-  }) => {
-    await page.route(getApiUrl(SUBTITLE_SOURCES_PATH), async route => {
-      const response = await route.fetch();
-      const envelope = await response.json();
-      await route.fulfill({
-        response,
-        json: {
-          ...envelope,
-          data: envelope.data.filter(
-            ({subtitleSource}) =>
-              subtitleSource === SubtitleSource.THESUBTITLEDB,
-          ),
-        },
-      });
-    });
-    const userConfig = await userConfigs.create({
-      password: PASSWORD,
-      languageCodes: STORED_LANGUAGE_CODES,
-      credentials: [
-        {
-          subtitleSource: SubtitleSource.THESUBTITLEDB,
-          credentialKind: CredentialKind.API_KEY,
-          credentialSecret: {apiKey: THESUBTITLEDB_VALID_API_KEY},
-        },
-      ],
-    });
-
-    await openSignedIn(page, userConfig);
-
-    const allSources = getAllSourcesCheckbox(page);
-    await expect(allSources).toBeChecked();
-    await expect(allSources).toBeDisabled();
   });
 
   test.describe('with a 422 on a stored account password', () => {

@@ -13,6 +13,7 @@ import {FieldLegend, FieldSet} from '@/components/ui/field';
 import {useFormContext} from '@/lib/form-context';
 import {useStoredCredential} from '../../hooks/use-stored-credentials';
 import {toCredentialFormValues} from '../../lib/credential-form-values';
+import {setSubtitleSourceSwitch} from '../../lib/subtitle-source-switch-state';
 import {CredentialStatusBadge} from './credential-status-badge';
 import {CredentialQuota, CredentialQuotaTotal} from './opensubtitles-quota';
 
@@ -124,9 +125,10 @@ export function CredentialList({
             credential.subtitleSource === subtitleSource &&
             credential.credentialKind === credentialKind
           }
-          createItem={() =>
-            toCredentialFormValues({subtitleSource, credentialKind})
-          }
+          createItem={() => {
+            setSubtitleSourceSwitch(form, subtitleSource, true);
+            return toCredentialFormValues({subtitleSource, credentialKind});
+          }}
         >
           {({name, index}) => (
             <CredentialItem

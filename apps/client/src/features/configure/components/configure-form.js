@@ -7,7 +7,6 @@ import {pick} from 'es-toolkit';
 import {useQueryState} from 'nuqs';
 import {ADDON_DESCRIPTION, ADDON_NAME} from '@repo/shared/constants/app.js';
 import {SUBTITLE_LANGUAGE_LIMIT_DEFAULT} from '@repo/shared/constants/user-config.js';
-import {applySubtitleSourceSwitchLocks} from '@repo/shared/lib/subtitle-source-switch.js';
 import {
   createUserConfigSchema,
   updateUserConfigSchema,
@@ -51,11 +50,8 @@ function toFormValues(userConfig) {
       'languageCodes',
       'subtitleLanguageLimit',
       'listImprovementSwitchStates',
+      'subtitleSourceSwitchStates',
     ]),
-    subtitleSourceSwitchStates: applySubtitleSourceSwitchLocks({
-      switchStates: userConfig.subtitleSourceSwitchStates,
-      credentials: userConfig.credentials,
-    }),
     credentials: userConfig.credentials.map(toCredentialFormValues),
   };
 }
@@ -71,24 +67,6 @@ function ConfigureFormLayout({
   const [, setSubtitleSourceTab] = useQueryState(SUBTITLE_SOURCE_TAB_URL_KEY);
   const isDirty = useSelector(form.store, state => state.isDirty);
   const isSaving = useSelector(form.store, state => state.isSubmitting);
-
-  const lockCredentialedSwitches = () => {
-    const {subtitleSourceSwitchStates, credentials} = form.state.values;
-    const lockedSwitchStates = applySubtitleSourceSwitchLocks({
-      switchStates: subtitleSourceSwitchStates,
-      credentials,
-    });
-    if (lockedSwitchStates !== subtitleSourceSwitchStates) {
-      form.setFieldValue('subtitleSourceSwitchStates', lockedSwitchStates);
-    }
-  };
-
-  const prepareSubmit = () => {
-    const hasIssue = revealIssueSection();
-    if (!hasIssue) {
-      lockCredentialedSwitches();
-    }
-  };
 
   const revealIssueSection = () => {
     const [issue] = schema.safeParse(form.state.values).error?.issues ?? [];
@@ -126,7 +104,7 @@ function ConfigureFormLayout({
         id={formId}
         aria-label="Subtitle settings"
         hidden={activeSection === ConfigureSection.INSTALL}
-        onBeforeSubmit={prepareSubmit}
+        onBeforeSubmit={revealIssueSection}
       >
         <UnsavedChangesGuard />
         {activeSection === ConfigureSection.SOURCES && <SourcesSection />}
