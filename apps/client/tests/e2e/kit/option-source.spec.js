@@ -85,6 +85,31 @@ test.describe('option source', () => {
     });
   });
 
+  test('a fixed source finds an option by a keyword typed whole, beside the label matches', async ({
+    page,
+  }) => {
+    await openOptionSource(page, {kind: 'fixed', total: 13});
+    const search = getSearchBox(page);
+
+    await search.fill('34');
+    await expectFixtureState(page, 'listed').toEqual(['İstanbul']);
+
+    await search.fill('3');
+    await expectFixtureState(page, 'listed').toEqual([]);
+
+    await search.fill('IST');
+    await expectFixtureState(page, 'listed').toEqual(['İstanbul']);
+
+    await search.fill('an');
+    await expectFixtureState(page, 'listed').toEqual([
+      'Adana',
+      'Ankara',
+      'Antalya',
+      'Çanakkale',
+      'İstanbul',
+    ]);
+  });
+
   test('a preloaded source loads once on mount, before anything opens', async ({
     page,
   }) => {

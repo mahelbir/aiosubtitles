@@ -3,7 +3,7 @@ export const OPTIONS_EMPTY_MESSAGE = 'No results.';
 export const OPTIONS_FAILURE_MESSAGE = 'Options could not be loaded.';
 
 /**
- * @typedef {{value: *, label: string, disabled?: boolean, group?: string}} Option
+ * @typedef {{value: *, label: string, keywords?: string[], disabled?: boolean, group?: string}} Option
  */
 
 /**

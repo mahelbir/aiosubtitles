@@ -37,7 +37,7 @@ import {SourcesSection} from './sources/sources-section';
 const newUserConfigSchema = createUserConfigSchema.omit({password: true});
 
 const NEW_USER_CONFIG_VALUES = {
-  languageCodes: [],
+  languageCodes: [null],
   subtitleLanguageLimit: SUBTITLE_LANGUAGE_LIMIT_DEFAULT,
   subtitleSourceSwitchStates: {},
   listImprovementSwitchStates: {},

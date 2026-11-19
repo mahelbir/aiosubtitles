@@ -13,6 +13,7 @@ export const FIXTURES = [
     title: 'Array input',
     variants: [
       '?count=0',
+      '?count=1&min=1',
       '?errorDisplay=onTouched',
       '?isDisabled',
       '?isDisabled&hasInvalidLink',

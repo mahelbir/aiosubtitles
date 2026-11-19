@@ -89,6 +89,7 @@ export function ArrayInputFixture() {
         <FormField name="people" mode="array">
           <ArrayInput
             label="Kişiler"
+            min={Number(searchParams.get('min') ?? 0)}
             max={4}
             addLabel="Kişi ekle"
             createItem={() => ({name: ''})}

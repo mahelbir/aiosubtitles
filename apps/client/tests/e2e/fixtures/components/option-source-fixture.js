@@ -21,17 +21,17 @@ import {FixtureState} from './fixture-state';
 const DEFAULT_TOTAL = 150;
 
 const CITY_OPTIONS = [
-  {value: 1, label: 'Adana'},
-  {value: 2, label: 'Ankara'},
-  {value: 3, label: 'Antalya'},
+  {value: 1, label: 'Adana', keywords: ['01']},
+  {value: 2, label: 'Ankara', keywords: ['06']},
+  {value: 3, label: 'Antalya', keywords: ['07']},
   {value: 4, label: 'Bursa'},
   {value: 5, label: 'Çanakkale'},
   {value: 6, label: 'Diyarbakır'},
   {value: 7, label: 'Edirne'},
   {value: 8, label: 'Erzurum'},
   {value: 9, label: 'Isparta'},
-  {value: 10, label: 'İstanbul'},
-  {value: 11, label: 'İzmir'},
+  {value: 10, label: 'İstanbul', keywords: ['34', 'ist']},
+  {value: 11, label: 'İzmir', keywords: ['35']},
   {value: 12, label: 'Kars'},
   {value: 13, label: 'Kâhta'},
 ];
@@ -104,7 +104,7 @@ function SourceScenario({source, selected, knownOptions}) {
     fetchNextPage,
   } = useOptionSource(source, {search, selected, knownOptions});
   const shown = filter
-    ? listed.filter(option => filter(option, search))
+    ? listed.filter(option => filter(option.value, search, labelOf))
     : listed;
 
   return (

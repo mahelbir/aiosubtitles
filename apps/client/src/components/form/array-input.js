@@ -32,6 +32,7 @@ function ArrayListInput({
   'aria-label': ariaLabel,
   help,
   className,
+  min = 0,
   max = Infinity,
   addLabel = 'Add',
   disabled,
@@ -117,6 +118,7 @@ function ArrayListInput({
                 count,
                 itemKey,
                 readOnly,
+                canRemove: count > min,
                 registerItem,
                 moveItem,
                 removeItem,
@@ -158,8 +160,16 @@ export function FilteredArrayInput(props) {
 }
 
 export function ArrayItemActions({className}) {
-  const {index, count, itemKey, readOnly, registerItem, moveItem, removeItem} =
-    use(ArrayItemContext);
+  const {
+    index,
+    count,
+    itemKey,
+    readOnly,
+    canRemove,
+    registerItem,
+    moveItem,
+    removeItem,
+  } = use(ArrayItemContext);
 
   return (
     <div
@@ -188,7 +198,7 @@ export function ArrayItemActions({className}) {
         variant="ghost"
         title="Remove"
         data-array-action="remove"
-        disabled={readOnly}
+        disabled={readOnly || !canRemove}
         onClick={() => removeItem(index)}
       >
         <Trash2Icon />

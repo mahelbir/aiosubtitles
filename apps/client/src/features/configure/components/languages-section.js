@@ -1,12 +1,13 @@
 'use client';
 
 import {useSelector} from '@tanstack/react-form';
-import {isEqual} from 'es-toolkit';
+import {compact, isEqual} from 'es-toolkit';
 import {SubtitleLanguage} from '@repo/shared/constants/subtitle-language.js';
 import {
   SUBTITLE_LANGUAGE_LIMIT_MAX,
   SUBTITLE_LANGUAGE_LIMIT_MIN,
   USER_CONFIG_LANGUAGE_CODES_MAX,
+  USER_CONFIG_LANGUAGE_CODES_MIN,
 } from '@repo/shared/constants/user-config.js';
 import {PageSection} from '@/components/common/page-section';
 import {ArrayInput, ArrayItemActions} from '@/components/form/array-input';
@@ -24,7 +25,10 @@ function toLanguageLabel(label, nativeName) {
 }
 
 const languageOptions = SubtitleLanguage.toList({
-  extra: ({label, raw}) => ({label: toLanguageLabel(label, raw.nativeName)}),
+  extra: ({value, label, raw}) => ({
+    label: toLanguageLabel(label, raw.nativeName),
+    keywords: compact([value, raw.iso6391]),
+  }),
 }).toSorted((first, second) =>
   getIntlFormatter(Intl.Collator).compare(first.label, second.label),
 );
@@ -60,6 +64,7 @@ export function LanguagesSection() {
       <FormGrid>
         <FormField name="languageCodes" mode="array">
           <ArrayInput
+            min={USER_CONFIG_LANGUAGE_CODES_MIN}
             max={USER_CONFIG_LANGUAGE_CODES_MAX}
             addLabel="Add language"
             createItem={() => null}

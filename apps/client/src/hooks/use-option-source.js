@@ -16,7 +16,7 @@ import {
   OPTION_PAGE_SIZE,
 } from '@/lib/option-source';
 import {useOptionsInfiniteQuery, useOptionsQuery} from '@/lib/query';
-import {toSearchTerm} from '@/lib/search';
+import {isSameText, toSearchTerm} from '@/lib/search';
 import {LOADING_LABEL} from '@/components/common/loading-status';
 
 const SEARCHING_MESSAGE = 'Searching…';
@@ -37,6 +37,11 @@ const UNPAGED = {
 
 function getOptionKey(option) {
   return String(option.value);
+}
+
+function isKeywordMatch(keywords = EMPTY_LIST, query) {
+  const term = query.trim();
+  return term !== '' && keywords.some(keyword => isSameText(keyword, term));
 }
 
 function getEmptyMessage(hasFailed) {
@@ -246,11 +251,18 @@ export function useOptionSource(
   const labels = new Map(
     known.map(option => [getOptionKey(option), option.label]),
   );
+  const keywordsByKey = new Map(
+    known.map(option => [getOptionKey(option), option.keywords]),
+  );
 
   return {
     known,
     listed: list.hasFailed ? EMPTY_LIST : list.options,
-    filter: list.isRemote ? null : contains,
+    filter: list.isRemote
+      ? null
+      : (item, query, itemToString) =>
+          contains(item, query, itemToString) ||
+          isKeywordMatch(keywordsByKey.get(String(item)), query),
     labelOf: value => labels.get(String(value)) ?? String(value ?? ''),
     total: list.total,
     matchTotal: list.matchTotal,

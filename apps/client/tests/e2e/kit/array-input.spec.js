@@ -270,6 +270,24 @@ test.describe('array input', () => {
     await expectNames(page, ['Ali', 'Ayşe']);
   });
 
+  test('a list at its minimum keeps its last item, and remove comes back once another is added', async ({
+    page,
+  }) => {
+    await openFixture(page, 'array-input', {count: 1, min: 1});
+
+    await expect(getAction(page, 1, 'Remove')).toBeDisabled();
+
+    await getAddButton(page).click();
+
+    await expect(getAction(page, 1, 'Remove')).toBeEnabled();
+    await expect(getAction(page, 2, 'Remove')).toBeEnabled();
+
+    await getAction(page, 2, 'Remove').click();
+
+    await expect(getItem(page, 2)).toHaveCount(0);
+    await expect(getAction(page, 1, 'Remove')).toBeDisabled();
+  });
+
   test('removing the only item focuses the add button', async ({page}) => {
     await openFixture(page, 'array-input', {count: 1});
     await getAction(page, 1, 'Remove').focus();

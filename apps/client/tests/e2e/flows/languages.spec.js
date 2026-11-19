@@ -9,6 +9,7 @@ import {
   callApi,
   expect,
   getAddLanguageButton,
+  getEmptyLanguagePickers,
   getLabelPattern,
   getLanguageOption,
   getLanguagePickers,
@@ -143,6 +144,29 @@ test.describe('languages', () => {
     await expect(getLanguageOption(page, TURKISH)).toContainText(
       TURKISH_NATIVE_NAME,
     );
+  });
+
+  test('a new configuration opens with one empty picker it cannot remove', async ({
+    page,
+  }) => {
+    await openConfigure(page, {tab: 'languages'});
+
+    await expect(getLanguagePickers(page)).toHaveCount(1);
+    await expect(getEmptyLanguagePickers(page)).toHaveCount(1);
+    await expect(
+      getMain(page).getByRole('button', {name: 'Remove', exact: true}),
+    ).toBeDisabled();
+  });
+
+  test('finds a language by its two- or three-letter code', async ({page}) => {
+    await openConfigure(page, {tab: 'languages'});
+
+    await openNextLanguagePicker(page, 'tr');
+    await expect(getLanguageOption(page, TURKISH)).toBeVisible();
+
+    await page.keyboard.press('Escape');
+    await openNextLanguagePicker(page, 'tur');
+    await expect(getLanguageOption(page, TURKISH)).toBeVisible();
   });
 
   test('shows a native name equal to its label once', async ({page}) => {

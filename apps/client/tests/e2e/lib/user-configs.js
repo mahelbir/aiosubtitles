@@ -28,6 +28,8 @@ export const SESSION_REFUSAL =
 
 const UNSAVED_PATTERN = /^(?:You have unsaved changes|Unsaved changes)$/;
 
+const EMPTY_LANGUAGE_PICKER_TEXT = 'Choose a language…';
+
 export const SAVED_TEXT = 'All changes saved';
 
 export const NOT_SAVED_YET_TEXT = 'Not saved yet';
@@ -278,13 +280,23 @@ export function getLanguagePickers(page) {
   return getForm(page, 'Subtitle settings').getByRole('combobox');
 }
 
+export function getEmptyLanguagePickers(page) {
+  return getLanguagePickers(page).filter({
+    hasText: EMPTY_LANGUAGE_PICKER_TEXT,
+  });
+}
+
 export function getLanguageOption(page, label) {
   return page.getByRole('option', {name: getLabelPattern(label)});
 }
 
 export async function openNextLanguagePicker(page, search) {
-  await getAddLanguageButton(page).click();
-  await getLanguagePickers(page).last().click();
+  await expect(getLanguagePickers(page).first()).toBeVisible();
+  const emptyPickers = getEmptyLanguagePickers(page);
+  if ((await emptyPickers.count()) === 0) {
+    await getAddLanguageButton(page).click();
+  }
+  await emptyPickers.last().click();
   await page.keyboard.type(search);
 }
 

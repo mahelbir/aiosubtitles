@@ -163,7 +163,7 @@ test.describe('configure', () => {
 
       await expectSearchParams(page).toEqual({tab: 'languages'});
       await expect(
-        getMain(page).getByText('Choose at least one language'),
+        getMain(page).getByText('Choose a language from the list'),
       ).toBeVisible();
       await expect(getSetPasswordDialog(page)).toHaveCount(0);
     });
