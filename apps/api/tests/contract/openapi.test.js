@@ -20,14 +20,14 @@ describe('OpenAPI document', () => {
     }
     expect(open.toSorted()).toEqual([
       'GET /',
+      'GET /addon/{userConfigId}/configure',
+      'GET /addon/{userConfigId}/manifest.json',
+      'GET /addon/{userConfigId}/subtitle-files/{videoId}/{urlCode}.{fileExtension}',
+      'GET /addon/{userConfigId}/subtitle-notices/{noticeName}.srt',
+      'GET /addon/{userConfigId}/subtitles/{type}/{videoId}.json',
+      'GET /addon/{userConfigId}/subtitles/{type}/{videoId}/{extra}.json',
       'GET /api/subtitle-sources',
       'GET /manifest.json',
-      'GET /{userConfigId}/configure',
-      'GET /{userConfigId}/manifest.json',
-      'GET /{userConfigId}/subtitle-files/{videoId}/{urlCode}.{fileExtension}',
-      'GET /{userConfigId}/subtitle-notices/{noticeName}.srt',
-      'GET /{userConfigId}/subtitles/{type}/{videoId}.json',
-      'GET /{userConfigId}/subtitles/{type}/{videoId}/{extra}.json',
       'POST /api/user-configs',
       'POST /api/user-configs/{userConfigId}/sessions',
     ]);

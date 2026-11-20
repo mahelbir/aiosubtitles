@@ -16,7 +16,7 @@ describe('buildSubtitleUrl', () => {
         fileExtension: 'srt',
       }),
     ).toBe(
-      `https://h/${USER_CONFIG_ID}/subtitle-files/kitsu:123:5/${URL_CODE}.srt`,
+      `https://h/addon/${USER_CONFIG_ID}/subtitle-files/kitsu:123:5/${URL_CODE}.srt`,
     );
     expect(
       buildSubtitleUrl({
@@ -27,7 +27,7 @@ describe('buildSubtitleUrl', () => {
         fileExtension: 'ass',
       }),
     ).toBe(
-      `https://h/${USER_CONFIG_ID}/subtitle-files/a%20b%2Fc/${URL_CODE}.ass`,
+      `https://h/addon/${USER_CONFIG_ID}/subtitle-files/a%20b%2Fc/${URL_CODE}.ass`,
     );
     expect(
       buildSubtitleUrl({
@@ -51,7 +51,7 @@ describe('buildSubtitleUrl', () => {
         fileExtension: 'srt',
       }),
     ).toBe(
-      `https://h/${USER_CONFIG_ID}/subtitle-files/${videoId}/${URL_CODE}.srt`,
+      `https://h/addon/${USER_CONFIG_ID}/subtitle-files/${videoId}/${URL_CODE}.srt`,
     );
   });
 
@@ -65,7 +65,7 @@ describe('buildSubtitleUrl', () => {
         fileExtension: 'srt',
       }),
     ).toBe(
-      `https://h/${USER_CONFIG_ID}/subtitle-files/tt1%2520/${URL_CODE}.srt`,
+      `https://h/addon/${USER_CONFIG_ID}/subtitle-files/tt1%2520/${URL_CODE}.srt`,
     );
   });
 
@@ -80,7 +80,7 @@ describe('buildSubtitleUrl', () => {
         fileExtension: 'srt',
       }),
     ).toBe(
-      `https://h/${USER_CONFIG_ID}/subtitle-files/${videoId}/${URL_CODE}.srt`,
+      `https://h/addon/${USER_CONFIG_ID}/subtitle-files/${videoId}/${URL_CODE}.srt`,
     );
   });
 
@@ -96,7 +96,7 @@ describe('buildSubtitleUrl', () => {
     expect(buildCjkUrl(MAX_VIDEO_ID_LENGTH)).toBeNull();
     expect(buildCjkUrl(15)).toBeNull();
     expect(buildCjkUrl(14)).toBe(
-      `https://h/${USER_CONFIG_ID}/subtitle-files/${'%E5%AD%97'.repeat(14)}/${URL_CODE}.srt`,
+      `https://h/addon/${USER_CONFIG_ID}/subtitle-files/${'%E5%AD%97'.repeat(14)}/${URL_CODE}.srt`,
     );
   });
 

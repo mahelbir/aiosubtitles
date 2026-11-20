@@ -62,7 +62,7 @@ describe('buildStremioSubtitles', () => {
     expect(rows).toEqual([
       {
         id: `${OPENSUBTITLES_NAME} · ${CLOSEST_RELEASE_NAME} · 3fa9c2d1`,
-        url: `${BASE_URL}/${USER_CONFIG_ID}/subtitle-files/${VIDEO_ID}/${URL_CODE}.ass`,
+        url: `${BASE_URL}/addon/${USER_CONFIG_ID}/subtitle-files/${VIDEO_ID}/${URL_CODE}.ass`,
         lang: 'tur',
         label: `$ · ${ConfidenceWord.label(ConfidenceWord.EXACT)} · ${OPENSUBTITLES_NAME} · HI · ${CLOSEST_RELEASE_NAME}`,
         subtitleFileName: CLOSEST_RELEASE_NAME,

@@ -1,4 +1,5 @@
 import {z} from 'zod';
+import {ADDON_ROUTE_PREFIX} from '../../lib/addon-url.js';
 import {
   SubtitleMessage,
   SubtitleNotice,
@@ -18,7 +19,7 @@ const SUBTITLE_NOTICE_SCHEMA = {
 
 export default async function (fastify) {
   fastify.get(
-    '/:userConfigId/subtitle-notices/:noticeName.srt',
+    `${ADDON_ROUTE_PREFIX}/subtitle-notices/:noticeName.srt`,
     {
       schema: SUBTITLE_NOTICE_SCHEMA,
       config: toSubtitleFileRouteConfig(SubtitleMessage.SUBTITLE_NOT_FOUND),

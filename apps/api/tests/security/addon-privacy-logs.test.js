@@ -167,7 +167,7 @@ describe('the addon route logs', () => {
 
     expect(
       logLines.filter(logLine =>
-        logLine.includes(`/${USER_CONFIG_PLACEHOLDER}/subtitle-files/`),
+        logLine.includes(`/addon/${USER_CONFIG_PLACEHOLDER}/subtitle-files/`),
       ),
     ).not.toEqual([]);
   });
@@ -183,7 +183,7 @@ describe('the addon route logs', () => {
     expect(errorLines).not.toEqual([]);
     expect(
       errorLines.filter(errorLine =>
-        errorLine.includes(`/${USER_CONFIG_PLACEHOLDER}/subtitles/`),
+        errorLine.includes(`/addon/${USER_CONFIG_PLACEHOLDER}/subtitles/`),
       ),
     ).not.toEqual([]);
     expect(

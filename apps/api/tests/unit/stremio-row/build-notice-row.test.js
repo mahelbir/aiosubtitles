@@ -16,7 +16,7 @@ describe('buildNoticeRow', () => {
     });
     expect(noticeRow).toEqual({
       id: 'notice-opensubtitles-account',
-      url: `${BASE_URL}/${USER_CONFIG_ID}/subtitle-notices/opensubtitles-account.srt`,
+      url: `${BASE_URL}/addon/${USER_CONFIG_ID}/subtitle-notices/opensubtitles-account.srt`,
       lang: 'tur',
       label: SubtitleNotice.label(SubtitleNotice.OPENSUBTITLES_ACCOUNT).replace(
         '{hiddenSubtitleCount}',

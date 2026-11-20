@@ -44,7 +44,7 @@ describe('closing the app with a subtitle search in flight', () => {
 
     const response = await app.inject({
       method: 'GET',
-      url: `${getTestAppBasePath()}/${userConfig.id}/subtitles/movie/tt0133093.json`,
+      url: `${getTestAppBasePath()}/addon/${userConfig.id}/subtitles/movie/tt0133093.json`,
     });
     const isFinishedBeforeClose = searchProgress.isFinished;
     await closeTestApp();

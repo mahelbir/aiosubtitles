@@ -206,7 +206,7 @@ async function createListUserConfig({
 }
 
 function toListPath({userConfigId, videoType = 'movie', videoId, extra}) {
-  const videoPath = `/${userConfigId}/subtitles/${videoType}/${videoId}`;
+  const videoPath = `/addon/${userConfigId}/subtitles/${videoType}/${videoId}`;
   return extra === undefined
     ? `${videoPath}.json`
     : `${videoPath}/${extra}.json`;
@@ -368,7 +368,7 @@ describe('the subtitle list route', () => {
     expect(subtitles).toEqual([
       {
         id: `TheSubtitleDB · ${MOVIE_RELEASE} · ${urlCode.slice(0, 8)}`,
-        url: `${getTestAppBaseUrl()}/${userConfig.id}/subtitle-files/${MOVIE_ID}/${urlCode}.srt`,
+        url: `${getTestAppBaseUrl()}/addon/${userConfig.id}/subtitle-files/${MOVIE_ID}/${urlCode}.srt`,
         lang: 'tur',
         label: `TheSubtitleDB · ${MOVIE_RELEASE}`,
         subtitleFileName: MOVIE_RELEASE,
@@ -771,7 +771,7 @@ describe('the subtitle list route', () => {
       expect.objectContaining({url: KITSU_META_URL}),
     );
     expect(subtitles.map(({url}) => url)).toEqual([
-      `${getTestAppBaseUrl()}/${userConfig.id}/subtitle-files/${kitsuVideoId}/${toUrlCode(searchHit)}.srt`,
+      `${getTestAppBaseUrl()}/addon/${userConfig.id}/subtitle-files/${kitsuVideoId}/${toUrlCode(searchHit)}.srt`,
     ]);
     const candidates = await SubtitleVideoCandidate.findAll({
       attributes: ['videoId'],
@@ -979,7 +979,7 @@ describe('a malformed subtitle list url', () => {
 
     const response = await app.inject({
       method: 'GET',
-      url: `${getTestAppBasePath()}/${userConfig.id}/subtitles/movie/${MOVIE_ID}/bad%zz`,
+      url: `${getTestAppBasePath()}/addon/${userConfig.id}/subtitles/movie/${MOVIE_ID}/bad%zz`,
     });
 
     expect(response.statusCode).toBe(StatusCodes.BAD_REQUEST);
@@ -1116,7 +1116,7 @@ describe('the subtitle list pack entries', () => {
     const app = await getTestApp();
     const fileResponse = await app.inject({
       method: 'GET',
-      url: `${getTestAppBasePath()}/${userConfig.id}/subtitle-files/${kitsuVideoId}/${packUrlCode}.srt`,
+      url: `${getTestAppBasePath()}/addon/${userConfig.id}/subtitle-files/${kitsuVideoId}/${packUrlCode}.srt`,
     });
 
     expect(listUrlCodes(subtitles)).toEqual([packUrlCode]);
@@ -1608,7 +1608,7 @@ describe('the OpenSubtitles account notice', () => {
       id: NOTICE_ID,
       lang: 'tur',
       label: 'Add an OpenSubtitles account to see 2 more',
-      url: `${getTestAppBaseUrl()}/${userConfig.id}/subtitle-notices/opensubtitles-account.srt`,
+      url: `${getTestAppBaseUrl()}/addon/${userConfig.id}/subtitle-notices/opensubtitles-account.srt`,
     });
   });
 
@@ -1704,7 +1704,7 @@ describe('the OpenSubtitles account notice', () => {
     const app = await getTestApp();
 
     const subtitles = await getSubtitleList({userConfigId: userConfig.id});
-    const noticeUrl = `${getTestAppBaseUrl()}/${userConfig.id}/subtitle-notices/${subtitleNotice}.srt`;
+    const noticeUrl = `${getTestAppBaseUrl()}/addon/${userConfig.id}/subtitle-notices/${subtitleNotice}.srt`;
     const noticeResponse = await app.inject(
       noticeUrl.slice('http://localhost:80'.length),
     );
@@ -1966,7 +1966,7 @@ describe('a kitsu pack served after the list', () => {
     );
 
     const fileResponse = await requestFile(
-      `${getTestAppBaseUrl()}/${userConfig.id}/subtitle-files/${kitsuVideoId}/${packUrlCode}.srt`,
+      `${getTestAppBaseUrl()}/addon/${userConfig.id}/subtitle-files/${kitsuVideoId}/${packUrlCode}.srt`,
     );
 
     expect(fileResponse.statusCode).toBe(StatusCodes.OK);
@@ -1982,7 +1982,7 @@ describe('a file for a kitsu id', () => {
     const app = await getTestApp();
     return app.inject({
       method: 'GET',
-      url: `${getTestAppBasePath()}/${userConfigId}/subtitle-files/${videoId}/${urlCode}.srt`,
+      url: `${getTestAppBasePath()}/addon/${userConfigId}/subtitle-files/${videoId}/${urlCode}.srt`,
     });
   }
 

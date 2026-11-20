@@ -117,14 +117,14 @@ describe('readRawExtraSegment', () => {
   it('reads the last path segment still encoded and without its suffix', () => {
     expect(
       readRawExtraSegment(
-        '/api/abc/subtitles/movie/tt1/filename=Tom%20%26%20Jerry.mkv.json?x=1',
+        '/api/addon/abc/subtitles/movie/tt1/filename=Tom%20%26%20Jerry.mkv.json?x=1',
       ),
     ).toBe('filename=Tom%20%26%20Jerry.mkv');
   });
 
   it('ignores a trailing slash', () => {
     expect(
-      readRawExtraSegment('/abc/subtitles/movie/tt1/videoSize=1.json/'),
+      readRawExtraSegment('/addon/abc/subtitles/movie/tt1/videoSize=1.json/'),
     ).toBe('videoSize=1');
   });
 });

@@ -186,9 +186,9 @@ test.describe('install', () => {
       );
       const href = await installLink.getAttribute('href');
       expect(href.startsWith('stremio://')).toBe(true);
-      expect(href.endsWith(`/${userConfig.userConfigId}/manifest.json`)).toBe(
-        true,
-      );
+      expect(
+        href.endsWith(`/addon/${userConfig.userConfigId}/manifest.json`),
+      ).toBe(true);
       await expect(getManifestUrlField(page)).toHaveValue(manifestUrl.href);
       await expect(getManifestUrlField(page)).not.toBeEditable();
       await expect(getMain(page).getByText(SAVE_FIRST_TEXT)).toHaveCount(0);

@@ -1,5 +1,6 @@
 import {z} from 'zod';
 import {StatusCodes} from 'http-status-codes';
+import {ADDON_ROUTE_PREFIX} from '../lib/addon-url.js';
 import {
   CONFIGURE_PAGE_DEV_ORIGIN,
   getConfigurePageUrl,
@@ -27,7 +28,7 @@ export default async function (
   });
 
   fastify.get(
-    '/:userConfigId/configure',
+    `${ADDON_ROUTE_PREFIX}/configure`,
     {schema: REDIRECT_SCHEMA},
     async (request, reply) => {
       return reply.redirect(

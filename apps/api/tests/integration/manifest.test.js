@@ -58,7 +58,7 @@ describe('the manifest', () => {
   it('serves a stored configuration a manifest that needs no configuration', async () => {
     const {userConfig} = await createUserConfig();
 
-    const response = await get(`/${userConfig.id}/manifest.json`, {
+    const response = await get(`/addon/${userConfig.id}/manifest.json`, {
       origin: STREMIO_ORIGIN,
     });
 
@@ -68,7 +68,7 @@ describe('the manifest', () => {
   });
 
   it('serves an unknown configuration the general manifest', async () => {
-    const response = await get(`/${uuidV4()}/manifest.json`);
+    const response = await get(`/addon/${uuidV4()}/manifest.json`);
 
     expect(response.statusCode).toBe(StatusCodes.OK);
     expect(response.json()).toEqual(GENERAL_MANIFEST);
@@ -76,10 +76,10 @@ describe('the manifest', () => {
 
   it('serves a deleted configuration the general manifest', async () => {
     const {userConfig} = await createUserConfig();
-    const stored = await get(`/${userConfig.id}/manifest.json`);
+    const stored = await get(`/addon/${userConfig.id}/manifest.json`);
     await userConfig.destroy();
 
-    const deleted = await get(`/${userConfig.id}/manifest.json`);
+    const deleted = await get(`/addon/${userConfig.id}/manifest.json`);
 
     expect(stored.json()).toEqual(USER_MANIFEST);
     expect(deleted.statusCode).toBe(StatusCodes.OK);
@@ -89,7 +89,7 @@ describe('the manifest', () => {
   it('serves a malformed id the general manifest without asking the cache', async () => {
     const lookup = vi.spyOn(userConfigCache, 'get');
 
-    const response = await get('/not-a-uuid/manifest.json');
+    const response = await get('/addon/not-a-uuid/manifest.json');
 
     expect(response.statusCode).toBe(StatusCodes.OK);
     expect(response.json()).toEqual(GENERAL_MANIFEST);
@@ -101,7 +101,7 @@ describe('the manifest', () => {
       new Error('the cache fell over'),
     );
 
-    const response = await get(`/${uuidV4()}/manifest.json`, {
+    const response = await get(`/addon/${uuidV4()}/manifest.json`, {
       origin: STREMIO_ORIGIN,
     });
 
@@ -126,7 +126,7 @@ describe('the manifest', () => {
   it("keeps Stremio's configure link beside a user's manifest", async () => {
     const {userConfig} = await createUserConfig();
 
-    const response = await get(`/${userConfig.id}/configure`);
+    const response = await get(`/addon/${userConfig.id}/configure`);
 
     expect(response.statusCode).toBe(StatusCodes.MOVED_TEMPORARILY);
     expect(response.headers.location).toContain(

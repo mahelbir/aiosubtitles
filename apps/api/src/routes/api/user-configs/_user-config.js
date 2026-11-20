@@ -10,6 +10,7 @@ import {
 import {getUuidField} from '@repo/shared/schemas/common.js';
 import {config} from '../../../config/index.js';
 import {UserConfig} from '../../../db/models/user-config.js';
+import {getAddonUrl} from '../../../lib/addon-url.js';
 import {
   markCredentialStatus,
   openCredentialSecret,
@@ -140,7 +141,7 @@ export function toCredentialRow({
 }
 
 export function toManifestUrl(request, userConfigId) {
-  return `${getRequestBaseUrl(request)}/${userConfigId}/manifest.json`;
+  return `${getAddonUrl({baseUrl: getRequestBaseUrl(request), userConfigId})}/manifest.json`;
 }
 
 export function readUserConfigWithCredentials(userConfigId, options = {}) {

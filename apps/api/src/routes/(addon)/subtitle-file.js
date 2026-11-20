@@ -1,6 +1,7 @@
 import {z} from 'zod';
 import {SubtitleFileExtension} from '@repo/subtitle-core/constants/subtitle-core-enums.js';
 import {Subtitle} from '../../db/models/subtitle.js';
+import {ADDON_ROUTE_PREFIX} from '../../lib/addon-url.js';
 import {SubtitleMessage} from '../../lib/stremio-row/stremio-row-enums.js';
 import {
   downloadSubtitleFile,
@@ -33,7 +34,7 @@ export default async function (fastify, opts) {
   const videoCatalog = getVideoCatalog(opts);
 
   fastify.get(
-    '/:userConfigId/subtitle-files/:videoId/:urlCode.:fileExtension',
+    `${ADDON_ROUTE_PREFIX}/subtitle-files/:videoId/:urlCode.:fileExtension`,
     {
       schema: SUBTITLE_FILE_SCHEMA,
       config: toSubtitleFileRouteConfig(

@@ -2,6 +2,7 @@ import {noop} from 'es-toolkit';
 import {z} from 'zod';
 import {StatusCodes} from 'http-status-codes';
 import {config} from '../../config/index.js';
+import {ADDON_ROUTE_PREFIX} from '../../lib/addon-url.js';
 import {RateLimitKey} from '../../lib/rate-limit.js';
 import {buildNoticeRow} from '../../lib/stremio-row/build-notice-row.js';
 import {buildStremioSubtitles} from '../../lib/stremio-row/build-stremio-subtitles.js';
@@ -53,11 +54,11 @@ const listParamsSchema = z.object({
 
 const SUBTITLE_LIST_ROUTES = [
   {
-    listUrl: '/:userConfigId/subtitles/:type/:videoId.json',
+    listUrl: `${ADDON_ROUTE_PREFIX}/subtitles/:type/:videoId.json`,
     listParamsSchema,
   },
   {
-    listUrl: '/:userConfigId/subtitles/:type/:videoId/:extra.json',
+    listUrl: `${ADDON_ROUTE_PREFIX}/subtitles/:type/:videoId/:extra.json`,
     listParamsSchema: listParamsSchema.extend({extra: z.string()}),
   },
 ];

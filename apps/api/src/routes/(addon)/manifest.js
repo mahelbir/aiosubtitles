@@ -6,6 +6,7 @@ import {
   ADDON_NAME,
 } from '@repo/shared/constants/app.js';
 import {config} from '../../config/index.js';
+import {ADDON_ROUTE_PREFIX} from '../../lib/addon-url.js';
 import {RateLimitKey} from '../../lib/rate-limit.js';
 import {getRequestBaseUrl} from '../_request-base-url.js';
 import {AddonVideoType} from './_addon-video-type.js';
@@ -73,7 +74,7 @@ export default async function (fastify) {
   );
 
   fastify.get(
-    '/:userConfigId/manifest.json',
+    `${ADDON_ROUTE_PREFIX}/manifest.json`,
     {
       schema: {
         ...MANIFEST_SCHEMA,

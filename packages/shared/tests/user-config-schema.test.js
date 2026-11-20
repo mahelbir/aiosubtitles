@@ -899,7 +899,7 @@ describe('user config edge cases', () => {
     expect(
       getIssuePaths(userConfigSchema, {
         userConfigId: UUID,
-        manifestUrl: `https://aiosubtitles.example/${UUID}/manifest.json`,
+        manifestUrl: `https://aiosubtitles.example/addon/${UUID}/manifest.json`,
         languageCodes: ['tur'],
         subtitleSourceSwitchStates: Object.fromEntries(
           SubtitleSource.values.map(subtitleSource => [subtitleSource, true]),
@@ -965,7 +965,7 @@ describe('response schemas', () => {
   it('describes a saved configuration with every source switch state', () => {
     const userConfig = {
       userConfigId: UUID,
-      manifestUrl: `https://aiosubtitles.example/${UUID}/manifest.json`,
+      manifestUrl: `https://aiosubtitles.example/addon/${UUID}/manifest.json`,
       languageCodes: ['tur', 'eng'],
       subtitleLanguageLimit: 10,
       subtitleSourceSwitchStates: fullSwitchStates,
@@ -981,7 +981,7 @@ describe('response schemas', () => {
       userConfigSchema
         .safeParse({
           userConfigId: UUID,
-          manifestUrl: `https://aiosubtitles.example/${UUID}/manifest.json`,
+          manifestUrl: `https://aiosubtitles.example/addon/${UUID}/manifest.json`,
           languageCodes: ['tur'],
           subtitleLanguageLimit: 10,
           subtitleSourceSwitchStates: fullSwitchStates,
@@ -998,7 +998,7 @@ describe('response schemas', () => {
       userConfigSchema
         .safeParse({
           userConfigId: UUID,
-          manifestUrl: `https://aiosubtitles.example/${UUID}/manifest.json`,
+          manifestUrl: `https://aiosubtitles.example/addon/${UUID}/manifest.json`,
           languageCodes: ['tur'],
           subtitleLanguageLimit: 10,
           subtitleSourceSwitchStates: partialSwitchStates,
@@ -1011,7 +1011,7 @@ describe('response schemas', () => {
   it('describes a created configuration and a session', () => {
     const createdUserConfig = {
       userConfigId: UUID,
-      manifestUrl: `https://aiosubtitles.example/${UUID}/manifest.json`,
+      manifestUrl: `https://aiosubtitles.example/addon/${UUID}/manifest.json`,
       sessionToken: 'a.b.c',
     };
     expect(createdUserConfigSchema.parse(createdUserConfig)).toEqual(
@@ -1023,8 +1023,8 @@ describe('response schemas', () => {
   });
 
   it.each([
-    `http://localhost:7000/${UUID}/manifest.json`,
-    `http://192.168.1.10/${UUID}/manifest.json`,
+    `http://localhost:7000/addon/${UUID}/manifest.json`,
+    `http://192.168.1.10/addon/${UUID}/manifest.json`,
   ])('accepts a manifest url on a local host: %s', manifestUrl => {
     for (const schema of [createdUserConfigSchema, userConfigSchema]) {
       expect(schema.shape.manifestUrl.safeParse(manifestUrl).success).toBe(
@@ -1034,8 +1034,8 @@ describe('response schemas', () => {
   });
 
   it.each([
-    `https://aiosubtitles.example/${UUID}/manifest.json?x=1`,
-    `https://user:pass@aiosubtitles.example/${UUID}/manifest.json`,
+    `https://aiosubtitles.example/addon/${UUID}/manifest.json?x=1`,
+    `https://user:pass@aiosubtitles.example/addon/${UUID}/manifest.json`,
   ])('refuses a manifest url with a query or userinfo: %s', manifestUrl => {
     for (const schema of [createdUserConfigSchema, userConfigSchema]) {
       expect(schema.shape.manifestUrl.safeParse(manifestUrl).success).toBe(

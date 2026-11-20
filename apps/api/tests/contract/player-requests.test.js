@@ -262,7 +262,7 @@ describe('a Stremio player request', () => {
     const response = await requestAddonPath(listUrl, ORIGIN_HEADERS);
 
     expect(listUrl).toBe(
-      `/${userConfig.id}/subtitles/series/${ENCODED_EPISODE_ID}/videoHash=${VIDEO_HASH}&videoSize=${VIDEO_SIZE_BYTES}&filename=${VIDEO_FILENAME}.json`,
+      `/addon/${userConfig.id}/subtitles/series/${ENCODED_EPISODE_ID}/videoHash=${VIDEO_HASH}&videoSize=${VIDEO_SIZE_BYTES}&filename=${VIDEO_FILENAME}.json`,
     );
     const subtitles = readSubtitleRows(response);
     expectStremioRows(subtitles);
@@ -314,7 +314,7 @@ describe('a Stremio player request', () => {
         ORIGIN_HEADERS,
       ),
       requestAddonPath(
-        `/${userConfig.id}/subtitles/series/${EPISODE_ID}/videoHash=${VIDEO_HASH}&filename=${VIDEO_FILENAME}%zz.json`,
+        `/addon/${userConfig.id}/subtitles/series/${EPISODE_ID}/videoHash=${VIDEO_HASH}&filename=${VIDEO_FILENAME}%zz.json`,
         ORIGIN_HEADERS,
       ),
     ]);
@@ -370,7 +370,7 @@ describe('a Nuvio desktop player request', () => {
     const response = await requestAddonPath(listUrl, ORIGIN_HEADERS);
 
     expect(listUrl).toBe(
-      `/${userConfig.id}/subtitles/series/${ENCODED_EPISODE_ID}/videoHash=${VIDEO_HASH}&videoSize=${VIDEO_SIZE_BYTES}.json`,
+      `/addon/${userConfig.id}/subtitles/series/${ENCODED_EPISODE_ID}/videoHash=${VIDEO_HASH}&videoSize=${VIDEO_SIZE_BYTES}.json`,
     );
     const subtitles = readSubtitleRows(response);
     expectStremioRows(subtitles);
@@ -457,7 +457,7 @@ describe('a Nuvio native player request pair', () => {
         videoId: EPISODE_ID,
         extras: {videoHash: '', videoSize: 0, filename: ''},
       }),
-    ).toEqual([`/user-config/subtitles/series/${EPISODE_ID}.json`]);
+    ).toEqual([`/addon/user-config/subtitles/series/${EPISODE_ID}.json`]);
   });
 });
 
@@ -499,7 +499,7 @@ describe('the extras encoding of each player', () => {
 describe('the manifest a player installs', () => {
   it.each([
     ['general', () => '/manifest.json'],
-    ['configured', userConfigId => `/${userConfigId}/manifest.json`],
+    ['configured', userConfigId => `/addon/${userConfigId}/manifest.json`],
   ])(
     'carries every required field in the %s manifest',
     async (_, toManifestPath) => {

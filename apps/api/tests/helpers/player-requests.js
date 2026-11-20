@@ -48,7 +48,7 @@ export function buildNuvioLegacyRequests({
 }
 
 function toListUrl({userConfigId, videoType, videoId, extraSegment}) {
-  const videoPath = `/${userConfigId}/subtitles/${videoType}/${videoId}`;
+  const videoPath = `/addon/${userConfigId}/subtitles/${videoType}/${videoId}`;
   return extraSegment
     ? `${videoPath}/${extraSegment}.json`
     : `${videoPath}.json`;

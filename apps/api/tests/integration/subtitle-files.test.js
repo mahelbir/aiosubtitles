@@ -288,7 +288,7 @@ async function getSubtitleFile({
   const app = await getTestApp();
   return app.inject({
     method: 'GET',
-    url: `${getTestAppBasePath()}/${userConfigId}/subtitle-files/${videoId}/${urlCode}.${fileExtension}`,
+    url: `${getTestAppBasePath()}/addon/${userConfigId}/subtitle-files/${videoId}/${urlCode}.${fileExtension}`,
     headers,
   });
 }
@@ -297,7 +297,7 @@ async function getSubtitleNotice({userConfigId, noticeName, headers = {}}) {
   const app = await getTestApp();
   return app.inject({
     method: 'GET',
-    url: `${getTestAppBasePath()}/${userConfigId}/subtitle-notices/${noticeName}.srt`,
+    url: `${getTestAppBasePath()}/addon/${userConfigId}/subtitle-notices/${noticeName}.srt`,
     headers,
   });
 }

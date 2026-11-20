@@ -973,7 +973,7 @@ describe('the list improvement switch through the subtitle list route', () => {
     const app = await getTestApp();
     const response = await app.inject({
       method: 'GET',
-      url: `${getTestAppBasePath()}/${userConfigId}/subtitles/movie/${MOVIE_ID}.json`,
+      url: `${getTestAppBasePath()}/addon/${userConfigId}/subtitles/movie/${MOVIE_ID}.json`,
     });
     expect(response.statusCode).toBe(StatusCodes.OK);
     return searchHit;
@@ -1616,7 +1616,7 @@ describe('the subtitle list route', () => {
     try {
       response = await app.inject({
         method: 'GET',
-        url: `${getTestAppBasePath()}/${userConfig.id}/subtitles/movie/${MOVIE_ID}.json`,
+        url: `${getTestAppBasePath()}/addon/${userConfig.id}/subtitles/movie/${MOVIE_ID}.json`,
       });
     } finally {
       openGate();

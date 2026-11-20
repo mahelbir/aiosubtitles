@@ -143,7 +143,7 @@ test.describe('configure', () => {
       await expectSearchParams(page).toEqual({userConfigId, tab: 'install'});
       await expect(
         getMain(page).getByRole('textbox', {name: 'Addon URL', exact: true}),
-      ).toHaveValue(new RegExp(`/${userConfigId}/manifest\\.json$`));
+      ).toHaveValue(new RegExp(`/addon/${userConfigId}/manifest\\.json$`));
       await expect(getVisibleText(page, SAVED_TEXT)).toBeVisible();
       await expect(getVisibleText(page, NOT_SAVED_YET_TEXT)).toHaveCount(0);
       expect(await readSessionToken(page, userConfigId)).toEqual(
@@ -211,7 +211,7 @@ test.describe('configure', () => {
         languageCodes: STORED_LANGUAGE_CODES,
       });
       const redirect = await request.get(
-        getApiUrl(`/${userConfigId}/configure`),
+        getApiUrl(`/addon/${userConfigId}/configure`),
         {maxRedirects: 0},
       );
       expect(redirect.status()).toBe(StatusCodes.MOVED_TEMPORARILY);

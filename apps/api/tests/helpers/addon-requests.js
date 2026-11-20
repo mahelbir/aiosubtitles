@@ -12,7 +12,7 @@ export function asClientIp(callerIndex) {
 }
 
 export function toListPath({userConfigId, videoType = 'movie', videoId}) {
-  return `/${userConfigId}/subtitles/${videoType}/${videoId}.json`;
+  return `/addon/${userConfigId}/subtitles/${videoType}/${videoId}.json`;
 }
 
 export function toFilePath({
@@ -21,15 +21,15 @@ export function toFilePath({
   urlCode,
   fileExtension = 'srt',
 }) {
-  return `/${userConfigId}/subtitle-files/${videoId}/${urlCode}.${fileExtension}`;
+  return `/addon/${userConfigId}/subtitle-files/${videoId}/${urlCode}.${fileExtension}`;
 }
 
 export function toNoticePath({userConfigId, noticeName}) {
-  return `/${userConfigId}/subtitle-notices/${noticeName}.srt`;
+  return `/addon/${userConfigId}/subtitle-notices/${noticeName}.srt`;
 }
 
 export function toManifestPath(userConfigId) {
-  return `/${userConfigId}/manifest.json`;
+  return `/addon/${userConfigId}/manifest.json`;
 }
 
 export async function requestAddonPath(addonPath, headers = {}) {

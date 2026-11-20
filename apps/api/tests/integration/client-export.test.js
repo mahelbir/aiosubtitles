@@ -175,7 +175,7 @@ describe('the configure page redirects', () => {
   });
 
   it("sends Stremio's configure link to the page with the config's id", async () => {
-    const response = await get(`/${UUID_V4}/configure`);
+    const response = await get(`/addon/${UUID_V4}/configure`);
 
     expect(response.statusCode).toBe(StatusCodes.MOVED_TEMPORARILY);
     expect(response.headers.location).toBe(
@@ -189,7 +189,9 @@ describe('the configure page redirects', () => {
       '01890a5d-ac96-774b-bcce-b302099a8057',
       '00000000-0000-0000-0000-000000000000',
     ];
-    const responses = await Promise.all(ids.map(id => get(`/${id}/configure`)));
+    const responses = await Promise.all(
+      ids.map(id => get(`/addon/${id}/configure`)),
+    );
 
     for (const response of responses) {
       expect(response.statusCode).toBe(StatusCodes.MOVED_TEMPORARILY);
@@ -198,7 +200,7 @@ describe('the configure page redirects', () => {
   });
 
   it('drops an id that is not a UUID', async () => {
-    const response = await get('/not-a-uuid/configure');
+    const response = await get('/addon/not-a-uuid/configure');
 
     expect(response.statusCode).toBe(StatusCodes.MOVED_TEMPORARILY);
     expect(response.headers.location).toBe('/configure');
@@ -223,7 +225,7 @@ describe('an API booted for development', () => {
       const [root, page, stored, asset] = await Promise.all([
         app.inject({method: 'GET', url: '/'}),
         app.inject({method: 'GET', url: `/configure?userConfigId=${UUID_V4}`}),
-        app.inject({method: 'GET', url: `/${UUID_V4}/configure`}),
+        app.inject({method: 'GET', url: `/addon/${UUID_V4}/configure`}),
         app.inject({method: 'GET', url: CLIENT_EXPORT_ASSET_PATH}),
       ]);
 

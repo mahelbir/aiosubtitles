@@ -1,3 +1,4 @@
+import {getAddonUrl} from '../addon-url.js';
 import {SubtitleNotice} from './stremio-row-enums.js';
 
 export const buildNoticeRow = ({
@@ -8,7 +9,7 @@ export const buildNoticeRow = ({
   hiddenSubtitleCount,
 }) => ({
   id: `notice-${subtitleNotice}`,
-  url: `${baseUrl}/${userConfigId}/subtitle-notices/${subtitleNotice}.srt`,
+  url: `${getAddonUrl({baseUrl, userConfigId})}/subtitle-notices/${subtitleNotice}.srt`,
   lang: languageCode,
   label: SubtitleNotice.label(subtitleNotice).replace(
     '{hiddenSubtitleCount}',
